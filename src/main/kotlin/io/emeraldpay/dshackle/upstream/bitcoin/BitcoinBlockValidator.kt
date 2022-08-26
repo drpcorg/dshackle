@@ -49,12 +49,15 @@ class BitcoinBlockValidator : BlockValidator {
     }
 
     private fun validatePoW(bits: String, hash: String): Boolean {
-        val target = parseTarget(bits.toLong(16))
+        val target = readCompactForm(bits.toLong(16))
         val h = BigInteger(hash, 16)
         return h <= target
     }
 
-    private fun parseTarget(bits: Long): BigInteger {
+    /**
+     * https://developer.bitcoin.org/reference/block_chain.html#target-nbits
+     */
+    private fun readCompactForm(bits: Long): BigInteger {
         val size: Int = (bits shr 24).toInt() and 0xFF
         if (size == 0) {
             return BigInteger.ZERO
