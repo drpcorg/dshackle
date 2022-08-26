@@ -36,7 +36,7 @@ class BitcoinRpcHead(
     private val api: Reader<JsonRpcRequest, JsonRpcResponse>,
     private val extractBlock: ExtractBlock,
     private val interval: Duration = Duration.ofSeconds(15)
-) : Head, AbstractHead(MostWorkForkChoice()), Lifecycle {
+) : Head, AbstractHead(MostWorkForkChoice(), BitcoinBlockValidator()), Lifecycle {
 
     companion object {
         private val log = LoggerFactory.getLogger(BitcoinRpcHead::class.java)

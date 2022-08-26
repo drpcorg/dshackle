@@ -5,13 +5,15 @@ import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.upstream.BlockValidator
+import io.emeraldpay.dshackle.upstream.ByteUtils.Companion.fromHexString
+import io.emeraldpay.dshackle.upstream.ByteUtils.Companion.fromHexStringI
+import io.emeraldpay.dshackle.upstream.asUInt64LE
 import io.emeraldpay.dshackle.upstream.ethereum.RLP.Companion.encode
 import io.emeraldpay.dshackle.upstream.ethereum.RLP.Companion.encodeBigInt
 import io.emeraldpay.dshackle.upstream.ethereum.RLP.Companion.encodeList
-import io.emeraldpay.dshackle.upstream.ethereum.RLP.Companion.fromHexString
-import io.emeraldpay.dshackle.upstream.ethereum.RLP.Companion.fromHexStringI
+import io.emeraldpay.dshackle.upstream.keccak512
+import io.emeraldpay.dshackle.upstream.sha3
 import io.emeraldpay.etherjar.rpc.json.BlockJson
-import org.bouncycastle.jcajce.provider.digest.Keccak
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -75,7 +77,7 @@ class EthereumBlockValidator : BlockValidator {
     private fun validateHash(blockHash: BlockId, rlpEncoded: Map<String, ByteArray>): Boolean {
         val elements = ELEMENTS.mapNotNull { rlpEncoded[it] }.toList()
         val encoded = encodeList(elements)
-        return blockHash.value.contentEquals(sha3(encoded))
+        return blockHash.value.contentEquals(encoded.sha3())
     }
 
     private fun validateDifficulty(node: JsonNode, rlpEncoded: Map<String, ByteArray>): Boolean {
@@ -92,9 +94,9 @@ class EthereumBlockValidator : BlockValidator {
                 .mapNotNull { rlpEncoded[it] }
                 .toList()
         )
-        val headerHash = sha3(encoded)
-        val seed = Keccak.Digest512().digest(headerHash.plus(nonce.asUint64()))
-        val result = sha3(seed.plus(mix))
+        val headerHash = encoded.sha3()
+        val seed = headerHash.plus(nonce.asUInt64LE()).keccak512()
+        val result = seed.plus(mix).sha3()
         return target >= BigInteger(1, result)
     }
 
@@ -170,14 +172,4 @@ class EthereumBlockValidator : BlockValidator {
         }
         return valid
     }
-
-    private fun BigInteger.asUint64() = this.toByteArray().let { bytes ->
-        ByteArray(8) {
-            val index = bytes.size - it - 1
-            if (index < bytes.size) bytes[index] else 0
-        }
-    }
-
-    private fun sha3(byteArray: ByteArray): ByteArray =
-        Keccak.Digest256().digest(byteArray)
 }

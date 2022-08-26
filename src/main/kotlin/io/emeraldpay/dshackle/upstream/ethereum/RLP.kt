@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.dshackle.upstream.asUnsignedByteArray
 import java.math.BigInteger
 
 class RLP {
@@ -9,27 +10,6 @@ class RLP {
         private const val OFFSET_LONG_ITEM = 0xb7
         private const val OFFSET_SHORT_LIST = 0xc0
         private const val OFFSET_LONG_LIST = 0xf7
-
-        @JvmStatic
-        fun toHexString(bytes: ByteArray) = bytes.toHexString()
-
-        @JvmStatic
-        fun fromHexString(hexString: String?): ByteArray =
-            hexString?.let { hex ->
-                hex.replace("0x", "")
-                    .takeIf { it.length % 2 == 0 }
-                    ?.chunked(2)
-                    ?.map { it.toInt(16).toByte() }
-                    ?.toByteArray()
-                    ?: throw IllegalArgumentException("Invalid HEX string '$hexString'")
-            } ?: byteArrayOf()
-
-        @JvmStatic
-        fun fromHexStringI(hexString: String?): BigInteger =
-            hexString?.let { hex ->
-                val replace = hex.replace("0x", "")
-                BigInteger(replace, 16)
-            } ?: BigInteger.ZERO
 
         @JvmStatic
         fun encodeBigInt(value: BigInteger) =
@@ -94,9 +74,3 @@ class RLP {
         }
     }
 }
-
-fun ByteArray.toHexString() = joinToString(separator = "") { "%02x".format(it) }.uppercase()
-fun BigInteger.asUnsignedByteArray(): ByteArray =
-    toByteArray().let {
-        if (it[0] == 0.toByte()) it.copyOfRange(1, it.size) else it
-    }

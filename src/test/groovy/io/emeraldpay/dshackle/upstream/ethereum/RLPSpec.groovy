@@ -1,8 +1,9 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
+
 import spock.lang.Specification
 
-import static io.emeraldpay.dshackle.upstream.ethereum.RLP.toHexString
+import static io.emeraldpay.dshackle.upstream.ByteUtils.toHexString
 
 class RLPSpec extends Specification {
 

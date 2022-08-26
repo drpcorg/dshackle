@@ -21,7 +21,7 @@ class BitcoinZMQHead(
     private val server: ZMQServer,
     private val api: Reader<JsonRpcRequest, JsonRpcResponse>,
     private val extractBlock: ExtractBlock,
-) : Head, AbstractHead(MostWorkForkChoice()), Lifecycle {
+) : Head, AbstractHead(MostWorkForkChoice(), BitcoinBlockValidator()), Lifecycle {
 
     companion object {
         private val log = LoggerFactory.getLogger(BitcoinZMQHead::class.java)
