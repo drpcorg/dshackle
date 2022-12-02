@@ -40,6 +40,7 @@ class QuorumRpcReaderSpec extends Specification {
         def up = Mock(Upstream) {
             _ * isAvailable() >> true
             _ * getRole() >> UpstreamsConfig.UpstreamRole.PRIMARY
+            _ * nodeIds() >> Collections.singleton(1.byteValue())
             1 * getApi() >> Mock(Reader) {
                 1 * read(new JsonRpcRequest("eth_test", [])) >> Mono.just(JsonRpcResponse.ok("1"))
             }
@@ -137,6 +138,7 @@ class QuorumRpcReaderSpec extends Specification {
         def up = Mock(Upstream) {
             _ * isAvailable() >> true
             _ * getRole() >> UpstreamsConfig.UpstreamRole.PRIMARY
+            _ * nodeIds() >> Collections.singleton(1.byteValue())
             _ * getApi() >> Mock(Reader) {
                 2 * read(new JsonRpcRequest("eth_test", [])) >>> [
                         Mono.just(JsonRpcResponse.ok("null")),
@@ -169,6 +171,7 @@ class QuorumRpcReaderSpec extends Specification {
         def up = Mock(Upstream) {
             _ * isAvailable() >> true
             _ * getRole() >> UpstreamsConfig.UpstreamRole.PRIMARY
+            _ * nodeIds() >> Collections.singleton(1.byteValue())
             _ * getApi() >> Mock(Reader) {
                 2 * read(new JsonRpcRequest("eth_test", [])) >>> [
                         Mono.just(JsonRpcResponse.error(1, "test")),
@@ -200,6 +203,7 @@ class QuorumRpcReaderSpec extends Specification {
         def up = Mock(Upstream) {
             _ * isAvailable() >> true
             _ * getRole() >> UpstreamsConfig.UpstreamRole.PRIMARY
+            _ * nodeIds() >> Collections.singleton(1.byteValue())
             _ * getApi() >> Mock(Reader) {
                 3 * read(new JsonRpcRequest("eth_test", [])) >>> [
                         Mono.just(JsonRpcResponse.ok("null")),

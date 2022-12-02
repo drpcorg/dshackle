@@ -26,14 +26,16 @@ import java.util.concurrent.atomic.AtomicReference
 
 abstract class DefaultUpstream(
     private val id: String,
-    private val hash: Byte,
+    hash: Byte,
     defaultLag: Long,
     defaultAvail: UpstreamAvailability,
     private val options: UpstreamsConfig.Options,
     private val role: UpstreamsConfig.UpstreamRole,
     private val targets: CallMethods?,
-    private val node: QuorumForLabels.QuorumItem?
+    node: QuorumForLabels.QuorumItem?
 ) : Upstream {
+
+    private val nodeIds = setOf(hash)
 
     constructor(
         id: String,
@@ -143,7 +145,7 @@ abstract class DefaultUpstream(
         return targets ?: throw IllegalStateException("Methods are not set")
     }
 
-    override fun nodeId(): Byte = hash
+    override fun nodeIds(): Set<Byte> = nodeIds
 
     private val quorumByLabel = node?.let { QuorumForLabels(it) }
         ?: QuorumForLabels(QuorumForLabels.QuorumItem.empty())

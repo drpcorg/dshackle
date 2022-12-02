@@ -399,7 +399,7 @@ class Selector {
 
     class SameNodeMatcher(private val upstreamHash: Byte) : Matcher {
         override fun matches(up: Upstream): Boolean =
-            up.nodeId() == upstreamHash
+            up.nodeIds().contains(upstreamHash)
 
         override fun describeInternal(): String =
             "upstream node-id=${upstreamHash.toUByte()}"
@@ -413,5 +413,7 @@ class Selector {
             if (other !is SameNodeMatcher) return false
             return other.upstreamHash == upstreamHash
         }
+
+        override fun hashCode(): Int = upstreamHash.toInt()
     }
 }

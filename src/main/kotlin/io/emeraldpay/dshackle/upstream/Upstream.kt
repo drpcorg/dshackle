@@ -41,5 +41,5 @@ interface Upstream {
 
     fun <T : Upstream> cast(selfType: Class<T>): T
 
-    fun nodeId(): Byte
+    fun nodeIds(): Set<Byte>
 }

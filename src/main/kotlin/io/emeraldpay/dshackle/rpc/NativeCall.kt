@@ -71,12 +71,14 @@ open class NativeCall(
             BlockchainType.EVM_POS to EthereumPosMultiStream::class.java,
             BlockchainType.EVM_POW to EthereumMultistream::class.java
         )
+
+        val ethChains: List<BlockchainType> = listOf(BlockchainType.EVM_POS, BlockchainType.EVM_POW)
     }
 
     @EventListener
     fun onUpstreamChangeEvent(event: UpstreamChangeEvent) {
         casting[BlockchainType.from(event.chain)]?.let { cast ->
-            multistreamHolder.getUpstream(event.chain)?.let { up ->
+            multistreamHolder.getUpstream(event.chain).let { up ->
                 val reader = up.cast(cast).getReader()
                 ethereumCallSelectors.putIfAbsent(event.chain, EthereumCallSelector(reader.heightByHash()))
             }
@@ -217,12 +219,22 @@ open class NativeCall(
         }
         // for ethereum the actual block needed for the call may be specified in the call parameters
         val callSpecificMatcher: Mono<Selector.Matcher> =
-            if (BlockchainType.from(upstream.chain) == BlockchainType.EVM_POS || BlockchainType.from(upstream.chain) == BlockchainType.EVM_POW) {
+            if (BlockchainType.from(upstream.chain) in ethChains) {
                 ethereumCallSelectors[chain]?.getMatcher(method, params, upstream.getHead())
             } else {
                 null
             } ?: Mono.empty()
         return callSpecificMatcher.defaultIfEmpty(Selector.empty).map { csm ->
+            if (!csm.matches(upstream)) {
+                val errorMessage = "No upstream matching criteria: ${csm.describeInternal()}"
+                return@map InvalidCallContext(
+                    CallError(
+                        requestItem.id,
+                        errorMessage,
+                        JsonRpcError(RpcResponseError.CODE_UPSTREAM_CONNECTION_ERROR, errorMessage)
+                    )
+                )
+            }
             val matcher = Selector.Builder()
                 .withMatcher(csm)
                 .forMethod(method)

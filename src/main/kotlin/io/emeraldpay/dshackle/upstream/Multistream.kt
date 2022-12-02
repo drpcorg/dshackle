@@ -290,7 +290,7 @@ abstract class Multistream(
         return false
     }
 
-    override fun nodeId(): Byte = 0
+    override fun nodeIds(): Set<Byte> = upstreams.flatMap { it.nodeIds() }.toSet()
 
     fun printStatus() {
         var height: Long? = null
