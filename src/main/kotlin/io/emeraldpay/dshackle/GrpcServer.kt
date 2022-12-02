@@ -16,7 +16,6 @@
  */
 package io.emeraldpay.dshackle
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.monitoring.accesslog.AccessHandlerGrpc
 import io.grpc.Server
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.net.InetSocketAddress
-import java.util.concurrent.Executors
 import javax.annotation.PostConstruct
 import javax.annotation.PreDestroy
 
