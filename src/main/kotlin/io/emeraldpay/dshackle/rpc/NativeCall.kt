@@ -272,8 +272,8 @@ open class NativeCall(
             .flatMap { api ->
                 api.read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
                     .flatMap(JsonRpcResponse::requireResult)
+                    .filter { validateResult(it, "local", ctx) }
                     .map {
-                        validateResult(it, "local", ctx)
                         if (ctx.nonce != null) {
                             CallResult.ok(ctx.id, ctx.nonce, it, signer.sign(ctx.nonce, it, ctx.upstream.getId()), ctx.upstream.getId())
                         } else {
@@ -304,8 +304,14 @@ open class NativeCall(
             .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
             .map {
                 val bytes = ctx.resultDecorator.processResult(it)
-                validateResult(bytes, "remote", ctx)
-                CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, ctx.upstream.getId())
+                if (validateResult(bytes, "remote", ctx)) {
+                    CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, ctx.upstream.getId())
+                } else {
+                    CallResult.fail(
+                        ctx.id, ctx.nonce,
+                        CallError(1, "No response for ${ctx.payload.method}", null)
+                    )
+                }
             }
             .onErrorResume { t ->
                 Mono.just(CallResult.fail(ctx.id, ctx.nonce, t))
@@ -324,9 +330,13 @@ open class NativeCall(
             )
     }
 
-    private fun validateResult(bytes: ByteArray, origin: String, ctx: ValidCallContext<ParsedCallDetails>) {
-        if (bytes.isEmpty())
+    private fun validateResult(bytes: ByteArray, origin: String, ctx: ValidCallContext<ParsedCallDetails>): Boolean {
+        return if (bytes.isEmpty()) {
             log.warn("Empty result from origin $origin, method ${ctx.payload.method}, params ${ctx.payload.params}")
+            false
+        } else {
+            true
+        }
     }
 
     private fun errorMessage(attempts: Int, method: String): String =
