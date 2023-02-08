@@ -40,7 +40,6 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import java.time.Duration
 import java.time.Instant
-import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Predicate
@@ -105,8 +104,6 @@ abstract class Multistream(
         }
     }
 
-    private fun Boolean.toDouble() = if (this) 1.0 else 0.0
-
     private fun removeUpstreamMeters(upstreamId: String) {
         meters[upstreamId]?.forEach {
             Metrics.globalRegistry.remove(it)
@@ -119,28 +116,18 @@ abstract class Multistream(
         // otherwise metric will stuck with prev upstream instance
         removeUpstreamMeters(upstreamId)
 
-        val upstreamGauges = mutableListOf(
+        meters[upstreamId] = listOf(
             Gauge.builder("$metrics.lag", upstream) { it.getLag().toDouble() }
                 .tag("chain", chain.chainCode)
                 .tag("upstream", upstreamId)
                 .register(Metrics.globalRegistry)
-                .id
+                .id,
+            Gauge.builder("$metrics.availability.status", upstream) { it.getStatus().grpcId.toDouble() }
+                .tag("chain", chain.chainCode)
+                .tag("upstream", upstreamId)
+                .register(Metrics.globalRegistry)
+                .id,
         )
-
-        UpstreamAvailability.values().forEach { status ->
-            upstreamGauges.add(
-                Gauge.builder("$metrics.availability.detailed", upstream) {
-                    (it.getStatus() == status).toDouble()
-                }
-                    .tag("chain", chain.chainCode)
-                    .tag("upstream", upstreamId)
-                    .tag("status", status.name.lowercase())
-                    .register(Metrics.globalRegistry)
-                    .id,
-            )
-        }
-
-        meters[upstreamId] = upstreamGauges
     }
 
     open fun init() {
