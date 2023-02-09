@@ -68,17 +68,12 @@ open class GrpcServer(
             .let {
                 if (mainConfig.accessLogConfig.enabled) {
                     it.intercept(accessHandler)
-                } else {
-                    it
                 }
-            }
-            .let {
                 if (mainConfig.compression.grpc.serverEnabled) {
-                    log.info("Compression enabled for gRPC server")
                     it.intercept(CompressionInterceptor())
-                } else {
-                    it
+                    log.info("Compression enabled for gRPC server")
                 }
+                it
             }
 
         tlsSetup.setupServer("Native gRPC", mainConfig.tls, true)?.let {
