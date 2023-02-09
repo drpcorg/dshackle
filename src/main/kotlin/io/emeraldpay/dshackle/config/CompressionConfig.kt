@@ -15,8 +15,8 @@ class CompressionConfig(
      * ```
      */
     class GRPC(
-        var serverEnabled: Boolean = false,
-        var clientEnabled: Boolean = false
+        var serverEnabled: Boolean = true,
+        var clientEnabled: Boolean = true
     )
 
     companion object {

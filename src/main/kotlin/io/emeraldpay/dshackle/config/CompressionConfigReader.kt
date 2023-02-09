@@ -20,12 +20,12 @@ class CompressionConfigReader : YamlConfigReader(), ConfigReader<CompressionConf
     private fun readGRPC(grpcCompressionConfig: CompressionConfig.GRPC, input: MappingNode?) {
         getMapping(input, "server")?.let { serverNode ->
             getValueAsBool(serverNode, "enabled")?.let {
-                grpcCompressionConfig.serverEnabled = true
+                grpcCompressionConfig.serverEnabled = it
             }
         }
         getMapping(input, "client")?.let { clientNode ->
             getValueAsBool(clientNode, "enabled")?.let {
-                grpcCompressionConfig.clientEnabled = true
+                grpcCompressionConfig.clientEnabled = it
             }
         }
     }
