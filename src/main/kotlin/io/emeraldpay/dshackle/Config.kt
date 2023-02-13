@@ -17,6 +17,7 @@
 package io.emeraldpay.dshackle
 
 import io.emeraldpay.dshackle.config.CacheConfig
+import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.CompressionConfig
 import io.emeraldpay.dshackle.config.HealthConfig
 import io.emeraldpay.dshackle.config.MainConfig
@@ -146,5 +147,10 @@ open class Config(
     @Bean
     open fun healthConfig(@Autowired mainConfig: MainConfig): HealthConfig {
         return mainConfig.health
+    }
+
+    @Bean
+    open fun chainsConfig(mainConfig: MainConfig): ChainsConfig {
+        return mainConfig.chains
     }
 }

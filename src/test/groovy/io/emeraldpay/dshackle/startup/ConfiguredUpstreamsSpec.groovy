@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.startup
 
 import io.emeraldpay.dshackle.FileResolver
+import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.CompressionConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.quorum.NonEmptyQuorum
@@ -25,7 +26,8 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Stub(CompressionConfig),
                 callTargetsHolder,
                 Mock(ApplicationEventPublisher),
-                Executors.newFixedThreadPool(1)
+                Executors.newFixedThreadPool(1),
+                ChainsConfig.default()
         )
         def methods = new UpstreamsConfig.Methods(
                 [
@@ -52,7 +54,8 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Stub(CompressionConfig),
                 callTargetsHolder,
                 Mock(ApplicationEventPublisher),
-                Executors.newFixedThreadPool(1)
+                Executors.newFixedThreadPool(1),
+                ChainsConfig.default()
         )
         def methods = new UpstreamsConfig.Methods(
                 [
@@ -78,7 +81,8 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Stub(CompressionConfig),
                 callTargetsHolder,
                 Mock(ApplicationEventPublisher),
-                Executors.newFixedThreadPool(1)
+                Executors.newFixedThreadPool(1),
+                ChainsConfig.default()
         )
         expect:
         configurer.getHash(node, src) == expected
@@ -99,7 +103,8 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Stub(CompressionConfig),
                 callTargetsHolder,
                 Mock(ApplicationEventPublisher),
-                Executors.newFixedThreadPool(1)
+                Executors.newFixedThreadPool(1),
+                ChainsConfig.default()
         )
         when:
         def h1 = configurer.getHash(null, "hohoho")
@@ -125,7 +130,8 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Stub(CompressionConfig),
                 callTargetsHolder,
                 Mock(ApplicationEventPublisher),
-                Executors.newFixedThreadPool(1)
+                Executors.newFixedThreadPool(1),
+                ChainsConfig.default()
         )
         def methodsGroup = new UpstreamsConfig.MethodGroups(
                 ["filter"] as Set,
