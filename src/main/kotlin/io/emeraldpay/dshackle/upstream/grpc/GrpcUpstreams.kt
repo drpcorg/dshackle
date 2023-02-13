@@ -94,13 +94,9 @@ class GrpcUpstreams(
             chanelBuilder.usePlaintext()
         }
 
-        val client = ReactorBlockchainGrpc.newReactorStub(chanelBuilder.build()).let {
-            var builder = it
-            if (compression) {
-                builder = builder.withCompression(Codec.Gzip().messageEncoding)
-                log.info("Compression enabled for gRPC client")
-            }
-            builder
+        var client = ReactorBlockchainGrpc.newReactorStub(chanelBuilder.build())
+        if (compression) {
+            client = client.withCompression(Codec.Gzip().messageEncoding)
         }
         this.client = client
 
