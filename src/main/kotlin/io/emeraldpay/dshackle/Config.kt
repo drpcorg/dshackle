@@ -17,6 +17,7 @@
 package io.emeraldpay.dshackle
 
 import io.emeraldpay.dshackle.config.CacheConfig
+import io.emeraldpay.dshackle.config.CompressionConfig
 import io.emeraldpay.dshackle.config.HealthConfig
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.MainConfigReader
@@ -115,6 +116,11 @@ open class Config(
     @Bean
     open fun upstreamsConfig(@Autowired mainConfig: MainConfig): UpstreamsConfig? {
         return mainConfig.upstreams
+    }
+
+    @Bean
+    open fun compressionConfig(@Autowired mainConfig: MainConfig): CompressionConfig {
+        return mainConfig.compression
     }
 
     @Bean
