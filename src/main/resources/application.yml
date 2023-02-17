@@ -1,6 +1,6 @@
 spring:
   application:
-    name: ${APP_NAME:dshackle}
+    name: ${DRPC_APP_NAME:dshackle}
   zipkin:
     enabled: ${ZIPKIN_ENABLE:false}
     base-url: ${ZIPKIN_URL:http://localhost:9411/}
