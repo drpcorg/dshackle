@@ -126,14 +126,19 @@ open class NativeCall(
     }
 
     private fun completeSpan(callResult: CallResult, requestCount: Int) {
+        val span = tracer.currentSpan()
+        if (callResult.isError()) {
+            errorSpan(span, callResult.error?.message ?: "Internal error")
+        }
         if (requestCount > 1) {
-            val span = tracer.currentSpan()
-            if (callResult.isError()) {
-                span?.error(
-                    RuntimeException(callResult.error?.message ?: "Internal error")
-                )
-            }
             span?.end()
+        }
+    }
+
+    private fun errorSpan(span: Span?, message: String) {
+        span?.apply {
+            tag("error", "true")
+            tag("status.message", message)
         }
     }
 
@@ -222,7 +227,7 @@ open class NativeCall(
             log.error("Lost context for a native call", it)
             0
         }
-        tracer.currentSpan()?.error(it)
+        errorSpan(tracer.currentSpan(), it?.message ?: "Internal error")
         return BlockchainOuterClass.NativeCallReplyItem.newBuilder()
             .setSucceed(false)
             .setErrorMessage(it?.message ?: "Internal error")
