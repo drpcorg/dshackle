@@ -227,10 +227,11 @@ open class NativeCall(
             log.error("Lost context for a native call", it)
             0
         }
-        errorSpan(tracer.currentSpan(), it?.message ?: "Internal error")
+        val message = it?.message ?: "Internal error"
+        errorSpan(tracer.currentSpan(), message)
         return BlockchainOuterClass.NativeCallReplyItem.newBuilder()
             .setSucceed(false)
-            .setErrorMessage(it?.message ?: "Internal error")
+            .setErrorMessage(message)
             .setErrorCode(500)
             .setId(id)
             .build()
