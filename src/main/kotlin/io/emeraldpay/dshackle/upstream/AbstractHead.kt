@@ -164,7 +164,8 @@ abstract class AbstractHead @JvmOverloads constructor(
                     val delay = System.currentTimeMillis() - lastHeadUpdated
                     delayed.set(delay > awaitHeadTimeoutMs)
                     if (delayed.get()) {
-                        log.warn("No head updates $upstreamId for $delay ms @ ${this.javaClass.simpleName}")
+                        log.warn("No head updates $upstreamId for $delay ms @ ${this.javaClass.simpleName}. Restart...")
+                        start()
                     }
                 }, 180, 30, TimeUnit.SECONDS
             )
