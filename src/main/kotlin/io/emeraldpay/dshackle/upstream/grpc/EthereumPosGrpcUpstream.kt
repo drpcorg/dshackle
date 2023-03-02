@@ -111,7 +111,7 @@ open class EthereumPosGrpcUpstream(
     private val grpcHead = GrpcHead(chain, this, remote, blockConverter, reloadBlock, NoChoiceWithPriorityForkChoice(nodeRating, parentId))
     private var capabilities: Set<Capability> = emptySet()
 
-    private val defaultReader: JsonRpcReader = client.getReader()
+    private val defaultReader: JsonRpcReader = client.getReader(parentId)
     private val timeout = Defaults.timeout
     private val ethereumSubscriptions = EthereumDshackleIngressSubscription(chain, remote)
 

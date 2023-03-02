@@ -190,22 +190,27 @@ open class NativeCall(
         return it.withPayload(ParsedCallDetails(it.payload.method, params))
     }
 
-    fun buildResponse(it: CallResult): BlockchainOuterClass.NativeCallReplyItem {
-        val result = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
-            .setSucceed(!it.isError())
-            .setId(it.id)
-        if (it.isError()) {
-            it.error?.let { error ->
-                result.setErrorMessage(error.message).setErrorCode(error.id)
+    fun buildResponse(callResult: CallResult): BlockchainOuterClass.NativeCallReplyItem {
+        val nativeCallReplyBuilder = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
+            .setSucceed(!callResult.isError())
+            .setId(callResult.id)
+        if (callResult.isError()) {
+            callResult.error?.let { error ->
+                nativeCallReplyBuilder
+                    .setErrorMessage(error.message)
+                    .setErrorCode(error.id)
+                error.errorContainer?.let {
+                    nativeCallReplyBuilder.setError(it.asReplyErrorContainer())
+                }
             }
         } else {
-            result.payload = ByteString.copyFrom(it.result)
+            nativeCallReplyBuilder.payload = ByteString.copyFrom(callResult.result)
         }
-        if (it.nonce != null && it.signature != null) {
-            result.signature = buildSignature(it.nonce, it.signature)
+        if (callResult.nonce != null && callResult.signature != null) {
+            nativeCallReplyBuilder.signature = buildSignature(callResult.nonce, callResult.signature)
         }
-        it.upstreamId ?.let { result.upstreamId = it }
-        return result.build()
+        callResult.upstreamId ?.let { nativeCallReplyBuilder.upstreamId = it }
+        return nativeCallReplyBuilder.build()
     }
 
     fun buildSignature(
@@ -586,10 +591,73 @@ open class NativeCall(
 
     open class CallFailure(val id: Int, val reason: Throwable) : Exception("Failed to call $id: ${reason.message}")
 
-    open class CallError(val id: Int, val message: String, val upstreamError: JsonRpcError?) {
+    class UpstreamCallException(
+        val upstreamId: String,
+        val code: Int,
+        override val message: String,
+        val error: BlockchainOuterClass.NativeCallReplyErrorContainer?,
+    ) : Exception(message), ErrorContainer {
+        override fun asReplyErrorContainer(): BlockchainOuterClass.NativeCallReplyErrorContainer {
+            return BlockchainOuterClass.NativeCallReplyErrorContainer
+                .newBuilder()
+                .setMessage(message)
+                .setCode(code)
+                .setUpstream(
+                    BlockchainOuterClass.NativeCallUpstreamError
+                        .newBuilder()
+                        .setUpstreamId(upstreamId)
+                        .let {
+                            error?.let { e -> it.setUpstreamError(e) } ?: it
+                        }
+                ).build()
+        }
+    }
+
+    class UpstreamInteractionException(
+        val upstreamId: String,
+        val status: io.grpc.Status?,
+        override val message: String?,
+    ) : Exception(message ?: status?.toString()), ErrorContainer {
+        constructor(upstreamId: String, status: io.grpc.Status) : this(upstreamId, status, status.toString())
+        constructor(upstreamId: String, t: Throwable) : this(upstreamId, null, t.message)
+
+        override fun asReplyErrorContainer(): BlockchainOuterClass.NativeCallReplyErrorContainer {
+            return BlockchainOuterClass.NativeCallReplyErrorContainer
+                .newBuilder()
+                .setMessage(message)
+                .setCode(RpcResponseError.CODE_UPSTREAM_CONNECTION_ERROR)
+                .setInteraction(
+                    BlockchainOuterClass.NativeCallInteractionError
+                        .newBuilder()
+                        .setUpstreamId(upstreamId)
+                        .let {
+                            status?.let { s ->
+                                it.setGrpcStatus(
+                                    com.google.rpc.Status.newBuilder()
+                                        .setCode(s.code.value())
+                                        .setMessage(s.description)
+                                )
+                            } ?: it
+                        }
+                ).build()
+        }
+    }
+
+    interface ErrorContainer {
+        fun asReplyErrorContainer(): BlockchainOuterClass.NativeCallReplyErrorContainer
+    }
+
+    open class CallError(
+        val id: Int,
+        val message: String,
+        val upstreamError: JsonRpcError?,
+        val errorContainer: ErrorContainer?
+    ) {
+        constructor(id: Int, message: String, upstreamError: JsonRpcError?) : this(id, message, upstreamError, null)
         companion object {
             fun from(t: Throwable): CallError {
                 return when (t) {
+                    is UpstreamCallException -> CallError(t.code, t.message, null, t)
                     is JsonRpcException -> CallError(t.id.asNumber().toInt(), t.error.message, t.error)
                     is RpcException -> CallError(t.code, t.rpcMessage, null)
                     is CallFailure -> CallError(t.id, t.reason.message ?: "Upstream Error", null)

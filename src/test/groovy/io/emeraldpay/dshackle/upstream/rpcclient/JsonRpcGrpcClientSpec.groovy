@@ -35,7 +35,7 @@ class JsonRpcGrpcClientSpec extends Specification {
         })
         def client = new JsonRpcGrpcClient(
                 grpc, Chain.BITCOIN, null
-        ).getReader()
+        ).getReader("test_upstream")
 
         when:
         def act = client.read(
@@ -69,7 +69,7 @@ class JsonRpcGrpcClientSpec extends Specification {
         })
         def client = new JsonRpcGrpcClient(
                 grpc, Chain.BITCOIN, null
-        ).getReader()
+        ).getReader("test_upstream")
 
         when:
         client.read(

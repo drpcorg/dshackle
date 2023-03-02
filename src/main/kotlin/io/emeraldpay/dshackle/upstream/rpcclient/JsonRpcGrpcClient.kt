@@ -22,9 +22,8 @@ import io.emeraldpay.api.proto.ReactorBlockchainGrpc
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.reader.JsonRpcReader
+import io.emeraldpay.dshackle.rpc.NativeCall
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
-import io.emeraldpay.etherjar.rpc.RpcException
-import io.emeraldpay.etherjar.rpc.RpcResponseError
 import io.grpc.StatusRuntimeException
 import org.apache.commons.lang3.time.StopWatch
 import org.slf4j.LoggerFactory
@@ -41,11 +40,12 @@ class JsonRpcGrpcClient(
         private val log = LoggerFactory.getLogger(JsonRpcGrpcClient::class.java)
     }
 
-    fun getReader(): JsonRpcReader {
-        return Executor(stub, chain, metrics)
+    fun getReader(upstreamId: String): JsonRpcReader {
+        return Executor(upstreamId, stub, chain, metrics)
     }
 
     class Executor(
+        private val upstreamId: String,
         private val stub: ReactorBlockchainGrpc.ReactorBlockchainStub,
         private val chain: Chain,
         private val metrics: RpcMetrics?
@@ -93,10 +93,13 @@ class JsonRpcGrpcClient(
                 Mono.just(JsonRpcResponse(bytes, null, JsonRpcResponse.NumberId(0), signature, resp.upstreamId))
             } else {
                 metrics?.fails?.increment()
+                val upstreamError = if (resp.hasError()) resp.error else null
                 Mono.error(
-                    RpcException(
-                        RpcResponseError.CODE_UPSTREAM_CONNECTION_ERROR,
-                        resp.errorMessage
+                    NativeCall.UpstreamCallException(
+                        upstreamId,
+                        resp.errorCode,
+                        resp.errorMessage,
+                        upstreamError,
                     )
                 )
             }
@@ -105,17 +108,10 @@ class JsonRpcGrpcClient(
             metrics?.fails?.increment()
             return when (t) {
                 is StatusRuntimeException -> Mono.error(
-                    RpcException(
-                        RpcResponseError.CODE_UPSTREAM_CONNECTION_ERROR,
-                        "Remote status code: ${t.status.code.name}"
-                    )
+                    NativeCall.UpstreamInteractionException(upstreamId, t.status)
                 )
-
                 else -> Mono.error(
-                    RpcException(
-                        RpcResponseError.CODE_UPSTREAM_CONNECTION_ERROR,
-                        "Other connection error"
-                    )
+                    NativeCall.UpstreamInteractionException(upstreamId, t)
                 )
             }
         }

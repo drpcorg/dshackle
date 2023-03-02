@@ -69,7 +69,7 @@ class BitcoinGrpcUpstream(
     }
 
     private val extractBlock = ExtractBlock()
-    private val defaultReader: JsonRpcReader = client.getReader()
+    private val defaultReader: JsonRpcReader = client.getReader(parentId)
     private val blockConverter: Function<BlockchainOuterClass.ChainHead, BlockContainer> = Function { value ->
         val block = BlockContainer(
             value.height,
