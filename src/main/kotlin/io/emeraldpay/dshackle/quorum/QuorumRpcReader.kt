@@ -19,7 +19,7 @@ import io.emeraldpay.dshackle.commons.API_READER
 import io.emeraldpay.dshackle.commons.SPAN_REQUEST_API_TYPE
 import io.emeraldpay.dshackle.commons.SPAN_REQUEST_UPSTREAM_ID
 import io.emeraldpay.dshackle.reader.Reader
-import io.emeraldpay.dshackle.reader.SpanEnrichmentReader
+import io.emeraldpay.dshackle.reader.SpannedReader
 import io.emeraldpay.dshackle.upstream.ApiSource
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcError
@@ -140,7 +140,7 @@ class QuorumRpcReader(
             SPAN_REQUEST_API_TYPE to apiReader.javaClass.name,
             SPAN_REQUEST_UPSTREAM_ID to api.getId()
         )
-        return SpanEnrichmentReader(apiReader, tracer, API_READER, spanParams)
+        return SpannedReader(apiReader, tracer, API_READER, spanParams)
             .read(key)
             .flatMap { response ->
                 log.debug("Received response from upstream ${api.getId()} for method ${key.method}")
