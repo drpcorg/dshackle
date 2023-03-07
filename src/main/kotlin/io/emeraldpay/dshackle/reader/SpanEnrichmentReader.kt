@@ -12,7 +12,7 @@ import org.springframework.cloud.sleuth.instrument.reactor.ReactorSleuth
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
 
-class SpanReader<K, D>(
+class SpanEnrichmentReader<K, D>(
     private val reader: Reader<K, D>,
     private val tracer: Tracer,
     private val name: String,

@@ -33,7 +33,7 @@ import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.quorum.NotLaggingQuorum
 import io.emeraldpay.dshackle.quorum.QuorumReaderFactory
 import io.emeraldpay.dshackle.quorum.QuorumRpcReader
-import io.emeraldpay.dshackle.reader.SpanReader
+import io.emeraldpay.dshackle.reader.SpanEnrichmentReader
 import io.emeraldpay.dshackle.startup.UpstreamChangeEvent
 import io.emeraldpay.dshackle.upstream.ApiSource
 import io.emeraldpay.dshackle.upstream.Multistream
@@ -364,7 +364,7 @@ open class NativeCall(
     fun fetch(ctx: ValidCallContext<ParsedCallDetails>): Mono<CallResult> {
         return ctx.upstream.getLocalReader(localRouterEnabled)
             .flatMap { api ->
-                SpanReader(api, tracer, LOCAL_READER)
+                SpanEnrichmentReader(api, tracer, LOCAL_READER)
                     .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
                     .flatMap(JsonRpcResponse::requireResult)
                     .map {
@@ -395,7 +395,7 @@ open class NativeCall(
             AtomicInteger(-1)
         }
 
-        return SpanReader(reader, tracer, REMOTE_QUORUM_RPC_READER)
+        return SpanEnrichmentReader(reader, tracer, REMOTE_QUORUM_RPC_READER)
             .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
             .map {
                 val bytes = ctx.resultDecorator.processResult(it)
