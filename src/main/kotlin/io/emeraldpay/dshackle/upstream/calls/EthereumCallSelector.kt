@@ -68,9 +68,9 @@ class EthereumCallSelector(
             return blockTagSelector(params, 2, null, head)
         } else if (method in DefaultEthereumMethods.withFilterIdMethods) {
             return sameUpstreamMatcher(params)
-        } else if (method in GET_BY_HASH_OR_NUMBER_METHODS) {
+        } else if (!passthrough && method in GET_BY_HASH_OR_NUMBER_METHODS) {
             return blockMethodSelector(method, params, head)
-        } else if (method == "eth_getLogs") {
+        } else if (!passthrough && method == "eth_getLogs") {
             return blockTagSelector(params, 0, "toBlock", head)
         }
         return Mono.empty()
