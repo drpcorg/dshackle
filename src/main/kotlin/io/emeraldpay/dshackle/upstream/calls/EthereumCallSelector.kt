@@ -102,8 +102,12 @@ class EthereumCallSelector(
         return if (blockTag.startsWith("{") && list[pos] is Map<*, *>) {
             val obj = list[pos] as Map<*, *>
             when {
-                obj.containsKey(paramName) -> {
-                    return blockSelectorByTag(obj[paramName].toString(), head)
+                paramName != null -> {
+                    return if (obj.containsKey(paramName)) {
+                        blockSelectorByTag(obj[paramName].toString(), head)
+                    } else {
+                        Mono.empty()
+                    }
                 }
                 obj.containsKey("blockNumber") -> {
                     return blockSelectorByTag(obj["blockNumber"].toString(), head)

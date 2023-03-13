@@ -307,4 +307,28 @@ class EthereumCallSelectorSpec extends Specification {
         where:
         resultFromCache << [Mono.empty(), Mono.error(new RuntimeException())]
     }
+
+    def "Get height matcher for getLogs method"() {
+        setup:
+        def cache = Stub(Caches)
+        def callSelector = new EthereumCallSelector(Stub(Reader), cache)
+        def head = Mock(Head) {
+            _ * getCurrentHeight() >> 17654321L
+        }
+
+        when:
+        def act = callSelector.getMatcher(method, param, head, false)
+
+        then:
+        StepVerifier.create(act)
+                .expectNext(new Selector.HeightMatcher(height))
+                .expectComplete()
+                .verify(Duration.ofSeconds(1))
+
+        where:
+        method | param | height
+        "eth_getLogs" | '[{"toBlock":"0xfbfe3b"}]' | 16514619L
+        "eth_getLogs" | '[{"toBlock":"latest"}]' | 17654321L
+        "eth_getLogs" | '[{"toBlock":"earliest"}]' | 0L
+    }
 }
