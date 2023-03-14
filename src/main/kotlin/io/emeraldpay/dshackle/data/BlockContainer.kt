@@ -93,6 +93,8 @@ class BlockContainer(
         return BlockContainer(height, hash, difficulty, timestamp, full, json, parsed, transactions, nodeRating)
     }
 
+    fun isEnriched(): Boolean = transactions.isNotEmpty()
+
     override fun hashCode(): Int {
         var result = super.hashCode()
         result = 31 * result + height.hashCode()
