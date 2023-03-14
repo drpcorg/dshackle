@@ -207,7 +207,7 @@ open class Caches(
         return receiptByHash
     }
 
-    fun getLastHeightByHash(): Reader<BlockId, Long> {
+    open fun getLastHeightByHash(): Reader<BlockId, Long> {
         return memHeightByHash
     }
 

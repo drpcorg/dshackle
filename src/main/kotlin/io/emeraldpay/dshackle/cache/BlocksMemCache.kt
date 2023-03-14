@@ -39,7 +39,7 @@ open class BlocksMemCache(
     }
 
     open fun add(block: BlockContainer) {
-        if (!block.isEnriched()) {
+        if (!block.full) {
             return
         }
         mapping.put(block.hash, block)
