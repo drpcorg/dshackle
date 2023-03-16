@@ -2,10 +2,7 @@ package io.emeraldpay.dshackle.upstream
 
 import io.emeraldpay.api.proto.BlockchainOuterClass
 
-class BuildInfo(version: String?) {
-    var version = version
-        private set
-
+data class BuildInfo(var version: String? = null) {
     fun update(buildInfo: BuildInfo): Boolean {
         val changed = buildInfo.version != version
         version = buildInfo.version

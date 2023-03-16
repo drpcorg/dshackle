@@ -111,7 +111,7 @@ open class EthereumPosGrpcUpstream(
     private val upstreamStatus = GrpcUpstreamStatus(overrideLabels)
     private val grpcHead = GrpcHead(chain, this, remote, blockConverter, null, NoChoiceWithPriorityForkChoice(nodeRating, parentId))
     private var capabilities: Set<Capability> = emptySet()
-    private val buildInfo: BuildInfo = BuildInfo(null)
+    private val buildInfo: BuildInfo = BuildInfo()
 
     private val defaultReader: JsonRpcReader = client.getReader()
     private val timeout = Defaults.timeout
@@ -125,6 +125,10 @@ open class EthereumPosGrpcUpstream(
     }
 
     override fun stop() {
+    }
+
+    override fun getBuildInfo(): BuildInfo {
+        return buildInfo
     }
 
     override fun update(conf: BlockchainOuterClass.DescribeChain, buildInfo: BlockchainOuterClass.BuildInfo): Boolean {

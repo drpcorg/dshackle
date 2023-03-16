@@ -104,7 +104,7 @@ class BitcoinGrpcUpstream(
     private val grpcHead = GrpcHead(chain, this, remote, blockConverter, reloadBlock, MostWorkForkChoice())
     private val timeout = Defaults.timeout
     private var capabilities: Set<Capability> = emptySet()
-    private val buildInfo: BuildInfo = BuildInfo(null)
+    private val buildInfo: BuildInfo = BuildInfo()
 
     override fun getBlockchainApi(): ReactorBlockchainGrpc.ReactorBlockchainStub {
         return remote
@@ -149,6 +149,10 @@ class BitcoinGrpcUpstream(
     }
 
     override fun stop() {
+    }
+
+    override fun getBuildInfo(): BuildInfo {
+        return buildInfo
     }
 
     override fun update(conf: BlockchainOuterClass.DescribeChain, buildInfo: BlockchainOuterClass.BuildInfo): Boolean {
