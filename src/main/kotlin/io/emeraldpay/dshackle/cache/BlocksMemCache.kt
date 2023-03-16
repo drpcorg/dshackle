@@ -31,13 +31,14 @@ open class BlocksMemCache(
         .build<BlockId, BlockContainer>()
 
     override fun read(key: BlockId): Mono<BlockContainer> {
-        return Mono.justOrEmpty(get(key))
+        val block = get(key)?.let {
+            if (it.enriched) it else null
+        }
+        return Mono.justOrEmpty(block)
     }
 
     open fun get(key: BlockId): BlockContainer? {
-        return mapping.getIfPresent(key)?.let {
-            return@let if (it.enriched) it else null
-        }
+        return mapping.getIfPresent(key)
     }
 
     open fun add(block: BlockContainer) {
