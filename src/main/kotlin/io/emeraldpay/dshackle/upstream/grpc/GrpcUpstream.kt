@@ -27,7 +27,7 @@ interface GrpcUpstream : Upstream {
      * Update the configuration of the upstream with the new data.
      * Called on the first creation, and each time a new state received from upstream
      */
-    fun update(conf: BlockchainOuterClass.DescribeChain): Boolean
+    fun update(conf: BlockchainOuterClass.DescribeChain, buildInfo: BlockchainOuterClass.BuildInfo): Boolean
 
     fun getBlockchainApi(): ReactorBlockchainGrpc.ReactorBlockchainStub
 
