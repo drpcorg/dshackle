@@ -374,7 +374,10 @@ open class WsConnectionImpl(
             .switchIfEmpty(
                 Mono.fromCallable { log.warn("No response for ${request.method} ${request.params}") }.then(Mono.error(noResponse))
             )
-            .doFinally { currentRequests.remove(internalId.toInt()) }
+            .doFinally {
+                log.warn("removed ${internalId.toInt()}, cause ${it.name}")
+                currentRequests.remove(internalId.toInt())
+            }
     }
 
     override fun close() {
