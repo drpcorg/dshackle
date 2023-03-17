@@ -286,7 +286,7 @@ open class WsConnectionImpl(
         )
         val sender = currentRequests.remove(msg.id.asNumber().toInt())
         if (sender == null) {
-            log.warn("Unknown response received for ${msg.id} with body ${msg.value?.let { String(it) }}")
+            log.warn("Unknown response received for ${msg.id}")
         } else {
             try {
                 val emitResult = sender.tryEmitValue(rpcResponse)
@@ -374,10 +374,7 @@ open class WsConnectionImpl(
             .switchIfEmpty(
                 Mono.fromCallable { log.warn("No response for ${request.method} ${request.params}") }.then(Mono.error(noResponse))
             )
-            .doFinally {
-                log.warn("removed ${internalId.toInt()}, cause ${it.name}")
-                currentRequests.remove(internalId.toInt())
-            }
+            .doFinally { currentRequests.remove(internalId.toInt()) }
     }
 
     override fun close() {
