@@ -10,6 +10,7 @@ import io.emeraldpay.dshackle.upstream.CurrentMultistreamHolder
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.grpc.GrpcUpstream
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -49,7 +50,7 @@ class SubscribeNodeStatus(
                                 log.warn("Unable to emit event about removal of an upstream - $result")
                             }
                             knownUpstreams.remove(up.getId())
-                            NodeStatusResponse.newBuilder()
+                            val nodeStatusRespBuilder = NodeStatusResponse.newBuilder()
                                 .setNodeId(up.getId())
                                 .setDescription(buildDescription(ms, up))
                                 .setStatus(
@@ -58,7 +59,12 @@ class SubscribeNodeStatus(
                                         up.getHead().getCurrentHeight()
                                     )
                                 )
-                                .build()
+                            (up as? GrpcUpstream)?.let { grpcUp ->
+                                grpcUp.getBuildInfo().version?.let { version ->
+                                    nodeStatusRespBuilder.nodeBuildInfoBuilder.setVersion(version)
+                                }
+                            }
+                            nodeStatusRespBuilder.build()
                         }
                     }
                 }
@@ -75,17 +81,20 @@ class SubscribeNodeStatus(
                         .filter {
                             !knownUpstreams.contains(it.getId())
                         }
-                        .flatMap {
-                            knownUpstreams[it.getId()] = Sinks.many().multicast().directBestEffort()
+                        .flatMap { up ->
+                            knownUpstreams[up.getId()] = Sinks.many().multicast().directBestEffort()
+                            val nodeStatusRespBuilder = NodeStatusResponse.newBuilder()
+                                .setNodeId(up.getId())
+                                .setDescription(buildDescription(ms, up))
+                                .setStatus(buildStatus(up.getStatus(), up.getHead().getCurrentHeight()))
+                            (up as? GrpcUpstream)?.let { grpcUp ->
+                                grpcUp.getBuildInfo().version?.let { version ->
+                                    nodeStatusRespBuilder.nodeBuildInfoBuilder.setVersion(version)
+                                }
+                            }
                             Flux.concat(
-                                Mono.just(
-                                    NodeStatusResponse.newBuilder()
-                                        .setNodeId(it.getId())
-                                        .setDescription(buildDescription(ms, it))
-                                        .setStatus(buildStatus(it.getStatus(), it.getHead().getCurrentHeight()))
-                                        .build()
-                                ),
-                                subscribeUpstreamUpdates(ms, it, knownUpstreams[it.getId()]!!)
+                                Mono.just(nodeStatusRespBuilder.build()),
+                                subscribeUpstreamUpdates(ms, up, knownUpstreams[up.getId()]!!)
                             )
                         }
                 }
@@ -99,22 +108,25 @@ class SubscribeNodeStatus(
         upstream: Upstream,
         cancel: Sinks.Many<Boolean>
     ): Flux<NodeStatusResponse> {
+        val version = (upstream as? GrpcUpstream)?.let { grpcUp ->
+            grpcUp.getBuildInfo().version
+        }
         val statuses = upstream.observeStatus()
             .takeUntilOther(cancel.asFlux())
             .map {
-                NodeStatusResponse.newBuilder()
+                val nodeStatusRespBuilder = NodeStatusResponse.newBuilder()
                     .setNodeId(upstream.getId())
                     .setStatus(buildStatus(it, upstream.getHead().getCurrentHeight()))
                     .setDescription(buildDescription(ms, upstream))
-                    .build()
+                version?.let { v -> nodeStatusRespBuilder.nodeBuildInfoBuilder.setVersion(v) }
+                nodeStatusRespBuilder.build()
             }
-        val currentState = Mono.just(
-            NodeStatusResponse.newBuilder()
-                .setNodeId(upstream.getId())
-                .setDescription(buildDescription(ms, upstream))
-                .setStatus(buildStatus(upstream.getStatus(), upstream.getHead().getCurrentHeight()))
-                .build()
-        )
+        val nodeStatusRespBuilder = NodeStatusResponse.newBuilder()
+            .setNodeId(upstream.getId())
+            .setDescription(buildDescription(ms, upstream))
+            .setStatus(buildStatus(upstream.getStatus(), upstream.getHead().getCurrentHeight()))
+        version?.let { v -> nodeStatusRespBuilder.nodeBuildInfoBuilder.setVersion(v) }
+        val currentState = Mono.just(nodeStatusRespBuilder.build())
         return Flux.concat(currentState, statuses)
     }
 
