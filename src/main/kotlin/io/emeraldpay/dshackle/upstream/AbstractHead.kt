@@ -39,7 +39,8 @@ abstract class AbstractHead @JvmOverloads constructor(
     private val forkChoice: ForkChoice,
     private val blockValidator: BlockValidator = BlockValidator.ALWAYS_VALID,
     private val awaitHeadTimeoutMs: Long = 60_000,
-    private val upstreamId: String = ""
+    private val upstreamId: String = "",
+    private val completeHeadSub: Boolean = true
 ) : Head {
 
     companion object {
@@ -85,9 +86,11 @@ abstract class AbstractHead @JvmOverloads constructor(
                     log.warn("Received signal $upstreamId $it unexpectedly - restart head")
                     lastHeadUpdated = 0L
                 } else {
-                    log.warn("Received signal $upstreamId $it - stop emit new head")
-                    completed = true
-                    stream.tryEmitComplete()
+                    if (completeHeadSub) {
+                        log.warn("Received signal $upstreamId $it - stop emit new head")
+                        completed = true
+                        stream.tryEmitComplete()
+                    }
                 }
             }
             .subscribeOn(Schedulers.boundedElastic())
@@ -155,6 +158,9 @@ abstract class AbstractHead @JvmOverloads constructor(
         future = null
     }
 
+    override fun onNoHeadUpdates() {
+    }
+
     override fun start() {
         stopping = false
         log.debug("Start ${this.javaClass.simpleName} $upstreamId")
@@ -165,6 +171,7 @@ abstract class AbstractHead @JvmOverloads constructor(
                     delayed.set(delay > awaitHeadTimeoutMs)
                     if (delayed.get()) {
                         log.warn("No head updates $upstreamId for $delay ms @ ${this.javaClass.simpleName}")
+                        onNoHeadUpdates()
                     }
                 }, 180, 30, TimeUnit.SECONDS
             )

@@ -34,7 +34,7 @@ class EthereumRpcHead(
     upstreamId: String,
     blockValidator: BlockValidator,
     private val interval: Duration = Duration.ofSeconds(10),
-) : DefaultEthereumHead(upstreamId, forkChoice, blockValidator), Lifecycle {
+) : DefaultEthereumHead(upstreamId, forkChoice, blockValidator, true), Lifecycle {
 
     companion object {
         val scheduler =
