@@ -90,6 +90,8 @@ abstract class AbstractHead @JvmOverloads constructor(
                         log.warn("Received signal $upstreamId $it - stop emit new head")
                         completed = true
                         stream.tryEmitComplete()
+                    } else {
+                        log.warn("Received signal $upstreamId $it, continue emit heads")
                     }
                 }
             }
