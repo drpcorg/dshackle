@@ -67,11 +67,6 @@ abstract class AbstractHead @JvmOverloads constructor(
     }
 
     fun follow(source: Flux<BlockContainer>): Disposable {
-        if (completed) {
-            // if stream was already completed it cannot accept messages (with FAIL_TERMINATED), so needs to be recreated
-            stream = Sinks.many().multicast().directBestEffort<BlockContainer>()
-            completed = false
-        }
         return source
             .filter {
                 log.trace("Filtering block $upstreamId block $it")
