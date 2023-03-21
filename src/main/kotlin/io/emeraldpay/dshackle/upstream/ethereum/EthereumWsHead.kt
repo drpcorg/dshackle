@@ -45,10 +45,6 @@ class EthereumWsHead(
     private val skipEnhance: Boolean
 ) : DefaultEthereumHead(upstreamId, forkChoice, blockValidator), Lifecycle {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(EthereumWsHead::class.java)
-    }
-
     private var subscription: Disposable? = null
 
     override fun isRunning(): Boolean {
