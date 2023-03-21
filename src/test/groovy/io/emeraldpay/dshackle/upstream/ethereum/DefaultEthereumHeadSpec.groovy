@@ -31,7 +31,7 @@ import java.time.Instant
 
 class DefaultEthereumHeadSpec extends Specification {
 
-    DefaultEthereumHead head = new DefaultEthereumHead("upstream", new MostWorkForkChoice(), BlockValidator.ALWAYS_VALID, true)
+    DefaultEthereumHead head = new DefaultEthereumHead("upstream", new MostWorkForkChoice(), BlockValidator.ALWAYS_VALID)
     ObjectMapper objectMapper = Global.objectMapper
 
     def blocks = (10L..20L).collect { i ->

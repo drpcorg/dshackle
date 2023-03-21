@@ -39,8 +39,7 @@ abstract class AbstractHead @JvmOverloads constructor(
     private val forkChoice: ForkChoice,
     private val blockValidator: BlockValidator = BlockValidator.ALWAYS_VALID,
     private val awaitHeadTimeoutMs: Long = 60_000,
-    private val upstreamId: String = "",
-    private val completeHeadSub: Boolean = true
+    private val upstreamId: String = ""
 ) : Head {
 
     companion object {
@@ -86,13 +85,7 @@ abstract class AbstractHead @JvmOverloads constructor(
                     log.warn("Received signal $upstreamId $it unexpectedly - restart head")
                     lastHeadUpdated = 0L
                 } else {
-                    if (completeHeadSub) {
-                        log.warn("Received signal $upstreamId $it - stop emit new head")
-                        completed = true
-                        stream.tryEmitComplete()
-                    } else {
-                        log.warn("Received signal $upstreamId $it, continue emit heads")
-                    }
+                    log.warn("Received signal $upstreamId $it, continue emit heads")
                 }
             }
             .subscribeOn(Schedulers.boundedElastic())

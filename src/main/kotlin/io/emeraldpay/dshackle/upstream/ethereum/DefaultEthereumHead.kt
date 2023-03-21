@@ -30,9 +30,8 @@ import reactor.core.publisher.Mono
 open class DefaultEthereumHead(
     protected val upstreamId: String,
     forkChoice: ForkChoice,
-    blockValidator: BlockValidator,
-    completeHeadSub: Boolean
-) : Head, AbstractHead(forkChoice, blockValidator, 60_000, upstreamId, completeHeadSub) {
+    blockValidator: BlockValidator
+) : Head, AbstractHead(forkChoice, blockValidator, 60_000, upstreamId) {
 
     companion object {
         private val log = LoggerFactory.getLogger(DefaultEthereumHead::class.java)

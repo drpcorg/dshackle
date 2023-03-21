@@ -43,7 +43,7 @@ class EthereumWsHead(
     private val api: JsonRpcReader,
     private val wsSubscriptions: WsSubscriptions,
     private val skipEnhance: Boolean
-) : DefaultEthereumHead(upstreamId, forkChoice, blockValidator, false), Lifecycle {
+) : DefaultEthereumHead(upstreamId, forkChoice, blockValidator), Lifecycle {
 
     companion object {
         private val log = LoggerFactory.getLogger(EthereumWsHead::class.java)
