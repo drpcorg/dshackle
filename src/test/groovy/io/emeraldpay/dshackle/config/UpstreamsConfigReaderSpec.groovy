@@ -489,7 +489,7 @@ class UpstreamsConfigReaderSpec extends Specification {
         expect:
         def a = new UpstreamsConfig.PartialOptions().tap { disableValidation = base }
         def b = new UpstreamsConfig.PartialOptions().tap { disableValidation = overwrite }
-        def result = a.merge(b)
+        def result = a.merge(b).buildOptions()
         result.disableValidation == exp
 
         where:
@@ -504,14 +504,14 @@ class UpstreamsConfigReaderSpec extends Specification {
 
         null        | true          | true
         null        | false         | false
-        null        | null          | null
+        null        | null          | false
     }
 
     def "Merge options for providesBalance"() {
         expect:
         def a = new UpstreamsConfig.PartialOptions().tap { providesBalance = base }
         def b = new UpstreamsConfig.PartialOptions().tap { providesBalance = overwrite }
-        def result = a.merge(b)
+        def result = a.merge(b).buildOptions()
         result.providesBalance == exp
 
         where:
@@ -533,7 +533,7 @@ class UpstreamsConfigReaderSpec extends Specification {
         expect:
         def a = new UpstreamsConfig.PartialOptions().tap { validatePeers = base }
         def b = new UpstreamsConfig.PartialOptions().tap { validatePeers = overwrite }
-        def result = a.merge(b)
+        def result = a.merge(b).buildOptions()
         result.validatePeers == exp
 
         where:
@@ -548,14 +548,14 @@ class UpstreamsConfigReaderSpec extends Specification {
 
         null        | true          | true
         null        | false         | false
-        null        | null          | null
+        null        | null          | true
     }
 
     def "Merge options for validateSyncing"() {
         expect:
         def a = new UpstreamsConfig.PartialOptions().tap { validateSyncing = base }
         def b = new UpstreamsConfig.PartialOptions().tap { validateSyncing = overwrite }
-        def result = a.merge(b)
+        def result = a.merge(b).buildOptions()
         result.validateSyncing == exp
 
         where:
@@ -570,7 +570,7 @@ class UpstreamsConfigReaderSpec extends Specification {
 
         null        | true          | true
         null        | false         | false
-        null        | null          | null
+        null        | null          | true
     }
 
     def "Merge options for timeout"() {
@@ -581,8 +581,8 @@ class UpstreamsConfigReaderSpec extends Specification {
         def b = new UpstreamsConfig.PartialOptions().tap {
             timeout = overwrite == null ? null : Duration.ofSeconds(overwrite)
         }
-        def result = a.merge(b)
-        def expValue = exp == null ? null : Duration.ofSeconds(exp)
+        def result = a.merge(b).buildOptions()
+        def expValue = exp == null ? Duration.ofSeconds(60) : Duration.ofSeconds(exp)
         result.timeout == expValue
 
         where:
@@ -598,7 +598,7 @@ class UpstreamsConfigReaderSpec extends Specification {
         expect:
         def a = new UpstreamsConfig.PartialOptions().tap { minPeers = base }
         def b = new UpstreamsConfig.PartialOptions().tap { minPeers = overwrite }
-        def result = a.merge(b)
+        def result = a.merge(b).buildOptions()
         result.minPeers == exp
 
         where:
@@ -607,14 +607,14 @@ class UpstreamsConfigReaderSpec extends Specification {
         3        | 4          | 4
         5        | null       | 5
         null     | 6          | 6
-        null     | null       | null
+        null     | null       | 1
     }
 
     def "Merge options for validationInterval"() {
         expect:
         def a = new UpstreamsConfig.PartialOptions().tap { validationInterval = base }
         def b = new UpstreamsConfig.PartialOptions().tap { validationInterval = overwrite }
-        def result = a.merge(b)
+        def result = a.merge(b).buildOptions()
         result.validationInterval == exp
 
         where:
@@ -623,7 +623,7 @@ class UpstreamsConfigReaderSpec extends Specification {
         3        | 4          | 4
         5        | null       | 5
         null     | 6          | 6
-        null     | null       | null
+        null     | null       | 30
     }
 
     def "Options with default values"() {
