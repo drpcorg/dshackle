@@ -8,27 +8,61 @@ data class ChainsConfig(private val chains: Map<Chain, RawChainConfig>, val curr
         fun default(): ChainsConfig = ChainsConfig(emptyMap(), RawChainConfig.default())
     }
 
-    data class RawChainConfig(val syncingLagSize: Int?, val laggingLagSize: Int?) {
+    class RawChainConfig {
+        var syncingLagSize: Int? = null
+        var laggingLagSize: Int? = null
+        var options: UpstreamsConfig.PartialOptions? = null
+
         companion object {
             @JvmStatic
-            fun default() = RawChainConfig(6, 1)
+            fun default() = RawChainConfig()
+                .apply {
+                    syncingLagSize = 6
+                    laggingLagSize = 1
+                }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as RawChainConfig
+
+            if (syncingLagSize != other.syncingLagSize) return false
+            if (laggingLagSize != other.laggingLagSize) return false
+            if (options != other.options) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = syncingLagSize ?: 0
+            result = 31 * result + (laggingLagSize ?: 0)
+            result = 31 * result + (options?.hashCode() ?: 0)
+            return result
         }
     }
 
-    data class ChainConfig(val syncingLagSize: Int, val laggingLagSize: Int) {
+    data class ChainConfig(
+        val syncingLagSize: Int,
+        val laggingLagSize: Int,
+        val options: UpstreamsConfig.PartialOptions
+    ) {
         companion object {
             @JvmStatic
-            fun default() = ChainConfig(6, 1)
+            fun default() = ChainConfig(6, 1, UpstreamsConfig.PartialOptions())
         }
     }
 
     fun resolve(chain: Chain): ChainConfig {
         val default = currentDefault ?: panic()
         val raw = chains[chain] ?: default
+        val options = default.options?.merge(raw.options) ?: raw.options ?: UpstreamsConfig.PartialOptions()
 
         return ChainConfig(
             laggingLagSize = raw.laggingLagSize ?: default.laggingLagSize ?: panic(),
             syncingLagSize = raw.syncingLagSize ?: default.syncingLagSize ?: panic(),
+            options = options
         )
     }
 
@@ -40,10 +74,12 @@ data class ChainsConfig(private val chains: Map<Chain, RawChainConfig>, val curr
     private fun merge(
         current: RawChainConfig,
         patch: RawChainConfig?
-    ) = RawChainConfig(
-        syncingLagSize = patch?.syncingLagSize ?: current.syncingLagSize,
-        laggingLagSize = patch?.laggingLagSize ?: current.laggingLagSize
-    )
+    ) = RawChainConfig()
+        .apply {
+            syncingLagSize = patch?.syncingLagSize ?: current.syncingLagSize
+            laggingLagSize = patch?.laggingLagSize ?: current.laggingLagSize
+            options = patch?.options ?: current.options
+        }
 
     private fun merge(
         current: Map<Chain, RawChainConfig>,
