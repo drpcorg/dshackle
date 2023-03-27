@@ -35,9 +35,10 @@ class BlockContainer(
     val full: Boolean,
     json: ByteArray?,
     val parsed: Any?,
+    val parentHash: BlockId,
     val transactions: List<TxId> = emptyList(),
     val nodeRating: Int = 0,
-    val upstreamId: String = ""
+    val upstreamId: String = "",
 ) : SourceContainer(json, parsed) {
     val enriched: Boolean = transactions.isNotEmpty()
 
@@ -54,7 +55,8 @@ class BlockContainer(
                 json = raw,
                 parsed = block,
                 transactions = block.transactions?.map { TxId.from(it.hash) } ?: emptyList(),
-                upstreamId = upstreamId
+                upstreamId = upstreamId,
+                parentHash = BlockId.from(block.parentHash)
             )
         }
 
@@ -91,12 +93,15 @@ class BlockContainer(
         if (timestamp != other.timestamp) return false
         if (full != other.full) return false
         if (transactions != other.transactions) return false
+        if (parentHash != other.parentHash) return false
 
         return true
     }
 
     fun copyWithRating(nodeRating: Int): BlockContainer {
-        return BlockContainer(height, hash, difficulty, timestamp, full, json, parsed, transactions, nodeRating)
+        return BlockContainer(
+            height, hash, difficulty, timestamp, full, json, parsed, parentHash, transactions, nodeRating
+        )
     }
 
     override fun hashCode(): Int {
@@ -123,6 +128,7 @@ class BlockContainer(
                 it.logsBloom = Bloom.empty()
                 it.miner = Address.empty()
                 it.baseFeePerGas = Wei.ZERO
+                it.parentHash = BlockHash.from(parentHash.value)
             }
         }
     }

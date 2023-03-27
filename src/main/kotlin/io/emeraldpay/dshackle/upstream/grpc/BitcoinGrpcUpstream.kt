@@ -74,7 +74,8 @@ class BitcoinGrpcUpstream(
             Instant.ofEpochMilli(value.timestamp),
             false,
             null,
-            null
+            null,
+            BlockId.from(value.parentBlockId)
         )
         block
     }

@@ -74,7 +74,8 @@ open class EthereumPosGrpcUpstream(
             Instant.ofEpochMilli(value.timestamp),
             false,
             null,
-            null
+            null,
+            BlockId.from(BlockHash.from("0x" + value.parentBlockId))
         )
         block
     }
