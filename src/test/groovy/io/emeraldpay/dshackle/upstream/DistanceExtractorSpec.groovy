@@ -77,4 +77,32 @@ class DistanceExtractorSpec extends Specification {
         100       | 0     | 102        | 1     || new DistanceExtractor.ChainDistance.Distance(0)
         100       | 0     | 100        | 1     || DistanceExtractor.ChainDistance.Fork.INSTANCE
     }
+
+    def "Correct distance if parentHash is null"() {
+        setup:
+        def hash1 = "0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915123"
+        def hash2 = "0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915124"
+        expect:
+        def top = new BlockJson().with {
+            it.number = topHeight
+            it.totalDifficulty = 0
+            it.hash = BlockHash.from(hashA == 0 ? hash1 : hash2)
+            it.timestamp = Instant.now()
+            it.parentHash = parent
+            return it
+        }
+        def curr = new BlockJson().with {
+            it.number = currHeight
+            it.totalDifficulty = 0
+            it.hash = BlockHash.from(hashB == 0 ? hash1 : hash2)
+            it.timestamp = Instant.now()
+            it.parentHash = null
+            return it
+        }
+        delta as DistanceExtractor.ChainDistance == DistanceExtractor.@Companion.extractPriorityDistance(BlockContainer.from(top), BlockContainer.from(curr))
+        where:
+        topHeight | hashA | currHeight | hashB || delta
+        105       | 0     | 100        | 0     || new DistanceExtractor.ChainDistance.Distance(5)
+        100       | 0     | 101        | 1     || new DistanceExtractor.ChainDistance.Distance(0)
+    }
 }
