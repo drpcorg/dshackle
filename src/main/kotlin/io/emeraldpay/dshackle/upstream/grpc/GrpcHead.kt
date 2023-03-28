@@ -78,7 +78,6 @@ class GrpcHead(
             )
                 .concatMap({ it.subscribeHead(chainRef) }, 0)
                 .doOnNext {
-                    log.warn(it.toString())
                     headsCounter.increment()
                 }
                 .sample(Duration.ofMillis(1)) // protect from too many heads
