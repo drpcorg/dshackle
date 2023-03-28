@@ -46,6 +46,7 @@ class BlockContainer(
         @JvmStatic
         fun from(block: BlockJson<*>, raw: ByteArray, upstreamId: String): BlockContainer {
             val hasTransactions = !block.transactions?.filterIsInstance<TransactionJson>().isNullOrEmpty()
+            val parent = if (block.parentHash == null) null else BlockId.from(block.parentHash)
             return BlockContainer(
                 height = block.number,
                 hash = BlockId.from(block),
@@ -56,7 +57,7 @@ class BlockContainer(
                 parsed = block,
                 transactions = block.transactions?.map { TxId.from(it.hash) } ?: emptyList(),
                 upstreamId = upstreamId,
-                parentHash = BlockId.from(block.parentHash)
+                parentHash = parent
             )
         }
 
