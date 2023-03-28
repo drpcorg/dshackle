@@ -122,7 +122,6 @@ class BlockContainer(
             BlockJson<TransactionRefJson>().also {
                 it.number = height
                 it.hash = BlockHash.from(hash.value)
-                it.parentHash = BlockHash.empty()
                 it.timestamp = timestamp
                 it.difficulty = difficulty
                 it.gasLimit = 0
@@ -130,7 +129,7 @@ class BlockContainer(
                 it.logsBloom = Bloom.empty()
                 it.miner = Address.empty()
                 it.baseFeePerGas = Wei.ZERO
-                it.parentHash = if (parentHash != null) BlockHash.from(parentHash.value) else null
+                it.parentHash = if (parentHash != null) BlockHash.from(parentHash.value) else BlockHash.empty()
             }
         }
     }
