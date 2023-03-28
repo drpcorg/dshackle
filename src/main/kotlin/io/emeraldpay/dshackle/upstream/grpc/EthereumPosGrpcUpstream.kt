@@ -67,6 +67,9 @@ open class EthereumPosGrpcUpstream(
     Lifecycle {
 
     private val blockConverter: Function<BlockchainOuterClass.ChainHead, BlockContainer> = Function { value ->
+        val parentHash =
+            if (value.parentBlockId.isBlank()) null
+            else BlockId.from(BlockHash.from("0x" + value.parentBlockId))
         val block = BlockContainer(
             value.height,
             BlockId.from(BlockHash.from("0x" + value.blockId)),
@@ -75,7 +78,7 @@ open class EthereumPosGrpcUpstream(
             false,
             null,
             null,
-            BlockId.from(BlockHash.from("0x" + value.parentBlockId))
+            parentHash
         )
         block
     }

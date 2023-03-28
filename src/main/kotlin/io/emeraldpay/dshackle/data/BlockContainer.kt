@@ -35,7 +35,7 @@ class BlockContainer(
     val full: Boolean,
     json: ByteArray?,
     val parsed: Any?,
-    val parentHash: BlockId,
+    val parentHash: BlockId?,
     val transactions: List<TxId> = emptyList(),
     val nodeRating: Int = 0,
     val upstreamId: String = "",
@@ -93,7 +93,9 @@ class BlockContainer(
         if (timestamp != other.timestamp) return false
         if (full != other.full) return false
         if (transactions != other.transactions) return false
-        if (parentHash != other.parentHash) return false
+        if (parentHash != null && other.parentHash != null) {
+            if (parentHash != other.parentHash) return false
+        }
 
         return true
     }
@@ -128,7 +130,7 @@ class BlockContainer(
                 it.logsBloom = Bloom.empty()
                 it.miner = Address.empty()
                 it.baseFeePerGas = Wei.ZERO
-                it.parentHash = BlockHash.from(parentHash.value)
+                it.parentHash = if (parentHash != null) BlockHash.from(parentHash.value) else null
             }
         }
     }
