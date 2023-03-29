@@ -53,7 +53,7 @@ class WsConnectionMultiPool(
     private var adjustLock = ReentrantReadWriteLock()
     private val index = AtomicInteger(0)
     private var connIndex = 0
-    private val connectionInfo = Sinks.many().unicast().onBackpressureError<WsConnection.ConnectionInfo>()
+    private val connectionInfo = Sinks.many().multicast().directBestEffort<WsConnection.ConnectionInfo>()
     private val connectionSubscriptionMap = mutableMapOf<String, Disposable>()
 
     var scheduler: ScheduledExecutorService = Global.control
