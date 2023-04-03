@@ -52,7 +52,7 @@ class EthereumWsHead(
     private var connected = false
 
     private var subscription: Disposable? = null
-    private val noHeadUpdatesSink = Sinks.many().unicast().onBackpressureError<Boolean>()
+    private val noHeadUpdatesSink = Sinks.many().multicast().directBestEffort<Boolean>()
 
     init {
         registerHeadResubscribeFlux()
