@@ -84,28 +84,18 @@ class EthereumWsHeadSpec extends Specification {
 
     def "Restart ethereum ws head"() {
         setup:
-        def block = new BlockJson<TransactionRefJson>()
-        block.timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-        block.number = 103
-        block.parentHash = parent
-        block.hash = BlockHash.from("0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200")
         def secondBlock = new BlockJson<TransactionRefJson>()
         secondBlock.parentHash = parent
         secondBlock.timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS)
         secondBlock.number = 105
         secondBlock.hash = BlockHash.from("0x29229361dc5aa1ec66c323dc7a299e2b61a8c8dd2a3522d41255ec10eca25dd8")
 
-        def firstHeadBlock = block.with {
-            Global.objectMapper.writeValueAsBytes(it)
-        }
         def secondHeadBlock = secondBlock.with {
             Global.objectMapper.writeValueAsBytes(it)
         }
 
         def apiMock = TestingCommons.api()
-        apiMock.answerOnce("eth_getBlockByHash", ["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200", false], null)
         apiMock.answerOnce("eth_getBlockByHash", ["0x29229361dc5aa1ec66c323dc7a299e2b61a8c8dd2a3522d41255ec10eca25dd8", false], null)
-        apiMock.answerOnce("eth_blockNumber", [], Mono.empty())
         apiMock.answerOnce("eth_blockNumber", [], Mono.empty())
 
         def connectionInfoSink = Sinks.many().multicast().directBestEffort()
@@ -126,9 +116,8 @@ class EthereumWsHeadSpec extends Specification {
         StepVerifier.create(act)
                 .then {
                     head.start()
-                    connectionInfoSink.tryEmitNext(new WsConnection.ConnectionInfo("id", WsConnection.ConnectionState.CONNECTED))
                 }
-                .expectNextCount(0)
+                .expectNoEvent(Duration.ofMillis(100))
                 .then {
                     head.onNoHeadUpdates()
                 }
