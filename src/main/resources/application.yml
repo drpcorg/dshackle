@@ -19,7 +19,7 @@ spring:
 
 spans:
   collect:
-    enabled: ${ENABLE_COLLECT_SPANS:true}
+    enabled: ${ENABLE_COLLECT_SPANS:false}
     provider:
       enabled: ${ENABLE_PROVIDER_COLLECT_SPANS:true}
     main:
