@@ -42,7 +42,11 @@ class ErrorSpanHandler(
 
         spansInfo.spans
             .map { it.parentId() }
-            .forEach { spans.invalidate(it) }
+            .forEach {
+                if (it != null) {
+                    spans.invalidate(it)
+                }
+            }
 
         return if (spansInfo.hasError) {
             spanMapper.writeValueAsString(spansInfo.spans)
