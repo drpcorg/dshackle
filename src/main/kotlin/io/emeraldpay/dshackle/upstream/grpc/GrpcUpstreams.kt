@@ -94,7 +94,10 @@ class GrpcUpstreams(
             .intercept(grpcTracing.newClientInterceptor())
             .executor(grpcExecutor)
             .maxRetryAttempts(3)
-        clientSpansInterceptor?.let { chanelBuilder.intercept(it) }
+        clientSpansInterceptor?.let {
+            chanelBuilder.intercept(it)
+            log.info("Collect spans is enabled")
+        }
         if (auth != null && StringUtils.isNotEmpty(auth.ca)) {
             chanelBuilder
                 .useTransportSecurity()

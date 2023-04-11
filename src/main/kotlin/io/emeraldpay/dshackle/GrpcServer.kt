@@ -87,7 +87,10 @@ open class GrpcServer(
         }
 
         serverBuilder.intercept(grpcServerBraveInterceptor)
-        serverSpansInterceptor?.let { serverBuilder.intercept(it) }
+        serverSpansInterceptor?.let {
+            serverBuilder.intercept(it)
+            log.info("Collect spans from provider is enabled")
+        }
 
         tlsSetup.setupServer("Native gRPC", mainConfig.tls, true)?.let {
             serverBuilder.sslContext(it)
