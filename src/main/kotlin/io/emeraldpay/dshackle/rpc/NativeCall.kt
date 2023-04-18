@@ -372,7 +372,7 @@ open class NativeCall(
                     .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
                     .flatMap(JsonRpcResponse::requireResult)
                     .map {
-                        validateResult(it, "local", ctx)
+                        validateResult(it, "local", ctx, ctx.upstream.getId())
                         if (ctx.nonce != null) {
                             CallResult.ok(ctx.id, ctx.nonce, it, signer.sign(ctx.nonce, it, ctx.upstream.getId()), ctx.upstream.getId(), ctx)
                         } else {
@@ -403,7 +403,8 @@ open class NativeCall(
             .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
             .map {
                 val bytes = ctx.resultDecorator.processResult(it)
-                validateResult(bytes, "remote", ctx)
+                val upstreamId = it.providedUpstreamId ?: it.resolvers.first().getId()
+                validateResult(bytes, "remote", ctx, upstreamId)
                 CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, it.providedUpstreamId ?: it.resolvers.first().getId(), ctx)
             }
             .onErrorResume { t ->
@@ -424,9 +425,9 @@ open class NativeCall(
             )
     }
 
-    private fun validateResult(bytes: ByteArray, origin: String, ctx: ValidCallContext<ParsedCallDetails>) {
+    private fun validateResult(bytes: ByteArray, origin: String, ctx: ValidCallContext<ParsedCallDetails>, upstreamId: String) {
         if (bytes.isEmpty() || nullValue.contentEquals(bytes))
-            log.warn("Empty result from origin $origin, method ${ctx.payload.method}, params ${ctx.payload.params}")
+            log.warn("Empty result from origin $origin, method ${ctx.payload.method}, params ${ctx.payload.params}, upstreamId $upstreamId")
     }
 
     private fun errorMessage(attempts: Int, method: String): String =
