@@ -23,6 +23,7 @@ import io.emeraldpay.dshackle.startup.QuorumForLabels
 import io.emeraldpay.dshackle.test.EthereumApiStub
 import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
+import io.emeraldpay.dshackle.upstream.calls.EthereumMethodsValidator
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumRpcUpstream
 import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnectorFactory
 import io.emeraldpay.dshackle.upstream.forkchoice.MostWorkForkChoice
@@ -35,7 +36,7 @@ import java.time.Duration
 
 class FilteredApisSpec extends Specification {
 
-    def ethereumTargets = new DefaultEthereumMethods(Chain.ETHEREUM)
+    def ethereumTargets = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
 
     def "Verifies labels"() {
         setup:

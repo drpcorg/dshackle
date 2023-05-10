@@ -310,6 +310,8 @@ open class NativeCall(
                 )
             )
         }
+
+        availableMethods.validateMethod(method, params)
         // for ethereum the actual block needed for the call may be specified in the call parameters
         val callSpecificMatcher: Mono<Selector.Matcher> =
             if (BlockchainType.from(upstream.chain) == BlockchainType.EVM_POS || BlockchainType.from(upstream.chain) == BlockchainType.EVM_POW) {

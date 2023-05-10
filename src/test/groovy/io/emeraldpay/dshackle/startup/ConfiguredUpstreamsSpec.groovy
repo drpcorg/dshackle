@@ -9,6 +9,7 @@ import io.emeraldpay.dshackle.config.CompressionConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import io.emeraldpay.dshackle.upstream.CallTargetsHolder
+import io.emeraldpay.dshackle.upstream.calls.EthereumMethodsValidator
 import io.emeraldpay.dshackle.upstream.calls.ManagedCallMethods
 import org.springframework.context.ApplicationEventPublisher
 import reactor.core.scheduler.Schedulers
@@ -20,7 +21,7 @@ class ConfiguredUpstreamsSpec extends Specification {
 
     def "Applied  quorum to extra methods"() {
         setup:
-        def callTargetsHolder = new CallTargetsHolder()
+        def callTargetsHolder = new CallTargetsHolder(new EthereumMethodsValidator([]))
         def configurer = new ConfiguredUpstreams(
                 Stub(FileResolver),
                 Stub(UpstreamsConfig),
@@ -52,7 +53,7 @@ class ConfiguredUpstreamsSpec extends Specification {
 
     def "Got static response from extra methods"() {
         setup:
-        def callTargetsHolder = new CallTargetsHolder()
+        def callTargetsHolder = new CallTargetsHolder(new EthereumMethodsValidator([]))
         def configurer = new ConfiguredUpstreams(
                 Stub(FileResolver),
                 Stub(UpstreamsConfig),
@@ -83,7 +84,7 @@ class ConfiguredUpstreamsSpec extends Specification {
 
     def "Calculate node-id"() {
         setup:
-        def callTargetsHolder = new CallTargetsHolder()
+        def callTargetsHolder = new CallTargetsHolder(new EthereumMethodsValidator([]))
         def configurer = new ConfiguredUpstreams(
                 Stub(FileResolver),
                 Stub(UpstreamsConfig),
@@ -109,7 +110,7 @@ class ConfiguredUpstreamsSpec extends Specification {
 
     def "Calculate node-id conflicting results"() {
         setup:
-        def callTargetsHolder = new CallTargetsHolder()
+        def callTargetsHolder = new CallTargetsHolder(new EthereumMethodsValidator([]))
         def configurer = new ConfiguredUpstreams(
                 Stub(FileResolver),
                 Stub(UpstreamsConfig),
@@ -140,7 +141,7 @@ class ConfiguredUpstreamsSpec extends Specification {
 
     def "Supporting method groups"() {
         setup:
-        def callTargetsHolder = new CallTargetsHolder()
+        def callTargetsHolder = new CallTargetsHolder(new EthereumMethodsValidator([]))
         def configurer = new ConfiguredUpstreams(
                 Stub(FileResolver),
                 Stub(UpstreamsConfig),

@@ -29,6 +29,7 @@ import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultBitcoinMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.calls.DirectCallMethods
+import io.emeraldpay.dshackle.upstream.calls.EthereumMethodsValidator
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumPosRpcUpstream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
@@ -42,7 +43,7 @@ class EthereumPosRpcUpstreamMock extends EthereumPosRpcUpstream {
 
     static CallMethods allMethods() {
         new AggregatedCallMethods([
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 new DefaultBitcoinMethods(),
                 new DirectCallMethods(["eth_test"])
         ])

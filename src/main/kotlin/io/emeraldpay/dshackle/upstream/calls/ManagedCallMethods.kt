@@ -128,4 +128,8 @@ class ManagedCallMethods(
 
     override fun getGroupMethods(groupName: String): Set<String> =
         delegate.getGroupMethods(groupName)
+
+    override fun validateMethod(method: String, params: String) {
+        delegate.validateMethod(method, params)
+    }
 }

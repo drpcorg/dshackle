@@ -31,7 +31,8 @@ import io.emeraldpay.etherjar.rpc.RpcException
  * hardcoded results for base methods, such as `net_version`, `web3_clientVersion` and similar
  */
 class DefaultEthereumMethods(
-    private val chain: Chain
+    private val chain: Chain,
+    private val ethereumMethodsValidator: EthereumMethodsValidator
 ) : CallMethods {
 
     private val version = "\"EmeraldDshackle/${Global.version}\""
@@ -371,6 +372,10 @@ class DefaultEthereumMethods(
             "debug" -> debugMethods
             else -> emptyList()
         }.toSet()
+
+    override fun validateMethod(method: String, params: String) {
+        ethereumMethodsValidator.validateMethod(method, params)
+    }
 
     override fun getSupportedMethods(): Set<String> {
         return allowedMethods.plus(hardcodedMethods).toSortedSet()

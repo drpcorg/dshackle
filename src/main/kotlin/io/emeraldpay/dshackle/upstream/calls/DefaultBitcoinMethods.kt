@@ -91,4 +91,7 @@ class DefaultBitcoinMethods : CallMethods {
     }
 
     override fun getGroupMethods(groupName: String): Set<String> = emptySet()
+
+    override fun validateMethod(method: String, params: String) {
+    }
 }

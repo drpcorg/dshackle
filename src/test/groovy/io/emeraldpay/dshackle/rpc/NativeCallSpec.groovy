@@ -36,6 +36,7 @@ import io.emeraldpay.dshackle.upstream.MultistreamHolder
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
+import io.emeraldpay.dshackle.upstream.calls.EthereumMethodsValidator
 import io.emeraldpay.dshackle.upstream.calls.ManagedCallMethods
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcError
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcException
@@ -399,7 +400,7 @@ class NativeCallSpec extends Specification {
     def "Prepare call adds height selector for not-lagging quorum"() {
         setup:
         def methods = new ManagedCallMethods(
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 ["foo_bar"] as Set, [] as Set, [] as Set, [] as Set
         )
         methods.setQuorum("foo_bar", "not_lagging")
@@ -440,7 +441,7 @@ class NativeCallSpec extends Specification {
     def "Prepare call adds decorator for eth_newFilter"() {
         setup:
         def methods = new ManagedCallMethods(
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 ["eth_newFilter"] as Set, [] as Set, [] as Set, [] as Set
         )
         methods.setQuorum("eth_newFilter", "always")
@@ -471,7 +472,7 @@ class NativeCallSpec extends Specification {
     def "Prepare call adds decorator for eth_getFilterChanges"() {
         setup:
         def methods = new ManagedCallMethods(
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 ["eth_getFilterChanges"] as Set, [] as Set, [] as Set, [] as Set
         )
         def multistream = new MultistreamHolderMock.EthereumMultistreamMock(Chain.ETHEREUM, TestingCommons.upstream())
@@ -501,7 +502,7 @@ class NativeCallSpec extends Specification {
     def "Prepare call adds decorator for eth_uninstallFilter"() {
         setup:
         def methods = new ManagedCallMethods(
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 ["eth_uninstallFilter"] as Set, [] as Set, [] as Set, [] as Set
         )
         def multistream = new MultistreamHolderMock.EthereumMultistreamMock(Chain.ETHEREUM, TestingCommons.upstream())
@@ -601,7 +602,7 @@ class NativeCallSpec extends Specification {
         }
         def quorum = new AlwaysQuorum()
         def methods = new ManagedCallMethods(
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 [] as Set, [] as Set, ["filter"] as Set, [] as Set
         )
         def multistream = new MultistreamHolderMock.EthereumMultistreamMock(Chain.ETHEREUM, TestingCommons.upstream(
@@ -636,7 +637,7 @@ class NativeCallSpec extends Specification {
         }
         def quorum = new AlwaysQuorum()
         def methods = new ManagedCallMethods(
-                new DefaultEthereumMethods(Chain.ETHEREUM),
+                new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([])),
                 [] as Set, [] as Set, ["filter"] as Set, [] as Set
         )
         def multistream = new MultistreamHolderMock.EthereumMultistreamMock(Chain.ETHEREUM, TestingCommons.upstream(

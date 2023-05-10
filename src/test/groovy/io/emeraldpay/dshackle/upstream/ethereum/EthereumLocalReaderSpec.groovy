@@ -9,6 +9,7 @@ import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.EmptyHead
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
+import io.emeraldpay.dshackle.upstream.calls.EthereumMethodsValidator
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.etherjar.rpc.json.BlockJson
 import org.apache.commons.collections4.functors.ConstantFactory
@@ -21,12 +22,12 @@ class EthereumLocalReaderSpec extends Specification {
 
     def "Calls hardcoded"() {
         setup:
-        def methods = new DefaultEthereumMethods(Chain.ETHEREUM)
+        def methods = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
         def router = new EthereumLocalReader(
                 new EthereumCachingReader(
                         TestingCommons.multistream(TestingCommons.api()),
                         Caches.default(),
-                        ConstantFactory.constantFactory(new DefaultEthereumMethods(Chain.ETHEREUM)),
+                        ConstantFactory.constantFactory(new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))),
                         TestingCommons.tracerMock()
                 ),
                 methods,
@@ -41,12 +42,12 @@ class EthereumLocalReaderSpec extends Specification {
 
     def "Returns empty if nonce set"() {
         setup:
-        def methods = new DefaultEthereumMethods(Chain.ETHEREUM)
+        def methods = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
         def router = new EthereumLocalReader(
                 new EthereumCachingReader(
                         TestingCommons.multistream(TestingCommons.api()),
                         Caches.default(),
-                        ConstantFactory.constantFactory(new DefaultEthereumMethods(Chain.ETHEREUM)),
+                        ConstantFactory.constantFactory(new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))),
                         TestingCommons.tracerMock()
                 ),
                 methods,
@@ -72,7 +73,7 @@ class EthereumLocalReaderSpec extends Specification {
                 1 * read(101L) >> Mono.just(TestingCommons.blockForEthereum(101L))
             }
         }
-        def methods = new DefaultEthereumMethods(Chain.ETHEREUM)
+        def methods = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
         def router = new EthereumLocalReader(reader, methods, head, true)
 
         when:
@@ -98,7 +99,7 @@ class EthereumLocalReaderSpec extends Specification {
                 1 * read(0L) >> Mono.just(TestingCommons.blockForEthereum(0L))
             }
         }
-        def methods = new DefaultEthereumMethods(Chain.ETHEREUM)
+        def methods = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
         def router = new EthereumLocalReader(reader, methods, head, true)
 
         when:
@@ -124,7 +125,7 @@ class EthereumLocalReaderSpec extends Specification {
                 1 * read(74735L) >> Mono.just(TestingCommons.blockForEthereum(74735L))
             }
         }
-        def methods = new DefaultEthereumMethods(Chain.ETHEREUM)
+        def methods = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
         def router = new EthereumLocalReader(reader, methods, head, true)
 
         when:
@@ -148,7 +149,7 @@ class EthereumLocalReaderSpec extends Specification {
             _ * txByHashAsCont() >> new EmptyReader<>()
             _ * blocksByHeightAsCont() >> new EmptyReader<>()
         }
-        def methods = new DefaultEthereumMethods(Chain.ETHEREUM)
+        def methods = new DefaultEthereumMethods(Chain.ETHEREUM, new EthereumMethodsValidator([]))
         def router = new EthereumLocalReader(reader, methods, head, true)
 
         when:
