@@ -160,7 +160,11 @@ class GrpcUpstreams(
             try {
                 val chain = Chain.byId(chainDetails.chain.number)
                 val up = getOrCreate(chain)
-                val changed = (up.upstream as GrpcUpstream).update(chainDetails, value.buildInfo)
+                val changed = (up.upstream as GrpcUpstream).run {
+                    val updated = update(chainDetails, value.buildInfo)
+                    chainDetails.status?.let { status -> onStatus(status) }
+                    updated
+                }
                 up.takeUnless {
                     changed && it.type == UpstreamChangeEvent.ChangeType.REVALIDATED
                 } ?: UpstreamChangeEvent(up.chain, up.upstream, UpstreamChangeEvent.ChangeType.UPDATED)

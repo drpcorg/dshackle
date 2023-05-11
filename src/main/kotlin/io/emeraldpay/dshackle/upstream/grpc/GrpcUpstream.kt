@@ -35,4 +35,6 @@ interface GrpcUpstream : Upstream {
     fun getBlockchainApi(): ReactorBlockchainGrpc.ReactorBlockchainStub
 
     fun proxySubscribe(request: NativeSubscribeRequest): Flux<out Any>
+
+    fun onStatus(value: BlockchainOuterClass.ChainStatus)
 }
