@@ -122,7 +122,15 @@ abstract class Multistream(
         removeUpstreamMeters(upstreamId)
 
         meters[upstreamId] = listOf(
-            Gauge.builder("$metrics.lag", upstream) { it.getLag().toDouble() }
+            Gauge.builder("$metrics.lag", upstream) {
+                it.getLag().run {
+                    if (this == Long.MAX_VALUE) {
+                        Double.NaN
+                    } else {
+                        toDouble()
+                    }
+                }
+            }
                 .tag("chain", chain.chainCode)
                 .tag("upstream", upstreamId)
                 .register(Metrics.globalRegistry)
