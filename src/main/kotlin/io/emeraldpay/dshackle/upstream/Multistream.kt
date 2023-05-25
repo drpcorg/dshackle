@@ -123,13 +123,7 @@ abstract class Multistream(
 
         meters[upstreamId] = listOf(
             Gauge.builder("$metrics.lag", upstream) {
-                it.getLag().run {
-                    if (this == Long.MAX_VALUE) {
-                        Double.NaN
-                    } else {
-                        toDouble()
-                    }
-                }
+                it.getLag()?.toDouble() ?: Double.NaN
             }
                 .tag("chain", chain.chainCode)
                 .tag("upstream", upstreamId)
@@ -382,11 +376,7 @@ abstract class Multistream(
             // by default, when no lag is available it uses Long.MAX_VALUE, and it doesn't make sense to print
             // status with such value. use NA (as Not Available) instead
             val value = it.getLag()
-            if (value == Long.MAX_VALUE) {
-                "NA"
-            } else {
-                value.toString()
-            }
+            value?.toString() ?: "NA"
         }
         val weak = upstreams.plus(removed.values)
             .filter { it.getStatus() != UpstreamAvailability.OK }
