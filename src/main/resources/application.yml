@@ -19,8 +19,9 @@ spring:
 
 spans:
   collect:
-    enabled: ${ENABLE_COLLECT_SPANS:false}
+    enabled: ${ENABLE_COLLECT_SPANS:true}
     provider:
       enabled: ${ENABLE_PROVIDER_COLLECT_SPANS:true}
+      long-span-threshold: ${LONG_SPAN_THRESHOLD:10}
     main:
       enabled: ${ENABLE_MAIN_COLLECT_SPANS:false}
