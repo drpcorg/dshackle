@@ -205,7 +205,10 @@ open class NativeCall(
             it.error?.let { error ->
                 result.setErrorMessage(error.message)
                     .setErrorCode(error.id)
-                    .setErrorData(error.data)
+
+                error.data?.let { data ->
+                    result.setErrorData(data)
+                }
             }
         } else {
             result.payload = ByteString.copyFrom(it.result)
