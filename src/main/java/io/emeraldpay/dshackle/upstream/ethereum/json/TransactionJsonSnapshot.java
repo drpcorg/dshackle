@@ -3,6 +3,7 @@ package io.emeraldpay.dshackle.upstream.ethereum.json;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.emeraldpay.etherjar.domain.BlockHash;
 import io.emeraldpay.etherjar.domain.TransactionRef;
+import io.emeraldpay.etherjar.domain.Wei;
 import io.emeraldpay.etherjar.rpc.json.TransactionRefJson;
 
 import java.io.Serializable;
@@ -19,6 +20,23 @@ public class TransactionJsonSnapshot extends TransactionRefJson implements Trans
    */
   private Long blockNumber;
 
+  /**
+   * gas price provided by the sender in Wei.
+   */
+  private Wei gasPrice;
+  private Wei maxFeePerGas;
+  private Wei maxPriorityFeePerGas;
+
+  private int type = 0;
+
+  public int getType() {
+    return type;
+  }
+
+  public void setType(int type) {
+    this.type = type;
+  }
+
   public BlockHash getBlockHash() {
     return blockHash;
   }
@@ -33,5 +51,29 @@ public class TransactionJsonSnapshot extends TransactionRefJson implements Trans
 
   public void setBlockNumber(Long blockNumber) {
     this.blockNumber = blockNumber;
+  }
+
+  public Wei getGasPrice() {
+    return gasPrice;
+  }
+
+  public void setGasPrice(Wei gasPrice) {
+    this.gasPrice = gasPrice;
+  }
+
+  public Wei getMaxFeePerGas() {
+    return maxFeePerGas;
+  }
+
+  public void setMaxFeePerGas(Wei maxFeePerGas) {
+    this.maxFeePerGas = maxFeePerGas;
+  }
+
+  public Wei getMaxPriorityFeePerGas() {
+    return maxPriorityFeePerGas;
+  }
+
+  public void setMaxPriorityFeePerGas(Wei maxPriorityFeePerGas) {
+    this.maxPriorityFeePerGas = maxPriorityFeePerGas;
   }
 }

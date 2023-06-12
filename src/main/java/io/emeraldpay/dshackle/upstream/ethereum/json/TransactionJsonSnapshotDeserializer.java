@@ -24,6 +24,13 @@ public class TransactionJsonSnapshotDeserializer extends EtherJsonDeserializer<T
     if (blockNumber != null)  {
       tx.setBlockNumber(blockNumber);
     }
+    Integer type = getInt(node, "type");
+    if (type != null) {
+      tx.setType(type);
+    }
+    tx.setGasPrice(getWei(node, "gasPrice"));
+    tx.setMaxFeePerGas(getWei(node, "maxFeePerGas"));
+    tx.setMaxPriorityFeePerGas(getWei(node, "maxPriorityFeePerGas"));
 
     return tx;
   }
