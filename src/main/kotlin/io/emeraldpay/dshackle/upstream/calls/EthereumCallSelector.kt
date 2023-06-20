@@ -15,6 +15,10 @@
  */
 package io.emeraldpay.dshackle.upstream.calls
 
+import com.fasterxml.jackson.core.JsonFactory
+import com.fasterxml.jackson.core.JsonToken
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.data.BlockId
@@ -33,6 +37,7 @@ import java.util.Objects
 class EthereumCallSelector(
     private val caches: Caches
 ) {
+    private val jsonFactory = JsonFactory()
 
     companion object {
         private val log = LoggerFactory.getLogger(EthereumCallSelector::class.java)
@@ -72,16 +77,16 @@ class EthereumCallSelector(
         } else if (!passthrough) { // passthrough indicates we should match only labels
             when (method) {
                 in TAG_METHODS -> {
-                    return blockTagSelector(params, 1, null, head)
+                    return blockTagSelector(params, 1, null, head, method)
                 }
                 "eth_getStorageAt" -> {
-                    return blockTagSelector(params, 2, null, head)
+                    return blockTagSelector(params, 2, null, head, method)
                 }
                 in GET_BY_HASH_OR_NUMBER_METHODS -> {
-                    return blockTagSelector(params, 0, null, head)
+                    return blockTagSelector(params, 0, null, head, method)
                 }
                 in FILTER_OBJECT_METHODS -> {
-                    return blockTagSelector(params, 0, "toBlock", head)
+                    return blockTagSelector(params, 0, "toBlock", head, method)
                 }
             }
         }
@@ -102,8 +107,18 @@ class EthereumCallSelector(
         return Mono.just(Selector.SameNodeMatcher(nodeId.toByte()))
     }
 
-    private fun blockTagSelector(params: String, pos: Int, paramName: String?, head: Head): Mono<Selector.Matcher> {
-        val list = objectMapper.readerFor(Any::class.java).readValues<Any>(params).readAll()
+    private fun blockTagSelector(
+        params: String,
+        pos: Int,
+        paramName: String?,
+        head: Head,
+        method: String
+    ): Mono<Selector.Matcher> {
+        val list = if (method == "eth_call" && params.length > 100000) {
+            parse1(params)
+        } else {
+            objectMapper.readerFor(Any::class.java).readValues<Any>(params).readAll()
+        }
         if (list.size < pos + 1) {
             log.debug("Tag is not specified. Ignoring")
             return Mono.empty()
@@ -184,6 +199,35 @@ class EthereumCallSelector(
         } catch (t: Throwable) {
             log.warn("Invalid blockNumber: $blockNumber")
             Mono.empty()
+        }
+    }
+
+    private fun parse(params: String): List<String> {
+        val jsonArray = objectMapper.readValue<ArrayNode>(params)
+
+        return listOf("", jsonArray[1].textValue())
+    }
+
+    private fun parse1(params: String): List<String> {
+        return try {
+            val parser = jsonFactory.createParser(params)
+
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+
+            }
+
+            val token = parser.nextToken()
+            val tag = if (token == JsonToken.START_OBJECT) {
+                val start = parser.tokenLocation.columnNr - 1
+                parser.skipChildren()
+                params.substring(start, parser.tokenLocation.columnNr)
+            } else {
+                parser.text
+            }
+
+            listOf("", tag)
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 }

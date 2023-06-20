@@ -29,6 +29,11 @@ import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.TransactionIdSeri
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.etherjar.domain.TransactionId
+import org.slf4j.LoggerFactory
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import reactor.util.context.Context
+import reactor.util.context.ContextView
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -38,6 +43,41 @@ import java.util.concurrent.ScheduledExecutorService
 class Global {
 
     companion object {
+        val log = LoggerFactory.getLogger(Global::class.java)
+
+        fun <T> reportExecutionTime(flux: Flux<T>, flag: String): Flux<T>? {
+            val taskStartMsKey = "task.start"
+            return Flux.deferContextual { ctx: ContextView ->
+                flux
+                    .doOnNext { _ ->
+                        val executionTime = System.currentTimeMillis() - ctx.get<Long>(taskStartMsKey)
+                        log.info("$flag execution time: {}", executionTime)
+                    }
+            }
+                .contextWrite { ctx: Context ->
+                    ctx.put(
+                        taskStartMsKey,
+                        System.currentTimeMillis()
+                    )
+                }
+        }
+
+        fun <T> reportExecutionTime(mono: Mono<T>, flag: String): Mono<T>? {
+            val taskStartMsKey = "task.start"
+            return Mono.deferContextual { ctx: ContextView ->
+                mono
+                    .doOnSuccess { _ ->
+                        val executionTime = System.currentTimeMillis() - ctx.get<Long>(taskStartMsKey)
+                        log.info("$flag mono execution time: {}", executionTime)
+                    }
+            }
+                .contextWrite { ctx: Context ->
+                    ctx.put(
+                        taskStartMsKey,
+                        System.currentTimeMillis()
+                    )
+                }
+        }
 
         val nullValue: ByteArray = "null".toByteArray()
 
