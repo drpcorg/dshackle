@@ -114,11 +114,8 @@ class EthereumCallSelector(
         head: Head,
         method: String
     ): Mono<Selector.Matcher> {
-        val list = if (method == "eth_call" && params.length > 100000) {
-            parse1(params)
-        } else {
-            objectMapper.readerFor(Any::class.java).readValues<Any>(params).readAll()
-        }
+        val start = System.currentTimeMillis()
+        val list = objectMapper.readValue<List<Any>>(params)
         if (list.size < pos + 1) {
             log.debug("Tag is not specified. Ignoring")
             return Mono.empty()
@@ -126,6 +123,7 @@ class EthereumCallSelector(
 
         // integer block number, a string "latest", "earliest" or "pending", or an object with block reference
         val blockTag = Objects.toString(list[pos])
+        println(System.currentTimeMillis() - start)
 
         return if (blockTag.startsWith("{") && list[pos] is Map<*, *>) {
             val obj = list[pos] as Map<*, *>
