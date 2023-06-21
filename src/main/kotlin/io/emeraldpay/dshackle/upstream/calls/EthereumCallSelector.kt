@@ -208,7 +208,6 @@ class EthereumCallSelector(
             val parser = jsonFactory.createParser(params)
 
             while (parser.nextToken() != JsonToken.END_OBJECT) {
-
             }
 
             val token = parser.nextToken()
