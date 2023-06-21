@@ -114,7 +114,6 @@ class EthereumCallSelector(
         head: Head,
         method: String
     ): Mono<Selector.Matcher> {
-        val start = System.currentTimeMillis()
         val list = objectMapper.readValue<List<Any>>(params)
         if (list.size < pos + 1) {
             log.debug("Tag is not specified. Ignoring")
@@ -123,7 +122,6 @@ class EthereumCallSelector(
 
         // integer block number, a string "latest", "earliest" or "pending", or an object with block reference
         val blockTag = Objects.toString(list[pos])
-        println(System.currentTimeMillis() - start)
 
         return if (blockTag.startsWith("{") && list[pos] is Map<*, *>) {
             val obj = list[pos] as Map<*, *>
