@@ -77,16 +77,16 @@ class EthereumCallSelector(
         } else if (!passthrough) { // passthrough indicates we should match only labels
             when (method) {
                 in TAG_METHODS -> {
-                    return blockTagSelector(params, 1, null, head, method)
+                    return blockTagSelector(params, 1, null, head)
                 }
                 "eth_getStorageAt" -> {
-                    return blockTagSelector(params, 2, null, head, method)
+                    return blockTagSelector(params, 2, null, head)
                 }
                 in GET_BY_HASH_OR_NUMBER_METHODS -> {
-                    return blockTagSelector(params, 0, null, head, method)
+                    return blockTagSelector(params, 0, null, head)
                 }
                 in FILTER_OBJECT_METHODS -> {
-                    return blockTagSelector(params, 0, "toBlock", head, method)
+                    return blockTagSelector(params, 0, "toBlock", head)
                 }
             }
         }
@@ -111,8 +111,7 @@ class EthereumCallSelector(
         params: String,
         pos: Int,
         paramName: String?,
-        head: Head,
-        method: String
+        head: Head
     ): Mono<Selector.Matcher> {
         val list = objectMapper.readValue<List<Any>>(params)
         if (list.size < pos + 1) {
