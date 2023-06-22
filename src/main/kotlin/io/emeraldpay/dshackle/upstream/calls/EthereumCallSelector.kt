@@ -18,7 +18,6 @@ package io.emeraldpay.dshackle.upstream.calls
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.data.BlockId
@@ -117,7 +116,7 @@ class EthereumCallSelector(
         val list = if (method == "eth_call") {
             parseEthCall(params)
         } else {
-            objectMapper.readValue(params)
+            objectMapper.readerFor(Any::class.java).readValues<Any>(params).readAll()
         }
         if (list.size < pos + 1) {
             log.debug("Tag is not specified. Ignoring")
@@ -205,7 +204,7 @@ class EthereumCallSelector(
     private fun parseEthCall(params: ByteArray): List<Any> {
         return jsonFactory.createParser(params).use { parser ->
             if (!checkEthCall(parser)) {
-                return objectMapper.readValue(params)
+                return objectMapper.readerFor(Any::class.java).readValues<Any>(params).readAll()
             }
 
             val token = parser.currentToken
