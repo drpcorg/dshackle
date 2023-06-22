@@ -17,12 +17,14 @@
 package io.emeraldpay.dshackle.rpc
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.Global.Companion.nullValue
+import io.emeraldpay.dshackle.Global.Companion.objectMapper
 import io.emeraldpay.dshackle.SilentException
 import io.emeraldpay.dshackle.commons.LOCAL_READER
 import io.emeraldpay.dshackle.commons.REMOTE_QUORUM_RPC_READER
@@ -54,7 +56,6 @@ import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.etherjar.rpc.RpcException
 import io.emeraldpay.etherjar.rpc.RpcResponseError
 import io.micrometer.core.instrument.Metrics
-import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.sleuth.Span
 import org.springframework.cloud.sleuth.Tracer
@@ -104,6 +105,7 @@ open class NativeCall(
     }
 
     open fun nativeCall(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<BlockchainOuterClass.NativeCallReplyItem> {
+        log.info("req")
         return nativeCallResult(requestMono)
             .map(this::buildResponse)
             .onErrorResume(this::processException)
@@ -192,8 +194,7 @@ open class NativeCall(
     }
 
     fun parseParams(it: ValidCallContext<RawCallDetails>): ValidCallContext<ParsedCallDetails> {
-        val rawParams = extractParams(it.payload.params)
-        val params = it.requestDecorator.processRequest(rawParams)
+        val params = it.requestDecorator.processRequest(it.payload.params)
         return it.withPayload(ParsedCallDetails(it.payload.method, params))
     }
 
@@ -296,7 +297,7 @@ open class NativeCall(
         val requestId = requestItem.requestId
         val requestCount = request.itemsCount
         val method = requestItem.method
-        val params = requestItem.payload.toStringUtf8()
+        val params = requestItem.payload.toByteArray()
         val availableMethods = upstream.getMethods()
 
         if (!availableMethods.isAvailable(method)) {
@@ -457,8 +458,8 @@ open class NativeCall(
         }
 
     @Suppress("UNCHECKED_CAST")
-    private fun extractParams(jsonParams: String): List<Any> {
-        if (StringUtils.isEmpty(jsonParams)) {
+    private fun extractParams(jsonParams: ByteArray): List<Any> {
+        if (jsonParams.isEmpty()) {
             return emptyList()
         }
         val req = objectMapper.readValue(jsonParams, List::class.java)
@@ -504,18 +505,22 @@ open class NativeCall(
     }
 
     interface RequestDecorator {
-        fun processRequest(request: List<Any>): List<Any>
+        fun processRequest(request: ByteArray): ByteArray
     }
 
     open class NoneRequestDecorator : RequestDecorator {
-        override fun processRequest(request: List<Any>): List<Any> = request
+        override fun processRequest(request: ByteArray): ByteArray = request
     }
 
     open class WithFilterIdDecorator : RequestDecorator {
-        override fun processRequest(request: List<Any>): List<Any> {
-            val filterId = request.first().toString()
+        override fun processRequest(request: ByteArray): ByteArray {
+            if (request.isEmpty()) {
+                return request
+            }
+            val paramsList = objectMapper.readValue<List<Any>>(request)
+            val filterId = paramsList.first().toString()
             val sanitized = filterId.substring(0, filterId.lastIndex - 1)
-            return listOf(sanitized)
+            return objectMapper.writeValueAsBytes(listOf(sanitized))
         }
     }
 
@@ -660,6 +665,8 @@ open class NativeCall(
         }
     }
 
-    class RawCallDetails(val method: String, val params: String)
-    class ParsedCallDetails(val method: String, val params: List<Any>)
+    class RawCallDetails(val method: String, val params: ByteArray)
+    class ParsedCallDetails(val method: String, val params: ByteArray) {
+        constructor(method: String, params: List<Any>) : this(method, objectMapper.writeValueAsBytes(params))
+    }
 }

@@ -15,6 +15,7 @@
  */
 package io.emeraldpay.dshackle.upstream.bitcoin
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.SilentException
 import io.emeraldpay.dshackle.reader.JsonRpcReader
@@ -63,10 +64,11 @@ class LocalCallRouter(
      *
      */
     fun processUnspentRequest(key: JsonRpcRequest): Mono<JsonRpcResponse> {
-        if (key.params.size < 3) {
+        val params = Global.objectMapper.readValue<List<Any>>(key.params)
+        if (params.size < 3) {
             return Mono.error(SilentException("Invalid call to unspent. Address is missing"))
         }
-        val addresses = key.params[2]
+        val addresses = params[2]
         if (addresses is List<*> && addresses.size > 0) {
             val address = addresses[0].toString().let { Address.fromString(null, it) }
             return reader.listUnspent(address).map {

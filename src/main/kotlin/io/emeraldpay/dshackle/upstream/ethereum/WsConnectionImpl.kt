@@ -400,7 +400,7 @@ open class WsConnectionImpl(
             .doOnError { rpcMetrics?.fails?.increment() }
             .map { it.copyWithId(JsonRpcResponse.Id.from(originalId)) }
             .switchIfEmpty(
-                Mono.fromCallable { log.warn("No response for ${request.method} ${request.params}") }.then(Mono.error(noResponse))
+                Mono.fromCallable { log.warn("No response for ${request.method} ${String(request.params)}") }.then(Mono.error(noResponse))
             )
             .doFinally { currentRequests.remove(internalId.toInt()) }
     }

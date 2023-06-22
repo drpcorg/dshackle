@@ -15,6 +15,8 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcWsMessage
@@ -25,6 +27,8 @@ import spock.lang.Specification
 import java.time.Duration
 
 class WsSubscriptionsImplSpec extends Specification {
+
+    private ObjectMapper mapper = Global.objectMapper
 
     def "Makes a subscription"() {
         setup:
@@ -55,7 +59,7 @@ class WsSubscriptionsImplSpec extends Specification {
         act == ["100", "101", "102"]
 
         1 * conn.callRpc({ JsonRpcRequest req ->
-            req.method == "eth_subscribe" && req.params == ["foo_bar"]
+            req.method == "eth_subscribe" && req.params == mapper.writeValueAsBytes(["foo_bar"])
         }) >> Mono.just(new JsonRpcResponse('"0xcff45d00e7"'.bytes, null))
         1 * conn.getSubscribeResponses() >> answers
     }
@@ -93,7 +97,7 @@ class WsSubscriptionsImplSpec extends Specification {
         act == ["100", "101", "102"]
 
         1 * conn.callRpc({ JsonRpcRequest req ->
-            req.method == "eth_subscribe" && req.params == ["foo_bar"]
+            req.method == "eth_subscribe" && req.params == mapper.writeValueAsBytes(["foo_bar"])
         }) >> Mono.just(new JsonRpcResponse('"0xcff45d00e7"'.bytes, null))
         1 * conn.getSubscribeResponses() >> answers
     }

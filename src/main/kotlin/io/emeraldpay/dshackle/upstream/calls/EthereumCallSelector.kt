@@ -16,8 +16,8 @@
 package io.emeraldpay.dshackle.upstream.calls
 
 import com.fasterxml.jackson.core.JsonFactory
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
-import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.cache.Caches
@@ -71,29 +71,29 @@ class EthereumCallSelector(
      * @param method JSON RPC name
      * @param params JSON-encoded list of parameters for the method
      */
-    fun getMatcher(method: String, params: String, head: Head, passthrough: Boolean): Mono<Selector.Matcher> {
+    fun getMatcher(method: String, params: ByteArray, head: Head, passthrough: Boolean): Mono<Selector.Matcher> {
         if (method in DefaultEthereumMethods.withFilterIdMethods) {
             return sameUpstreamMatcher(params)
         } else if (!passthrough) { // passthrough indicates we should match only labels
             when (method) {
                 in TAG_METHODS -> {
-                    return blockTagSelector(params, 1, null, head)
+                    return blockTagSelector(params, 1, null, head, method)
                 }
                 "eth_getStorageAt" -> {
-                    return blockTagSelector(params, 2, null, head)
+                    return blockTagSelector(params, 2, null, head, method)
                 }
                 in GET_BY_HASH_OR_NUMBER_METHODS -> {
-                    return blockTagSelector(params, 0, null, head)
+                    return blockTagSelector(params, 0, null, head, method)
                 }
                 in FILTER_OBJECT_METHODS -> {
-                    return blockTagSelector(params, 0, "toBlock", head)
+                    return blockTagSelector(params, 0, "toBlock", head, method)
                 }
             }
         }
         return Mono.empty()
     }
 
-    private fun sameUpstreamMatcher(params: String): Mono<Selector.Matcher> {
+    private fun sameUpstreamMatcher(params: ByteArray): Mono<Selector.Matcher> {
         val list = objectMapper.readerFor(Any::class.java).readValues<Any>(params).readAll()
         if (list.isEmpty()) {
             return Mono.empty()
@@ -108,12 +108,17 @@ class EthereumCallSelector(
     }
 
     private fun blockTagSelector(
-        params: String,
+        params: ByteArray,
         pos: Int,
         paramName: String?,
-        head: Head
+        head: Head,
+        method: String
     ): Mono<Selector.Matcher> {
-        val list = objectMapper.readValue<List<Any>>(params)
+        val list = if (method == "eth_call") {
+            parseEthCall(params)
+        } else {
+            objectMapper.readValue(params)
+        }
         if (list.size < pos + 1) {
             log.debug("Tag is not specified. Ignoring")
             return Mono.empty()
@@ -197,31 +202,47 @@ class EthereumCallSelector(
         }
     }
 
-    private fun parse(params: String): List<String> {
-        val jsonArray = objectMapper.readValue<ArrayNode>(params)
-
-        return listOf("", jsonArray[1].textValue())
-    }
-
-    private fun parse1(params: String): List<String> {
-        return try {
-            val parser = jsonFactory.createParser(params)
-
-            while (parser.nextToken() != JsonToken.END_OBJECT) {
+    private fun parseEthCall(params: ByteArray): List<Any> {
+        return jsonFactory.createParser(params).use { parser ->
+            if (!checkEthCall(parser)) {
+                return objectMapper.readValue(params)
             }
 
-            val token = parser.nextToken()
+            val token = parser.currentToken
+
             val tag = if (token == JsonToken.START_OBJECT) {
-                val start = parser.tokenLocation.columnNr - 1
+                val start = parser.tokenLocation.byteOffset.toInt()
                 parser.skipChildren()
-                params.substring(start, parser.tokenLocation.columnNr)
+                val copyTag = ByteArray(parser.tokenLocation.byteOffset.toInt() + 1 - start)
+                System.arraycopy(params, start, copyTag, 0, copyTag.size)
+                String(copyTag)
             } else {
                 parser.text
             }
 
             listOf("", tag)
-        } catch (e: Exception) {
-            emptyList()
         }
+    }
+
+    private fun checkEthCall(parser: JsonParser): Boolean {
+        var token = parser.nextToken()
+        if (token != JsonToken.START_ARRAY) {
+            return false
+        }
+        token = parser.nextToken()
+        if (token != JsonToken.START_OBJECT) {
+            return false
+        }
+        parser.skipChildren()
+        token = parser.currentToken
+        if (token != JsonToken.END_OBJECT) {
+            return false
+        }
+        token = parser.nextToken()
+        if (token != JsonToken.VALUE_STRING && token != JsonToken.START_OBJECT) {
+            return false
+        }
+
+        return true
     }
 }

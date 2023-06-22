@@ -15,6 +15,8 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import com.fasterxml.jackson.module.kotlin.readValue
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.Global.Companion.nullValue
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.data.TxId
@@ -47,6 +49,10 @@ class EthereumLocalReader(
 
     companion object {
         private val log = LoggerFactory.getLogger(EthereumLocalReader::class.java)
+
+        private val LOCAL_METHODS = setOf(
+            "eth_getTransactionByHash", "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getTransactionReceipt"
+        )
     }
 
     override fun read(key: JsonRpcRequest): Mono<JsonRpcResponse> {
@@ -77,10 +83,13 @@ class EthereumLocalReader(
      * to have actual data types.
      */
     fun commonRequests(key: JsonRpcRequest): Mono<ByteArray>? {
+        if (!LOCAL_METHODS.contains(key.method)) {
+            return null
+        }
         val method = key.method
-        val params = key.params
-        return when {
-            method == "eth_getTransactionByHash" -> {
+        val params = Global.objectMapper.readValue<List<Any>>(key.params)
+        return when (method) {
+            "eth_getTransactionByHash" -> {
                 if (params.size != 1) {
                     throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "Must provide 1 parameter")
                 }
@@ -95,7 +104,7 @@ class EthereumLocalReader(
                     .map { it.json!! }
                     .switchIfEmpty { Mono.just(nullValue) }
             }
-            method == "eth_getBlockByHash" -> {
+            "eth_getBlockByHash" -> {
                 if (params.size != 2) {
                     throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "Must provide 2 parameters")
                 }
@@ -112,10 +121,10 @@ class EthereumLocalReader(
                     reader.blocksByIdAsCont().read(hash).map { it.json!! }
                 }
             }
-            method == "eth_getBlockByNumber" -> {
+            "eth_getBlockByNumber" -> {
                 getBlockByNumber(params)
             }
-            method == "eth_getTransactionReceipt" -> {
+            "eth_getTransactionReceipt" -> {
                 if (params.size != 1) {
                     throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "Must provide 1 parameter")
                 }

@@ -74,7 +74,7 @@ class ApiReaderMock implements Reader<JsonRpcRequest, JsonRpcResponse> {
 
     ApiReaderMock answer(@NotNull String method, List<Object> params, Object result,
                          Integer limit = null, Throwable exception = null) {
-        predefined << new PredefinedResponse(method: method, params: params, result: result, limit: limit, exception: exception)
+        predefined << new PredefinedResponse(method: method, params: objectMapper.writeValueAsBytes(params), result: result, limit: limit, exception: exception)
         return this
     }
 
@@ -115,7 +115,7 @@ class ApiReaderMock implements Reader<JsonRpcRequest, JsonRpcResponse> {
 
     def nativeCall(BlockchainOuterClass.NativeCallRequest request, StreamObserver<BlockchainOuterClass.NativeCallReplyItem> responseObserver) {
         request.itemsList.forEach { req ->
-            JsonRpcResponse resp = read(new JsonRpcRequest(req.method, objectMapper.readerFor(List).readValue(req.payload.toByteArray())))
+            JsonRpcResponse resp = read(new JsonRpcRequest(req.method, req.payload.toByteArray()))
                     .block(Duration.ofSeconds(5))
             def proto = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
                     .setId(req.id)
@@ -136,12 +136,12 @@ class ApiReaderMock implements Reader<JsonRpcRequest, JsonRpcResponse> {
 
     class PredefinedResponse {
         String method
-        List params
+        byte[] params
         Object result
         Integer limit
         Throwable exception
 
-        boolean isSame(String method, List<?> params) {
+        boolean isSame(String method, byte[] params) {
             if (limit != null) {
                 if (limit <= 0) {
                     return false

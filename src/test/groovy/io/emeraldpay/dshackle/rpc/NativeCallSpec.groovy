@@ -341,7 +341,7 @@ class NativeCallSpec extends Specification {
             id == 1
             nonce == 10
             payload.method == "eth_test"
-            payload.params == "[]"
+            payload.params == objectMapper.writeValueAsBytes([])
         }
     }
 
@@ -368,7 +368,7 @@ class NativeCallSpec extends Specification {
         with(act[0]) {
             id == 1
             payload.method == "eth_test"
-            payload.params == ""
+            payload.params == new byte[0]
         }
     }
 
@@ -535,12 +535,12 @@ class NativeCallSpec extends Specification {
         setup:
         def nativeCall = nativeCall()
         def ctx = new NativeCall.ValidCallContext(1, null, Stub(Multistream), Selector.empty, new AlwaysQuorum(),
-                new NativeCall.RawCallDetails("eth_test", "[]"), "reqId", 1)
+                new NativeCall.RawCallDetails("eth_test", "[]".getBytes()), "reqId", 1)
         when:
         def act = nativeCall.parseParams(ctx)
         then:
         act.id == 1
-        act.payload.params == []
+        act.payload.params == objectMapper.writeValueAsBytes([])
         act.payload.method == "eth_test"
     }
 
@@ -548,12 +548,12 @@ class NativeCallSpec extends Specification {
         setup:
         def nativeCall = nativeCall()
         def ctx = new NativeCall.ValidCallContext(1, null, Stub(Multistream), Selector.empty, new AlwaysQuorum(),
-                new NativeCall.RawCallDetails("eth_test", ""), "reqId", 1)
+                new NativeCall.RawCallDetails("eth_test", "".getBytes()), "reqId", 1)
         when:
         def act = nativeCall.parseParams(ctx)
         then:
         act.id == 1
-        act.payload.params == []
+        act.payload.params == new byte[0]
         act.payload.method == "eth_test"
     }
 
@@ -561,12 +561,12 @@ class NativeCallSpec extends Specification {
         setup:
         def nativeCall = nativeCall()
         def ctx = new NativeCall.ValidCallContext(1, null, Stub(Multistream), Selector.empty, new AlwaysQuorum(),
-                new NativeCall.RawCallDetails("eth_test", "[false]"), "reqId", 1)
+                new NativeCall.RawCallDetails("eth_test", "[false]".getBytes()), "reqId", 1)
         when:
         def act = nativeCall.parseParams(ctx)
         then:
         act.id == 1
-        act.payload.params == [false]
+        act.payload.params == objectMapper.writeValueAsBytes([false])
         act.payload.method == "eth_test"
     }
 
@@ -574,12 +574,12 @@ class NativeCallSpec extends Specification {
         setup:
         def nativeCall = nativeCall()
         def ctx = new NativeCall.ValidCallContext(1, null, Stub(Multistream), Selector.empty, new AlwaysQuorum(),
-                new NativeCall.RawCallDetails("eth_test", "[false, 123]"), "reqId", 1)
+                new NativeCall.RawCallDetails("eth_test", "[false,123]".getBytes()), "reqId", 1)
         when:
         def act = nativeCall.parseParams(ctx)
         then:
         act.id == 1
-        act.payload.params == [false, 123]
+        act.payload.params == objectMapper.writeValueAsBytes([false, 123])
         act.payload.method == "eth_test"
     }
 
@@ -587,13 +587,13 @@ class NativeCallSpec extends Specification {
         setup:
         def nativeCall = nativeCall()
         def ctx = new NativeCall.ValidCallContext(1, null, Stub(Multistream), Selector.empty, new AlwaysQuorum(),
-                new NativeCall.RawCallDetails("eth_getFilterUpdates", '["0xabcd"]'),
+                new NativeCall.RawCallDetails("eth_getFilterUpdates", '["0xabcd"]'.getBytes()),
                 new NativeCall.WithFilterIdDecorator(), new NativeCall.NoneResultDecorator(), null, "reqId", 1)
         when:
         def act = nativeCall.parseParams(ctx)
         then:
         act.id == 1
-        act.payload.params == ["0xab"]
+        act.payload.params == objectMapper.writeValueAsBytes(["0xab"])
         act.payload.method == "eth_getFilterUpdates"
     }
 

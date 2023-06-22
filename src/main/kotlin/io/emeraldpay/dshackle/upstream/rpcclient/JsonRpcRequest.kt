@@ -24,7 +24,7 @@ import io.emeraldpay.dshackle.Global
 
 data class JsonRpcRequest(
     val method: String,
-    val params: List<Any?>,
+    val params: ByteArray,
     val id: Int,
     val nonce: Long?,
     val selector: BlockchainOuterClass.Selector?
@@ -32,23 +32,49 @@ data class JsonRpcRequest(
 
     @JvmOverloads constructor(
         method: String,
-        params: List<Any?>,
+        params: ByteArray,
         nonce: Long? = null,
         selectors: BlockchainOuterClass.Selector? = null
     ) : this(method, params, 1, nonce, selectors)
 
+    @JvmOverloads constructor(
+        method: String,
+        params: List<Any>,
+        nonce: Long? = null,
+        selectors: BlockchainOuterClass.Selector? = null
+    ) : this(method, Global.objectMapper.writeValueAsBytes(params), 1, nonce, selectors)
+
     fun toJson(): ByteArray {
-        val json = mapOf(
-            "jsonrpc" to "2.0",
-            "id" to id,
-            "method" to method,
-            "params" to params
-        )
-        return Global.objectMapper.writeValueAsBytes(json)
+        val textBytes = """{"jsonrpc":"2.0","id":$id,"method":"$method","params":""".toByteArray()
+        return textBytes.plus(params).plus(125)
     }
 
     override fun toString(): String {
         return String(this.toJson())
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as JsonRpcRequest
+
+        if (method != other.method) return false
+        if (!params.contentEquals(other.params)) return false
+        if (id != other.id) return false
+        if (nonce != other.nonce) return false
+        if (selector != other.selector) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = method.hashCode()
+        result = 31 * result + params.contentHashCode()
+        result = 31 * result + id
+        result = 31 * result + (nonce?.hashCode() ?: 0)
+        result = 31 * result + (selector?.hashCode() ?: 0)
+        return result
     }
 
     class Deserializer : JsonDeserializer<JsonRpcRequest>() {
@@ -69,7 +95,7 @@ data class JsonRpcRequest(
                 } else {
                     throw IllegalStateException("Unsupported param type: ${it.asToken()}")
                 }
-            }
+            }.run { Global.objectMapper.writeValueAsBytes(this) }
             return JsonRpcRequest(method, params, id, null, null)
         }
     }

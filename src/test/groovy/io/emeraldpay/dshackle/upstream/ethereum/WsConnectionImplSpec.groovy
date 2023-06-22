@@ -15,6 +15,7 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.test.TestingCommons
@@ -30,6 +31,8 @@ import spock.lang.Specification
 import java.time.Duration
 
 class WsConnectionImplSpec extends Specification {
+
+    private ObjectMapper mapper = Global.objectMapper
 
     def "Makes a RPC call"() {
         setup:
@@ -55,7 +58,9 @@ class WsConnectionImplSpec extends Specification {
 
         when:
         Flux.from(ws.handle(wsApiMock.inbound, wsApiMock.outbound)).subscribe()
-        def act = ws.callRpc(new JsonRpcRequest("eth_getTransactionByHash", ["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200"], 15, null, null))
+        def act = ws.callRpc(
+                new JsonRpcRequest("eth_getTransactionByHash", mapper.writeValueAsBytes(["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200"]), 15, null, null)
+        )
 
         then:
         StepVerifier.create(act)
@@ -87,7 +92,9 @@ class WsConnectionImplSpec extends Specification {
 
         when:
         Flux.from(ws.handle(wsApiMock.inbound, wsApiMock.outbound)).subscribe()
-        def act = ws.callRpc(new JsonRpcRequest("eth_getTransactionByHash", ["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200"], 15, null, null))
+        def act = ws.callRpc(
+                new JsonRpcRequest("eth_getTransactionByHash", mapper.writeValueAsBytes(["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200"]), 15, null, null)
+        )
 
         then:
         StepVerifier.create(act)
@@ -121,7 +128,9 @@ class WsConnectionImplSpec extends Specification {
 
         when:
         Flux.from(ws.handle(wsApiMock.inbound, wsApiMock.outbound)).subscribe()
-        def act = ws.callRpc(new JsonRpcRequest("eth_getTransactionByHash", ["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200"], 15, null, null))
+        def act = ws.callRpc(
+                new JsonRpcRequest("eth_getTransactionByHash", mapper.writeValueAsBytes(["0x3ec2ebf5d0ec474d0ac6bc50d2770d8409ad76e119968e7919f85d5ec8915200"]), 15, null, null)
+        )
 
         then:
         StepVerifier.create(act)

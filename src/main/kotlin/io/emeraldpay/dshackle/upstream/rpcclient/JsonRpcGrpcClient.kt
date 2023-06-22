@@ -20,7 +20,6 @@ import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.api.proto.BlockchainOuterClass.NativeCallReplySignature
 import io.emeraldpay.api.proto.ReactorBlockchainGrpc
 import io.emeraldpay.dshackle.Chain
-import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.etherjar.rpc.RpcException
@@ -61,7 +60,7 @@ class JsonRpcGrpcClient(
             val reqItem = BlockchainOuterClass.NativeCallItem.newBuilder()
                 .setId(1)
                 .setMethod(key.method)
-                .setPayload(ByteString.copyFrom(Global.objectMapper.writeValueAsBytes(key.params)))
+                .setPayload(ByteString.copyFrom(key.params))
             if (key.nonce != null) {
                 reqItem.nonce = key.nonce
             }
