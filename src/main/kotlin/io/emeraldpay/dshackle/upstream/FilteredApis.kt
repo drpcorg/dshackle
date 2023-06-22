@@ -208,6 +208,7 @@ class FilteredApis(
     private fun processMatchesResponse(upstreamId: String, matchesResponse: MatchesResponse) {
         upstreamsMatchesResponse?.run {
             if (!matchesResponse.matched()) {
+                log.info("$upstreamId $matchesResponse")
                 addUpstreamMatchesResponse(upstreamId, matchesResponse)
             }
         }

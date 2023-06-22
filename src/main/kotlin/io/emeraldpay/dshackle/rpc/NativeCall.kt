@@ -105,7 +105,6 @@ open class NativeCall(
     }
 
     open fun nativeCall(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<BlockchainOuterClass.NativeCallReplyItem> {
-        log.info("req")
         return nativeCallResult(requestMono)
             .map(this::buildResponse)
             .onErrorResume(this::processException)
