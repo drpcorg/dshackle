@@ -105,6 +105,10 @@ open class NativeCall(
     }
 
     open fun nativeCall(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<BlockchainOuterClass.NativeCallReplyItem> {
+        val span = tracer.nextSpan(tracer.currentSpan())
+            .name("startRequest")
+            .start()
+        span.end()
         return nativeCallResult(requestMono)
             .map(this::buildResponse)
             .onErrorResume(this::processException)
