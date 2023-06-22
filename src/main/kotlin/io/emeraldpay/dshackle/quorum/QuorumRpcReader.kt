@@ -99,9 +99,6 @@ class QuorumRpcReader(
     }
 
     private fun execute(key: JsonRpcRequest, retrySpec: reactor.util.retry.Retry): Function<Flux<Upstream>, Mono<CallQuorum>> {
-        if (key.method == "eth_call") {
-            log.info("$apiControl")
-        }
         val quorumReduce = BiFunction<CallQuorum, Tuple4<ByteArray, Optional<ResponseSigner.Signature>, Upstream, Optional<String>>, CallQuorum> { res, a ->
             if (res.record(a.t1, a.t2.orElse(null), a.t3, a.t4.orElse(null))) {
                 log.trace("Quorum is resolved for method ${key.method}")
