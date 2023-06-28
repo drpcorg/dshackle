@@ -132,7 +132,7 @@ class SubscribeNodeStatus(
                 .setStatus(buildStatus(upstream.getStatus(), upstream.getHead().getCurrentHeight()))
                 .build()
         )
-        return Flux.merge(heads, Flux.concat(currentState, statuses))
+        return Flux.concat(currentState, Flux.merge(statuses, heads))
     }
 
     private fun buildDescription(ms: Multistream, up: Upstream): NodeDescription.Builder {
