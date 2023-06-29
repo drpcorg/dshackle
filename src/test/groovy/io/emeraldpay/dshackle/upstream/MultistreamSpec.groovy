@@ -303,18 +303,18 @@ class MultistreamSpec extends Specification {
 
     def "Filter older blocks on multistream head"() {
         setup:
-        def up1 = new EthereumPosRpcUpstreamMock("test1", Chain.ETHEREUM, TestingCommons.api(), new DirectCallMethods(["eth_test1", "eth_test2", "eth_test3"]))
-        def up2 = new EthereumPosRpcUpstreamMock("test2", Chain.ETHEREUM, TestingCommons.api(), new DirectCallMethods(["eth_test1", "eth_test2"]))
-        def ms = new EthereumPosMultiStream(Chain.ETHEREUM, new ArrayList<EthereumPosUpstream>(), Caches.default(), Schedulers.parallel(), TestingCommons.tracerMock())
+        def up1 = new EthereumPosRpcUpstreamMock("test1", Chain.ETHEREUM__MAINNET, TestingCommons.api(), new DirectCallMethods(["eth_test1", "eth_test2", "eth_test3"]))
+        def up2 = new EthereumPosRpcUpstreamMock("test2", Chain.ETHEREUM__MAINNET, TestingCommons.api(), new DirectCallMethods(["eth_test1", "eth_test2"]))
+        def ms = new EthereumPosMultiStream(Chain.ETHEREUM__MAINNET, new ArrayList<EthereumPosUpstream>(), Caches.default(), Schedulers.parallel(), TestingCommons.tracerMock())
         def head1 = createBlock(250, "0x0d050c785de17179f935b9b93aca09c442964cc59972c71ae68e74731448401b")
         def head2 = createBlock(270, "0x0d050c785de17179f935b9b93aca09c442964cc59972c71ae68e74731448402b")
         def head3 = createBlock(100, "0x0d050c785de17179f935b9b93aca09c442964cc59972c71ae68e74731448412b")
         when:
         ms.onUpstreamChange(
-                new UpstreamChangeEvent(Chain.ETHEREUM, up1, UpstreamChangeEvent.ChangeType.ADDED)
+                new UpstreamChangeEvent(Chain.ETHEREUM__MAINNET, up1, UpstreamChangeEvent.ChangeType.ADDED)
         )
         ms.onUpstreamChange(
-                new UpstreamChangeEvent(Chain.ETHEREUM, up2, UpstreamChangeEvent.ChangeType.ADDED)
+                new UpstreamChangeEvent(Chain.ETHEREUM__MAINNET, up2, UpstreamChangeEvent.ChangeType.ADDED)
         )
         def head = ms.getHead()
         then:
