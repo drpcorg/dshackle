@@ -142,11 +142,11 @@ open class UpstreamsConfig {
 
     class EthereumConnection : RpcConnection() {
         var ws: WsEndpoint? = null
-        var preferHttp: Boolean = false
+        var preferHttp: Boolean = true
         var connectorMode: String? = null
 
         fun resolveMode(): ConnectorMode {
-            return if (preferHttp) {
+            return if (preferHttp && ws != null && rpc != null) {
                 ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD
             } else {
                 if (connectorMode == null) {

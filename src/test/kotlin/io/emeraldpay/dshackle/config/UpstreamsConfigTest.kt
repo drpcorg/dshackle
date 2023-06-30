@@ -30,7 +30,7 @@ internal class UpstreamsConfigTest {
                             preferHttp = true
                             ws = UpstreamsConfig.WsEndpoint(URI("ws://localhost:8546"))
                         },
-                    ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD
+                    ConnectorMode.WS_ONLY
                 ),
                 Arguments.of(
                     UpstreamsConfig.EthereumConnection()
@@ -47,7 +47,7 @@ internal class UpstreamsConfigTest {
                             connectorMode = "RPC_REQUESTS_WITH_WS_HEAD"
                             ws = UpstreamsConfig.WsEndpoint(URI("ws://localhost:8546"))
                         },
-                    ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD
+                    ConnectorMode.RPC_REQUESTS_WITH_WS_HEAD
                 ),
             )
         }
