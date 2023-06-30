@@ -147,7 +147,7 @@ open class UpstreamsConfig {
         fun resolveMode(): ConnectorMode {
             return if (connectorMode == null) {
                 if (ws != null && rpc != null) {
-                    ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD
+                    ConnectorMode.RPC_REQUESTS_WITH_WS_HEAD
                 } else if (ws == null) {
                     ConnectorMode.RPC_ONLY
                 } else {
