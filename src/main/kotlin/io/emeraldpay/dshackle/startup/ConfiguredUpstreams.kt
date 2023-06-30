@@ -47,7 +47,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.EthereumRpcUpstream
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumWsConnectionFactory
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumWsConnectionPoolFactory
 import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnectorFactory
-import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnectorFactory.ConnectorMode.RPC_ONLY
+import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnectorFactory.ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD
 import io.emeraldpay.dshackle.upstream.forkchoice.ForkChoice
 import io.emeraldpay.dshackle.upstream.forkchoice.MostWorkForkChoice
 import io.emeraldpay.dshackle.upstream.forkchoice.NoChoiceWithPriorityForkChoice
@@ -224,7 +224,7 @@ open class ConfiguredUpstreams(
         }
 
         val hashUrl = conn.execution!!.let {
-            if (it.connectorMode == RPC_ONLY.name) it.rpc?.url ?: it.ws?.url else it.ws?.url ?: it.rpc?.url
+            if (it.connectorMode == RPC_REQUESTS_WITH_MIXED_HEAD.name) it.rpc?.url ?: it.ws?.url else it.ws?.url ?: it.rpc?.url
         }
         val hash = getHash(nodeId, hashUrl!!)
         val upstream = EthereumPosRpcUpstream(
@@ -309,7 +309,7 @@ open class ConfiguredUpstreams(
             return null
         }
 
-        val hashUrl = if (conn.connectorMode == RPC_ONLY.name) conn.rpc?.url ?: conn.ws?.url else conn.ws?.url ?: conn.rpc?.url
+        val hashUrl = if (conn.connectorMode == RPC_REQUESTS_WITH_MIXED_HEAD.name) conn.rpc?.url ?: conn.ws?.url else conn.ws?.url ?: conn.rpc?.url
         val upstream = EthereumRpcUpstream(
             config.id!!,
             getHash(nodeId, hashUrl!!),
