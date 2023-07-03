@@ -24,15 +24,15 @@ import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.startup.QuorumForLabels
 import io.emeraldpay.dshackle.upstream.Head
-import io.emeraldpay.dshackle.upstream.Lifecycle
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.ethereum.connectors.ConnectorFactory
 import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnector
+import org.springframework.context.Lifecycle
 import reactor.core.Disposable
 
-open class EthereumPosRpcUpstream(
+open class EthereumLikeRpcUpstream(
     id: String,
     hash: Byte,
     val chain: Chain,
@@ -41,12 +41,14 @@ open class EthereumPosRpcUpstream(
     targets: CallMethods?,
     node: QuorumForLabels.QuorumItem?,
     connectorFactory: ConnectorFactory,
-    chainConfig: ChainsConfig.ChainConfig
-) : EthereumPosUpstream(id, hash, options, role, targets, node, chainConfig), Lifecycle, Upstream, CachesEnabled {
+    chainConfig: ChainsConfig.ChainConfig,
+    skipEnhance: Boolean
+) : EthereumLikeUpstream(id, hash, options, role, targets, node, chainConfig), Lifecycle, Upstream, CachesEnabled {
     private val validator: EthereumUpstreamValidator = EthereumUpstreamValidator(this, getOptions())
-    private val connector: EthereumConnector = connectorFactory.create(this, validator, chain, true)
+    private val connector: EthereumConnector = connectorFactory.create(this, validator, chain, skipEnhance)
 
     private var validatorSubscription: Disposable? = null
+    private var checkSyncingSubscription: Disposable? = null
 
     override fun setCaches(caches: Caches) {
         if (connector is CachesEnabled) {
@@ -57,7 +59,8 @@ open class EthereumPosRpcUpstream(
     override fun start() {
         log.info("Configured for ${chain.chainName}")
         connector.start()
-        if (getOptions().disableValidation) {
+        val options = getOptions()
+        if (options.disableValidation) {
             log.warn("Disable validation for upstream ${this.getId()}")
             this.setLag(0)
             this.setStatus(UpstreamAvailability.OK)
@@ -66,7 +69,16 @@ open class EthereumPosRpcUpstream(
             validatorSubscription = validator.start()
                 .subscribe(this::setStatus)
         }
+
+        if (options.disableValidation || !options.validateSyncing) {
+            checkSyncingSubscription = validator.checkNodeIsSyncing().subscribe()
+        }
     }
+
+    override fun getIngressSubscription(): EthereumIngressSubscription {
+        return connector.getIngressSubscription()
+    }
+
     override fun getHead(): Head {
         return connector.getHead()
     }
@@ -74,6 +86,8 @@ open class EthereumPosRpcUpstream(
     override fun stop() {
         validatorSubscription?.dispose()
         validatorSubscription = null
+        checkSyncingSubscription?.dispose()
+        checkSyncingSubscription = null
         connector.stop()
     }
 
@@ -95,9 +109,5 @@ open class EthereumPosRpcUpstream(
             throw ClassCastException("Cannot cast ${this.javaClass} to $selfType")
         }
         return this as T
-    }
-
-    override fun getIngressSubscription(): EthereumIngressSubscription {
-        return connector.getIngressSubscription()
     }
 }

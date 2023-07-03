@@ -65,18 +65,9 @@ open class EthereumUpstreamValidator(
         if (!options.validateSyncing) {
             return Mono.just(UpstreamAvailability.OK)
         }
-        return upstream
-            .getIngressReader()
-            .read(JsonRpcRequest("eth_syncing", listOf()))
-            .flatMap(JsonRpcResponse::requireResult)
-            .map { objectMapper.readValue(it, SyncingJson::class.java) }
-            .timeout(
-                Defaults.timeoutInternal,
-                Mono.fromCallable { log.warn("No response for eth_syncing from ${upstream.getId()}") }
-                    .then(Mono.error(TimeoutException("Validation timeout for Syncing")))
-            )
-            .map { value ->
-                if (value.isSyncing) {
+        return checkNodeIsSyncingInternal()
+            .map {
+                if (it) {
                     UpstreamAvailability.SYNCING
                 } else {
                     UpstreamAvailability.OK
@@ -117,6 +108,32 @@ open class EthereumUpstreamValidator(
         ).subscribeOn(scheduler)
             .flatMap {
                 validate()
+            }
+    }
+
+    fun checkNodeIsSyncing(): Flux<Boolean> =
+        Flux.interval(Duration.ofSeconds(60), Duration.ofSeconds(30))
+            .subscribeOn(scheduler)
+            .flatMap {
+                checkNodeIsSyncingInternal()
+                    .onErrorReturn(false)
+            }
+
+    private fun checkNodeIsSyncingInternal(): Mono<Boolean> {
+        return upstream.getIngressReader()
+            .read(JsonRpcRequest("eth_syncing", listOf()))
+            .flatMap(JsonRpcResponse::requireResult)
+            .map { objectMapper.readValue(it, SyncingJson::class.java) }
+            .timeout(
+                Defaults.timeoutInternal,
+                Mono.fromCallable { log.warn("No response for eth_syncing from ${upstream.getId()}") }
+                    .then(Mono.error(TimeoutException("Validation timeout for Syncing")))
+            )
+            .map {
+                it.isSyncing
+            }
+            .doOnNext {
+                upstream.getHead().onSyncingNode(it)
             }
     }
 }
