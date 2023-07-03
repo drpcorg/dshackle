@@ -48,7 +48,6 @@ open class EthereumLikeRpcUpstream(
     private val connector: EthereumConnector = connectorFactory.create(this, validator, chain, skipEnhance)
 
     private var validatorSubscription: Disposable? = null
-    private var checkSyncingSubscription: Disposable? = null
 
     override fun setCaches(caches: Caches) {
         if (connector is CachesEnabled) {
@@ -81,8 +80,6 @@ open class EthereumLikeRpcUpstream(
     override fun stop() {
         validatorSubscription?.dispose()
         validatorSubscription = null
-        checkSyncingSubscription?.dispose()
-        checkSyncingSubscription = null
         connector.stop()
     }
 
