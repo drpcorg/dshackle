@@ -106,7 +106,6 @@ class EthereumWsHead(
                     Mono.just(BlockContainer.from(block))
                 }
             }
-            .doOnNext { println("!!!go!!!!!") }
             .timeout(Duration.ofSeconds(60), Mono.error(RuntimeException("No response from subscribe to newHeads")))
             .onErrorResume {
                 subscribed = false
