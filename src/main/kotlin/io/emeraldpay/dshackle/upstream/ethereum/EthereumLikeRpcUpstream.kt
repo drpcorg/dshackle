@@ -59,8 +59,7 @@ open class EthereumLikeRpcUpstream(
     override fun start() {
         log.info("Configured for ${chain.chainName}")
         connector.start()
-        val options = getOptions()
-        if (options.disableValidation) {
+        if (getOptions().disableValidation) {
             log.warn("Disable validation for upstream ${this.getId()}")
             this.setLag(0)
             this.setStatus(UpstreamAvailability.OK)
@@ -68,10 +67,6 @@ open class EthereumLikeRpcUpstream(
             log.debug("Start validation for upstream ${this.getId()}")
             validatorSubscription = validator.start()
                 .subscribe(this::setStatus)
-        }
-
-        if (options.disableValidation || !options.validateSyncing) {
-            checkSyncingSubscription = validator.checkNodeIsSyncing().subscribe()
         }
     }
 
