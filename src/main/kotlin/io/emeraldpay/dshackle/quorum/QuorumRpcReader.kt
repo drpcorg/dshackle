@@ -143,6 +143,7 @@ class QuorumRpcReader(
             SPAN_REQUEST_API_TYPE to apiReader.javaClass.name,
             SPAN_REQUEST_UPSTREAM_ID to api.getId()
         )
+        log.info(api.getLabels().toString())
         return SpannedReader(apiReader, tracer, API_READER, spanParams)
             .read(key)
             .flatMap { response ->

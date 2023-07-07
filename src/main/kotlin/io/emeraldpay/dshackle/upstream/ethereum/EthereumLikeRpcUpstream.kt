@@ -70,7 +70,8 @@ open class EthereumLikeRpcUpstream(
                 .subscribe(this::setStatus)
         }
         labelsDetector.detectLabels()
-            .subscribe {
+            .toStream()
+            .forEach {
                 node?.labels?.let { labels ->
                     labels[it.first] = it.second
                 }
