@@ -72,9 +72,7 @@ open class EthereumLikeRpcUpstream(
         labelsDetector.detectLabels()
             .subscribe {
                 node?.labels?.let { labels ->
-                    if (!labels.containsKey(it.first)) {
-                        labels[it.first] = it.second
-                    }
+                    labels[it.first] = it.second
                 }
             }
     }
