@@ -92,7 +92,8 @@ class DefaultEthereumMethods(
         "eth_getStorageAt",
         "eth_getCode",
         "eth_getUncleByBlockHashAndIndex",
-        "eth_getLogs"
+        "eth_getLogs",
+        "eth_maxPriorityFeePerGas"
     )
 
     private val specialMethods = listOf(
