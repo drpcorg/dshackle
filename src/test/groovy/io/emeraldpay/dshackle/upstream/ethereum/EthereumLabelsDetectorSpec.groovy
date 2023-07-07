@@ -41,6 +41,7 @@ class EthereumLabelsDetectorSpec extends Specification {
         "Nethermind/v1.19.3+e8ac1da4/linux-x64/dotnet7.0.8"     | "nethermind"
         "Geth/v1.12.0-stable-e501b3b0/linux-amd64/go1.20.3"     | "geth"
         "Erigon/v1.12.0-stable-e501b3b0/linux-amd64/go1.20.3"   | "erigon"
+        "Bor/v0.4.0/linux-amd64/go1.19.10"                      | "bor"
     }
 
     def "No any label"() {

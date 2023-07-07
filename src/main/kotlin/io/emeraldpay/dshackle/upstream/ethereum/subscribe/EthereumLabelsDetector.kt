@@ -50,6 +50,8 @@ class EthereumLabelsDetector(
             "erigon"
         } else if (nodeType.contains("geth", true)) {
             "geth"
+        } else if (nodeType.contains("bor", true)) {
+            "bor"
         } else if (nodeType.contains("nethermind", true)) {
             "nethermind"
         } else {
