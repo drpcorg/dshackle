@@ -173,6 +173,10 @@ class DefaultEthereumMethods(
 
     private fun getChainSpecificMethods(chain: Chain): List<String> {
         return when (chain) {
+            Chain.ETHEREUM__GOERLI, Chain.ETHEREUM__MAINNET -> listOf(
+                "eth_maxPriorityFeePerGas"
+            )
+
             Chain.OPTIMISM__MAINNET, Chain.OPTIMISM__GOERLI -> listOf(
                 "rollup_gasPrices"
             )
