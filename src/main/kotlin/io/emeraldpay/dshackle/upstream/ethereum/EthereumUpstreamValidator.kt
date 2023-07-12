@@ -88,11 +88,18 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                 )
             )
             .flatMap(JsonRpcResponse::requireResult)
+            .doOnError {
+                log.error(
+                    "Node ${upstream.getId()} is incorrectly configured. " +
+                        "You need to set up your return limit to at least 200000." +
+                        "Erigon config example: https://github.com/ledgerwatch/erigon/blob/devel/cmd/utils/flags.go#L364. "
+                )
+            }
             .map { UpstreamAvailability.OK }
             .timeout(
                 Defaults.timeoutInternal,
-                Mono.fromCallable { log.warn("No response for eth_call limit check from ${upstream.getId()}") }
-                    .then(Mono.error(TimeoutException("Validation timeout for Syncing")))
+                Mono.fromCallable { log.error("No response for eth_call limit check from ${upstream.getId()}") }
+                    .then(Mono.error(TimeoutException("Validation timeout for call limit")))
             )
             .doOnSuccess { callLimitSucceed = true }
             .onErrorReturn(UpstreamAvailability.UNAVAILABLE)
