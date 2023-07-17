@@ -82,6 +82,7 @@ class DefaultEthereumMethods(
     )
 
     private val firstValueMethods = listOf(
+        "eth_call",
         "eth_getBlockTransactionCountByHash",
         "eth_getUncleCountByBlockHash",
         "eth_getBlockByHash",
@@ -96,7 +97,6 @@ class DefaultEthereumMethods(
     )
 
     private val specialMethods = listOf(
-        "eth_call",
         "eth_getTransactionCount",
         "eth_blockNumber",
         "eth_getBalance",
@@ -149,7 +149,6 @@ class DefaultEthereumMethods(
             possibleNotIndexedMethods.contains(method) -> NotNullQuorum()
             specialMethods.contains(method) -> {
                 when (method) {
-                    "eth_call" -> AlwaysQuorum()
                     "eth_getTransactionCount" -> AlwaysQuorum()
                     "eth_getBalance" -> AlwaysQuorum()
                     "eth_sendRawTransaction" -> BroadcastQuorum()
