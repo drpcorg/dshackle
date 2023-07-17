@@ -96,6 +96,7 @@ class DefaultEthereumMethods(
     )
 
     private val specialMethods = listOf(
+        "eth_call",
         "eth_getTransactionCount",
         "eth_blockNumber",
         "eth_getBalance",
