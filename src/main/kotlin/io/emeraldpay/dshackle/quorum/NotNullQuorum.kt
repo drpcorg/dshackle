@@ -30,7 +30,6 @@ class NotNullQuorum : CallQuorum {
         allFailed = false
         val receivedNull = response.isEmpty() || Global.nullValue.contentEquals(response)
         val upId = upstream.getId()
-        if (upId == "infura2") return false
         if (seenUpstreams.contains(upId) || !receivedNull) {
             sig = signature
             result = response
