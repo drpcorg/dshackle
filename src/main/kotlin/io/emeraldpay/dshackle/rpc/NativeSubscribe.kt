@@ -100,7 +100,7 @@ open class NativeSubscribe(
         getUpstream(chain).getEgressSubscription()
             .subscribe(method, params, matcher)
             .doOnError {
-                log.error("Error during subscription", it)
+                log.error("Error during subscription to $method, chain $chain, params $params", it)
             }
 
     private fun getUpstream(chain: Chain): EthereumLikeMultistream =
