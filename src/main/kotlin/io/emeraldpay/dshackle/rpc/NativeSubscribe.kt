@@ -97,7 +97,11 @@ open class NativeSubscribe(
     }
 
     open fun subscribe(chain: Chain, method: String, params: Any?, matcher: Selector.Matcher): Flux<out Any> =
-        getUpstream(chain).getEgressSubscription().subscribe(method, params, matcher)
+        getUpstream(chain).getEgressSubscription()
+            .subscribe(method, params, matcher)
+            .doOnError {
+                log.error("Error during subscription", it)
+            }
 
     private fun getUpstream(chain: Chain): EthereumLikeMultistream =
         multistreamHolder.getUpstream(chain).let { it as EthereumLikeMultistream }
