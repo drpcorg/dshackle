@@ -71,7 +71,6 @@ abstract class HeadLagObserver(
             .parallel(followers.size)
             .flatMap { up -> mapLagging(top, up, getCurrentBlocks(up)).subscribeOn(lagObserverScheduler) }
             .sequential()
-            .log()
             .onErrorContinue { t, _ -> log.warn("Failed to update lagging distance", t) }
     }
 
