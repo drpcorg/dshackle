@@ -239,6 +239,7 @@ open class ConfiguredUpstreams(
             true
         )
         upstream.start()
+        if (!upstream.isRunning) return null
         return upstream
     }
 

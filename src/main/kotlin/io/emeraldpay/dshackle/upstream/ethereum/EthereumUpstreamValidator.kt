@@ -17,11 +17,15 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Defaults
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
+import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods.Companion.CHAIN_DATA
+import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods.Companion.getChainByData
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.etherjar.domain.Address
@@ -39,6 +43,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeoutException
 
 open class EthereumUpstreamValidator @JvmOverloads constructor(
+    private val chain: Chain,
     private val upstream: Upstream,
     private val options: UpstreamsConfig.Options,
     private val callLimitContract: String? = null
@@ -66,6 +71,37 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
     fun resolve(results: Tuple3<UpstreamAvailability, UpstreamAvailability, UpstreamAvailability>): UpstreamAvailability {
         val cp = Comparator { avail1: UpstreamAvailability, avail2: UpstreamAvailability -> if (avail1.isBetterTo(avail2)) -1 else 1 }
         return listOf(results.t1, results.t2, results.t3).sortedWith(cp).last()
+    }
+
+    fun validateChainSettings(): Boolean {
+        if (!options.validateChain) {
+            return true
+        }
+        return Mono.zip(
+            chainId(),
+            netVersion()
+        )
+            .map {
+                val chainData = CHAIN_DATA[chain] ?: return@map false
+                val isChainValid = chainData.chainId == it.t1 && chainData.netVersion == it.t2
+
+                if (!isChainValid) {
+                    val actualChain = getChainByData(
+                        DefaultEthereumMethods.HardcodedData(it.t2, it.t1)
+                    )?.chainName
+                    log.warn(
+                        "${chain.chainName} is specified for upstream ${upstream.getId()} " +
+                            "but actually it is $actualChain with chainId ${it.t1} and net_version ${it.t2}"
+                    )
+                }
+
+                isChainValid
+            }
+            .onErrorResume {
+                log.error("Error during chain validation", it)
+                Mono.just(false)
+            }
+            .block() ?: false
     }
 
     fun validateCallLimit(): Mono<UpstreamAvailability> {
@@ -164,5 +200,19 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
             .flatMap {
                 validate()
             }
+    }
+
+    private fun chainId(): Mono<String> {
+        return upstream.getIngressReader()
+            .read(JsonRpcRequest("eth_chainId", emptyList()))
+            .flatMap(JsonRpcResponse::requireResult)
+            .map { String(it) }
+    }
+
+    private fun netVersion(): Mono<String> {
+        return upstream.getIngressReader()
+            .read(JsonRpcRequest("net_version", emptyList()))
+            .flatMap(JsonRpcResponse::requireResult)
+            .map { String(it) }
     }
 }
