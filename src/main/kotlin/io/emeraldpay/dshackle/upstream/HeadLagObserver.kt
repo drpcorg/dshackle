@@ -71,6 +71,7 @@ abstract class HeadLagObserver(
             .parallel(followers.size)
             .flatMap { up -> mapLagging(top, up, getCurrentBlocks(up)).subscribeOn(lagObserverScheduler) }
             .sequential()
+            .log()
             .onErrorContinue { t, _ -> log.warn("Failed to update lagging distance", t) }
     }
 
@@ -81,7 +82,11 @@ abstract class HeadLagObserver(
 
     fun mapLagging(top: BlockContainer, up: Upstream, blocks: Flux<BlockContainer>): Flux<Tuple2<Long, Upstream>> {
         return blocks
-            .map { extractDistance(top, it) }
+            .map {
+                extractDistance(top, it).also { d ->
+                    println("$d between $top and $it")
+                }
+            }
             .takeUntil { lag -> lag <= 0L }
             .map { Tuples.of(it, up) }
             .doOnError { t ->

@@ -76,7 +76,9 @@ class HeadLagObserverSpec extends Specification {
 
         HeadLagObserver observer = new TestHeadLagObserver(master, [up1, up2])
         when:
-        def act = observer.subscription().take(Duration.ofMillis(5000))
+        def act = observer.subscription()
+                .doOnNext {println(it)}
+                .take(Duration.ofMillis(5000))
 
         then:
         StepVerifier.create(act)
