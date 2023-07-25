@@ -81,11 +81,7 @@ abstract class HeadLagObserver(
 
     fun mapLagging(top: BlockContainer, up: Upstream, blocks: Flux<BlockContainer>): Flux<Tuple2<Long, Upstream>> {
         return blocks
-            .map {
-                extractDistance(top, it).also { d ->
-                    println("$d between $top and $it")
-                }
-            }
+            .map { extractDistance(top, it) }
             .takeUntil { lag -> lag <= 0L }
             .map { Tuples.of(it, up) }
             .doOnError { t ->
