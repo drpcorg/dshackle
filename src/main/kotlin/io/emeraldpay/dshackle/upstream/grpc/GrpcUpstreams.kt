@@ -21,6 +21,7 @@ import io.emeraldpay.api.proto.BlockchainOuterClass.DescribeRequest
 import io.emeraldpay.api.proto.BlockchainOuterClass.DescribeResponse
 import io.emeraldpay.api.proto.BlockchainOuterClass.StatusRequest
 import io.emeraldpay.api.proto.Common
+import io.emeraldpay.api.proto.Common.ChainRef.UNRECOGNIZED
 import io.emeraldpay.api.proto.ReactorBlockchainGrpc
 import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
@@ -154,7 +155,7 @@ class GrpcUpstreams(
         val version = value.buildInfo.version
         log.info("Start processing grpc upstream description for $id with chains $chainNames and version $version")
         val current = value.chainsList.filter {
-            Chain.byId(it.chain.number) != Chain.UNSPECIFIED
+            it.chain != UNRECOGNIZED && Chain.byId(it.chain.number) != Chain.UNSPECIFIED
         }.mapNotNull { chainDetails ->
             try {
                 val chain = Chain.byId(chainDetails.chain.number)
