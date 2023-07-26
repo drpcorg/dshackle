@@ -152,6 +152,11 @@ class GrpcUpstreams(
 
     private fun processDescription(value: DescribeResponse): Flux<UpstreamChangeEvent> {
         val chainNames = value.chainsList.map { it.chain.name }
+            .also {
+                if (it.contains("UNRECOGNIZED")) {
+                    log.warn("There is an UNRECOGNIZED chain, it's necessary to update dshackle-main")
+                }
+            }
         val version = value.buildInfo.version
         log.info("Start processing grpc upstream description for $id with chains $chainNames and version $version")
         val current = value.chainsList.filter {
