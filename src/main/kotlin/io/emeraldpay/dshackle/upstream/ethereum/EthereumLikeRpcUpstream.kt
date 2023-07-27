@@ -60,9 +60,9 @@ open class EthereumLikeRpcUpstream(
     override fun start() {
         log.info("Configured for ${chain.chainName}")
         connector.start()
-        if (!validator.validateChainSettings()) {
+        if (!validator.validateUpstreamSettings()) {
             connector.stop()
-            log.warn("Upstream ${getId()} couldn't start, invalid chain settings")
+            log.warn("Upstream ${getId()} couldn't start, invalid upstream settings")
             return
         }
         if (getOptions().disableValidation) {

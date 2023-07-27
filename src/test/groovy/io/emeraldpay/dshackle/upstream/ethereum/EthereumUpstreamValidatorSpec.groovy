@@ -21,6 +21,7 @@ import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.test.ApiReaderMock
 import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.Head
+import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcError
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.etherjar.domain.Address
@@ -262,70 +263,69 @@ class EthereumUpstreamValidatorSpec extends Specification {
         act == UNAVAILABLE
     }
 
-    def "Doesnt check call limit when disabled"() {
+    def "Doesnt validate settings when disabled"() {
         setup:
         def options = UpstreamsConfig.PartialOptions.getDefaults().tap {
             it.validateCalllimit = false
+            it.validateChain = false
         }.buildOptions()
         def up = Mock(EthereumLikeUpstream)
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options)
 
         when:
-        def act = validator.validateCallLimit().block(Duration.ofSeconds(1))
+        def act = validator.validateUpstreamSettings()
         then:
-        act == OK
+        act
         0 * up.getIngressReader()
     }
 
-    def "Upstream available if not error from call limit check"() {
+    def "Upstream is valid if not error from call limit check"() {
         setup:
-        def options = UpstreamsConfig.PartialOptions.getDefaults().buildOptions()
-        def up = TestingCommons.upstream(
-                new ApiReaderMock().tap {
-                    answerOnce("eth_call", [new TransactionCallJson(
-                            Address.from("0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96"),
-                            HexData.from("0xd8a26e3a0000000000000000000000000000000000000000000000000000000000030ce0")
-                    ), "latest"], "0x00000000000000000000")
-                }
-        )
+        def options = UpstreamsConfig.PartialOptions.getDefaults().tap {
+            it.validateChain = false
+        }.buildOptions()
+        def up = Mock(EthereumLikeRpcUpstream) {
+            1 * getIngressReader() >> Mock(Reader) {
+                1 * read(new JsonRpcRequest("eth_call", [new TransactionCallJson(
+                        Address.from("0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96"),
+                        HexData.from("0xd8a26e3a0000000000000000000000000000000000000000000000000000000000030ce0")
+                ), "latest"])) >> Mono.just(new JsonRpcResponse("0x00000000000000000000".getBytes(), null))
+            }
+        }
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateCallLimit().block(Duration.ofSeconds(1))
+        def act = validator.validateUpstreamSettings()
         then:
-        act == OK
-        when:
-        def act2 = validator.validateCallLimit().block(Duration.ofSeconds(1))
-        then:
-        act2 == OK
+        act
     }
 
-    def "Upstream not available if error returned on call limit check"() {
+    def "Upstream is not valid if error returned on call limit check"() {
         setup:
-        def options = UpstreamsConfig.PartialOptions.getDefaults().buildOptions()
-        def up = TestingCommons.upstream(
-                new ApiReaderMock().tap {
-                    answer("eth_call", [new TransactionCallJson(
-                            Address.from("0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96"),
-                            HexData.from("0xd8a26e3a0000000000000000000000000000000000000000000000000000000000030ce0")
-                    ), "latest"], new RpcResponseError(RpcResponseError.CODE_INVALID_REQUEST, "Too long"))
-                }
-        )
+        def options = UpstreamsConfig.PartialOptions.getDefaults().tap {
+            it.validateChain = false
+        }.buildOptions()
+        def up = Mock(EthereumLikeRpcUpstream) {
+            1 * getIngressReader() >> Mock(Reader) {
+                1 * read(new JsonRpcRequest("eth_call", [new TransactionCallJson(
+                        Address.from("0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96"),
+                        HexData.from("0xd8a26e3a0000000000000000000000000000000000000000000000000000000000030ce0")
+                ), "latest"])) >> Mono.just(new JsonRpcResponse(null, new JsonRpcError(1, "Too long")))
+            }
+        }
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateCallLimit().block(Duration.ofSeconds(1))
+        def act = validator.validateUpstreamSettings()
         then:
-        act == UNAVAILABLE
-        when:
-        def act2 = validator.validateCallLimit().block(Duration.ofSeconds(1))
-        then:
-        act2 == UNAVAILABLE
+        !act
     }
 
-    def "Upstream chain settings are valid"() {
+    def "Upstream is valid if chain settings are valid"() {
         setup:
-        def options = UpstreamsConfig.PartialOptions.getDefaults().buildOptions()
+        def options = UpstreamsConfig.PartialOptions.getDefaults().tap {
+            it.validateCalllimit = false
+        }.buildOptions()
         def up = Mock(EthereumLikeRpcUpstream) {
             2 * getIngressReader() >> Mock(Reader) {
                 1 * read(new JsonRpcRequest("eth_chainId", emptyList())) >> Mono.just(new JsonRpcResponse('"0x1"'.getBytes(), null))
@@ -335,14 +335,16 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateChainSettings()
+        def act = validator.validateUpstreamSettings()
         then:
         act
     }
 
-    def "Upstream chain settings are not valid, specified optimism but got ethereum"() {
+    def "Upstream is not valid - specified optimism but got ethereum"() {
         setup:
-        def options = UpstreamsConfig.PartialOptions.getDefaults().buildOptions()
+        def options = UpstreamsConfig.PartialOptions.getDefaults().tap {
+            it.validateCalllimit = false
+        }.buildOptions()
         def up = Mock(EthereumLikeRpcUpstream) {
             2 * getIngressReader() >> Mock(Reader) {
                 1 * read(new JsonRpcRequest("eth_chainId", emptyList())) >> Mono.just(new JsonRpcResponse('"0x1"'.getBytes(), null))
@@ -352,26 +354,51 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(OPTIMISM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateChainSettings()
+        def act = validator.validateUpstreamSettings()
         then:
         !act
     }
 
-    def "Upstream chain settings are valid if option is disabled"() {
+    def "Upstream is valid if all setting are valid"() {
         setup:
-        def options = UpstreamsConfig.PartialOptions
-                .getDefaults()
-                .tap {
-                    it.validateChain = false
-                }
-                .buildOptions()
-        def up = Mock(EthereumLikeRpcUpstream)
+        def options = UpstreamsConfig.PartialOptions.getDefaults().buildOptions()
+        def up = Mock(EthereumLikeRpcUpstream) {
+            3 * getIngressReader() >> Mock(Reader) {
+                1 * read(new JsonRpcRequest("eth_chainId", emptyList())) >> Mono.just(new JsonRpcResponse('"0x1"'.getBytes(), null))
+                1 * read(new JsonRpcRequest("net_version", emptyList())) >> Mono.just(new JsonRpcResponse('"1"'.getBytes(), null))
+                1 * read(new JsonRpcRequest("eth_call", [new TransactionCallJson(
+                        Address.from("0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96"),
+                        HexData.from("0xd8a26e3a0000000000000000000000000000000000000000000000000000000000030ce0")
+                ), "latest"])) >> Mono.just(new JsonRpcResponse("0x00000000000000000000".getBytes(), null))
+            }
+        }
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateChainSettings()
+        def act = validator.validateUpstreamSettings()
         then:
         act
+    }
+
+    def "Upstream is not valid if there are errors"() {
+        setup:
+        def options = UpstreamsConfig.PartialOptions.getDefaults().buildOptions()
+        def up = Mock(EthereumLikeRpcUpstream) {
+            3 * getIngressReader() >> Mock(Reader) {
+                1 * read(new JsonRpcRequest("eth_chainId", emptyList())) >> Mono.just(new JsonRpcResponse(null, new JsonRpcError(1, "Too long")))
+                1 * read(new JsonRpcRequest("net_version", emptyList())) >> Mono.just(new JsonRpcResponse(null, new JsonRpcError(1, "Too long")))
+                1 * read(new JsonRpcRequest("eth_call", [new TransactionCallJson(
+                        Address.from("0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96"),
+                        HexData.from("0xd8a26e3a0000000000000000000000000000000000000000000000000000000000030ce0")
+                ), "latest"])) >> Mono.just(new JsonRpcResponse(null, new JsonRpcError(1, "Too long")))
+            }
+        }
+        def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
+
+        when:
+        def act = validator.validateUpstreamSettings()
+        then:
+        !act
     }
 
 }

@@ -98,7 +98,7 @@ open class ConfiguredUpstreams(
     override fun run(args: ApplicationArguments) {
         log.debug("Starting upstreams")
         val defaultOptions = buildDefaultOptions(config)
-        config.upstreams.forEach { up ->
+        config.upstreams.parallelStream().forEach { up ->
             if (!up.isEnabled) {
                 log.debug("Upstream ${up.id} is disabled")
                 return@forEach
