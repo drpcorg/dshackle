@@ -57,7 +57,6 @@ class BlockchainRpc(
     @Autowired(required = false)
     private val providerSpanHandler: ProviderSpanHandler?,
     private val tracer: Tracer,
-    private val sleuthTracer: org.springframework.cloud.sleuth.Tracer
 ) : ReactorBlockchainGrpc.BlockchainImplBase() {
 
     private val log = LoggerFactory.getLogger(BlockchainRpc::class.java)
@@ -106,7 +105,7 @@ class BlockchainRpc(
         }.doOnError {
             failMetric.increment()
         }.doFinally {
-            providerSpanHandler?.sendSpans(tracer.currentSpan().context(), sleuthTracer.currentSpan())
+            providerSpanHandler?.sendSpans(tracer.currentSpan().context())
         }
     }
 

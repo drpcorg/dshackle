@@ -6,7 +6,6 @@ import brave.propagation.TraceContext
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.cloud.sleuth.Span
 import org.springframework.stereotype.Component
 import java.time.Duration
 
@@ -32,32 +31,30 @@ class ProviderSpanHandler(
         return false
     }
 
-    fun sendSpans(traceContext: TraceContext, span: Span?) {
+    fun sendSpans(traceContext: TraceContext) {
         try {
-            sendSpansInternal(traceContext, span)
+            sendSpansInternal(traceContext)
         } catch (e: Exception) {
             log.warn("Error while handling and sending spans - ${e.message}")
         }
     }
 
-    private fun sendSpansInternal(traceContext: TraceContext, span: Span?) {
-        span?.let { currentSpan ->
-            val spansInfo = SpansInfo()
+    private fun sendSpansInternal(traceContext: TraceContext) {
+        val spansInfo = SpansInfo()
 
-            processSpans(currentSpan.context().spanId(), spansInfo)
+        processSpans(traceContext.spanIdString(), spansInfo)
 
-            spansInfo.spans
-                .map { it.parentId() }
-                .forEach {
-                    if (it != null) {
-                        spans.invalidate(it)
-                    }
+        spansInfo.spans
+            .map { it.parentId() }
+            .forEach {
+                if (it != null) {
+                    spans.invalidate(it)
                 }
+            }
 
-            if (spansInfo.exportable) {
-                spansInfo.spans.forEach {
-                    zipkinSpanHandler.end(traceContext, it, Cause.FINISHED)
-                }
+        if (spansInfo.exportable) {
+            spansInfo.spans.forEach {
+                zipkinSpanHandler.end(traceContext, it, Cause.FINISHED)
             }
         }
     }
