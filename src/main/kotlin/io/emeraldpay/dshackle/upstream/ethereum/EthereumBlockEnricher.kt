@@ -1,11 +1,9 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.Defaults
-import io.emeraldpay.dshackle.SilentException
 import io.emeraldpay.dshackle.data.BlockContainer
-import io.emeraldpay.dshackle.reader.JsonRpcReader
-import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
-import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
+import io.emeraldpay.dshackle.reader.Reader
+import io.emeraldpay.etherjar.domain.BlockHash
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import reactor.retry.Repeat
@@ -13,19 +11,10 @@ import java.time.Duration
 
 class EthereumBlockEnricher {
     companion object {
-        fun enrich(blockHash: String, api: JsonRpcReader, scheduler: Scheduler, upstreamId: String): Mono<BlockContainer> {
+        fun enrich(blockHash: BlockHash, api: Reader<BlockHash, BlockContainer>, scheduler: Scheduler): Mono<BlockContainer> {
             return Mono.just(blockHash)
                 .flatMap { hash ->
-                    api.read(JsonRpcRequest("eth_getBlockByHash", listOf(hash, false)))
-                        .flatMap { resp ->
-                            if (resp.isNull()) {
-                                Mono.error(SilentException("Received null for block $hash"))
-                            } else {
-                                Mono.just(resp)
-                            }
-                        }
-                        .flatMap(JsonRpcResponse::requireResult)
-                        .map { BlockContainer.fromEthereumJson(it, upstreamId) }
+                    api.read(hash)
                         .subscribeOn(scheduler)
                         .timeout(Defaults.timeoutInternal, Mono.empty())
                 }.repeatWhenEmpty { n ->

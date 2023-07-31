@@ -1,13 +1,18 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.data.BlockContainer
+import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.test.ApiReaderMock
 import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.AbstractHead
 import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.Lifecycle
 import io.emeraldpay.dshackle.upstream.forkchoice.MostWorkForkChoice
+import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
+import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
+import io.emeraldpay.etherjar.domain.BlockHash
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Schedulers
 import reactor.test.StepVerifier
@@ -33,7 +38,7 @@ class EnrichedMergedHeadSpec extends Specification {
 
         def api = new ApiReaderMock()
         when:
-        def merged = new EnrichedMergedHead([head1, head2], head3, Schedulers.parallel(), api)
+        def merged = new EnrichedMergedHead([head1, head2], head3, Schedulers.parallel(), new BlockReader(api))
         merged.start()
 
         then:
@@ -51,7 +56,7 @@ class EnrichedMergedHeadSpec extends Specification {
             _ * getFlux() >> Flux.just(block)
         }
         when:
-        def merge = new EnrichedMergedHead([], head, Schedulers.parallel(), api)
+        def merge = new EnrichedMergedHead([], head, Schedulers.parallel(), new BlockReader(api))
 
         then:
         StepVerifier.create(merge.getFlux())
@@ -76,7 +81,7 @@ class EnrichedMergedHeadSpec extends Specification {
             _ * getFlux() >> Flux.just(enrichedBlock)
         }
         when:
-        def merge = new EnrichedMergedHead([headSource], headRef, Schedulers.parallel(), new ApiReaderMock())
+        def merge = new EnrichedMergedHead([headSource], headRef, Schedulers.parallel(), new BlockReader(new ApiReaderMock()))
         then:
         StepVerifier.create(merge.getFlux())
             .then { merge.start() }
@@ -101,7 +106,7 @@ class EnrichedMergedHeadSpec extends Specification {
             _ * getFlux() >> sourceSink.asFlux()
         }
         when:
-        def merge = new EnrichedMergedHead([headSource], headRef, Schedulers.parallel(), new ApiReaderMock())
+        def merge = new EnrichedMergedHead([headSource], headRef, Schedulers.parallel(), new BlockReader(new ApiReaderMock()))
         then:
         StepVerifier.create(merge.getFlux())
             .then { merge.start() }
@@ -125,10 +130,10 @@ class EnrichedMergedHeadSpec extends Specification {
             _ * getFlux() >> Flux.just(block)
         }
         def api = new ApiReaderMock().tap {
-            answer("eth_getBlockByHash", [block.hash.toHex(), false], enrichedBlock.toBlock())
+            answer("eth_getBlockByHash", [block.hash.toHexWithPrefix(), false], enrichedBlock.toBlock())
         }
         when:
-        def merge = new EnrichedMergedHead([headSource], headRef, Schedulers.parallel(), api)
+        def merge = new EnrichedMergedHead([headSource], headRef, Schedulers.parallel(), new BlockReader(api))
         then:
         StepVerifier.create(merge.getFlux())
             .then { merge.start() }
@@ -136,6 +141,24 @@ class EnrichedMergedHeadSpec extends Specification {
             .expectNext(enrichedBlock)
             .thenCancel()
             .verify(Duration.ofMillis(1200))
+    }
+
+    class BlockReader implements Reader<BlockHash, BlockContainer> {
+        private ApiReaderMock mockApi
+        BlockReader(ApiReaderMock api) {
+            mockApi = api
+        }
+
+        Mono<BlockContainer> read(BlockHash hash) {
+            return mockApi.read(new JsonRpcRequest("eth_getBlockByHash", [hash.toHex(), false]))
+                    .map {
+                        def t = it
+                        def a = 1
+                        return it
+                    }
+                    .flatMap(JsonRpcResponse::requireResult)
+                    .map { BlockContainer.fromEthereumJson(it, "test") }
+        }
     }
 
     class TestHead extends AbstractHead implements Lifecycle {
