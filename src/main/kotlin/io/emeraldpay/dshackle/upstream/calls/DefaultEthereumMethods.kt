@@ -20,6 +20,7 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
+import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
 import io.emeraldpay.dshackle.quorum.NotLaggingQuorum
 import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import io.emeraldpay.etherjar.rpc.RpcException
@@ -196,7 +197,7 @@ class DefaultEthereumMethods(
             possibleNotIndexedMethods.contains(method) -> NotNullQuorum()
             specialMethods.contains(method) -> {
                 when (method) {
-                    "eth_getTransactionCount" -> AlwaysQuorum()
+                    "eth_getTransactionCount" -> MaximumValueQuorum()
                     "eth_getBalance" -> AlwaysQuorum()
                     "eth_blockNumber" -> NotLaggingQuorum(0)
                     else -> AlwaysQuorum()
