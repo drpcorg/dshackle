@@ -112,7 +112,11 @@ class JsonRpcHttpClient(
         val startTime = StopWatch()
         return Mono.just(key)
             .map(JsonRpcRequest::toJson)
-            .doOnNext { startTime.start() }
+            .doOnNext {
+                if (!startTime.isStarted) {
+                    startTime.start()
+                }
+            }
             .flatMap(this@JsonRpcHttpClient::execute)
             .doOnNext {
                 if (startTime.isStarted) {
@@ -145,6 +149,7 @@ class JsonRpcHttpClient(
     private fun convertErrors(key: JsonRpcRequest): Function<Mono<JsonRpcResponse>, Mono<JsonRpcResponse>> {
         return Function { resp ->
             resp.onErrorResume { t ->
+                t.printStackTrace()
                 val err = when (t) {
                     is RpcException -> JsonRpcException.from(t)
                     is JsonRpcException -> t

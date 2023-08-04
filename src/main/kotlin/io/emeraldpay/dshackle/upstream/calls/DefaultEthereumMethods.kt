@@ -287,8 +287,6 @@ class DefaultEthereumMethods(
         return hardcodedMethods.contains(method)
     }
 
-    data class HardcodedData(val netVersion: String, val chainId: String)
-
     override fun executeHardcoded(method: String): ByteArray {
         // note that the value is in json representation, i.e. if it's a string it should be with quotes,
         // that's why "\"0x0\"", "\"1\"", etc. But just "true" for a boolean, or "[]" for array.
@@ -347,5 +345,31 @@ class DefaultEthereumMethods(
 
     override fun getSupportedMethods(): Set<String> {
         return allowedMethods.plus(hardcodedMethods).toSortedSet()
+    }
+
+    class HardcodedData(netVersion: String, chainId: String) {
+        val netVersion: String
+        val chainId: String
+
+        init {
+            this.netVersion = netVersion.lowercase()
+            this.chainId = chainId.lowercase()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is HardcodedData) return false
+
+            if (netVersion != other.netVersion) return false
+            if (chainId != other.chainId) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = netVersion.hashCode()
+            result = 31 * result + chainId.hashCode()
+            return result
+        }
     }
 }
