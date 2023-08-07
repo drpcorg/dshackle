@@ -19,6 +19,7 @@ package io.emeraldpay.dshackle.upstream.calls
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
+import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
 import io.emeraldpay.dshackle.quorum.NotLaggingQuorum
@@ -200,6 +201,7 @@ class DefaultEthereumMethods(
                     "eth_getTransactionCount" -> MaximumValueQuorum()
                     "eth_getBalance" -> AlwaysQuorum()
                     "eth_blockNumber" -> NotLaggingQuorum(0)
+                    "eth_sendRawTransaction" -> BroadcastQuorum()
                     else -> AlwaysQuorum()
                 }
             }
