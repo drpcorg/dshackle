@@ -52,5 +52,9 @@ class MaximumValueQuorum : CallQuorum, ValueAwareQuorum<String>(String::class.ja
         errorMessage: String?,
         signature: ResponseSigner.Signature?,
         upstream: Upstream
-    ) {}
+    ) {
+        if (max == null) {
+            resolvers.add(upstream)
+        }
+    }
 }
