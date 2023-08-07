@@ -60,6 +60,7 @@ open class BroadcastQuorum() : CallQuorum, ValueAwareQuorum<String>(String::clas
         signature: ResponseSigner.Signature?,
         upstream: Upstream
     ) {
+        resolvers.add(upstream)
     }
 
     override fun toString(): String {
