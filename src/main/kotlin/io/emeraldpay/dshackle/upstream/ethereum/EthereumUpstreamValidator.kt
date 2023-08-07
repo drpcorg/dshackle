@@ -158,7 +158,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
 
                 if (!isChainValid) {
                     val actualChain = getChainByData(
-                        DefaultEthereumMethods.HardcodedData(it.t2, it.t1)
+                        DefaultEthereumMethods.HardcodedData.createHardcodedData(it.t2, it.t1)
                     )?.chainName
                     log.warn(
                         "${chain.chainName} is specified for upstream ${upstream.getId()} " +
