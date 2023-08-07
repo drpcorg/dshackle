@@ -52,7 +52,6 @@ open class BroadcastQuorum() : CallQuorum, ValueAwareQuorum<String>(String::clas
             sig = signature
             result = response
         }
-        resolvers.add(upstream)
     }
 
     override fun recordError(
