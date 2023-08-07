@@ -71,7 +71,7 @@ class MaximumValueQuorumSpec extends Specification {
         !quorum.isResolved()
         quorum.isFailed()
         quorum.error == new JsonRpcException(10, "error3").error
-        quorum.resolvedBy.size() == 0
+        quorum.resolvedBy.size() == 3
     }
 
 }
