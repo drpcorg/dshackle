@@ -6,7 +6,7 @@ import io.emeraldpay.etherjar.hex.HexQuantity
 import java.util.concurrent.atomic.AtomicReference
 
 class MaximumValueQuorum : CallQuorum, ValueAwareQuorum<String>(String::class.java) {
-    private val max: AtomicReference<Long?> = AtomicReference()
+    private var max: Long? = null
     private var result: ByteArray? = null
     private var sig: ResponseSigner.Signature? = null
 
@@ -35,7 +35,7 @@ class MaximumValueQuorum : CallQuorum, ValueAwareQuorum<String>(String::class.ja
             HexQuantity.from(str).value.toLong()
         }
         if (value != null) {
-            max.getAndUpdate {
+            max = max.let {
                 if (it == null || it < value) {
                     sig = signature
                     resolvers.clear()
