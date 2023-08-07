@@ -3,7 +3,6 @@ package io.emeraldpay.dshackle.quorum
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.etherjar.hex.HexQuantity
-import java.util.concurrent.atomic.AtomicReference
 
 class MaximumValueQuorum : CallQuorum, ValueAwareQuorum<String>(String::class.java) {
     private var max: Long? = null
