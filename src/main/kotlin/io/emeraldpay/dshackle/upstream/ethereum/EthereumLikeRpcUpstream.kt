@@ -23,6 +23,7 @@ import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.startup.QuorumForLabels
+import io.emeraldpay.dshackle.startup.UpstreamChangeEvent
 import io.emeraldpay.dshackle.upstream.Capability
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.Upstream
@@ -30,8 +31,8 @@ import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.ethereum.connectors.ConnectorFactory
 import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnector
-import io.emeraldpay.dshackle.upstream.ethereum.connectors.EthereumConnectorFactory
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.EthereumLabelsDetector
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.Lifecycle
 import reactor.core.Disposable
 
@@ -45,21 +46,21 @@ open class EthereumLikeRpcUpstream(
     private val node: QuorumForLabels.QuorumItem?,
     connectorFactory: ConnectorFactory,
     chainConfig: ChainsConfig.ChainConfig,
-    skipEnhance: Boolean
+    skipEnhance: Boolean,
+    private val eventPublisher: ApplicationEventPublisher?
 ) : EthereumLikeUpstream(id, hash, options, role, targets, node, chainConfig), Lifecycle, Upstream, CachesEnabled {
     private val validator: EthereumUpstreamValidator = EthereumUpstreamValidator(chain, this, getOptions(), chainConfig.callLimitContract)
-    private val connector: EthereumConnector = connectorFactory.create(this, validator, chain, skipEnhance)
+    protected val connector: EthereumConnector = connectorFactory.create(this, validator, chain, skipEnhance)
     private val labelsDetector = EthereumLabelsDetector(this.getIngressReader())
+    private var hasLiveSubscriptionHead: Boolean = false
 
     private var validatorSubscription: Disposable? = null
 
     override fun getCapabilities(): Set<Capability> {
-        return when (connector.getConnectorMode()) {
-            EthereumConnectorFactory.ConnectorMode.WS_ONLY,
-            EthereumConnectorFactory.ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD,
-            EthereumConnectorFactory.ConnectorMode.RPC_REQUESTS_WITH_WS_HEAD ->
-                setOf(Capability.RPC, Capability.BALANCE, Capability.WS_HEAD)
-            EthereumConnectorFactory.ConnectorMode.RPC_ONLY -> setOf(Capability.RPC, Capability.BALANCE)
+        return if (hasLiveSubscriptionHead) {
+            setOf(Capability.RPC, Capability.BALANCE, Capability.WS_HEAD)
+        } else {
+            setOf(Capability.RPC, Capability.BALANCE)
         }
     }
 
@@ -72,7 +73,7 @@ open class EthereumLikeRpcUpstream(
     override fun start() {
         log.info("Configured for ${chain.chainName}")
         connector.start()
-        if (!validator.validateUpstreamSettings()) {
+        if (!getOptions().disableUpstreamValidation && !validator.validateUpstreamSettings()) {
             connector.stop()
             log.warn("Upstream ${getId()} couldn't start, invalid upstream settings")
             return
@@ -85,6 +86,10 @@ open class EthereumLikeRpcUpstream(
             log.debug("Start validation for upstream ${this.getId()}")
             validatorSubscription = validator.start()
                 .subscribe(this::setStatus)
+        }
+        connector.hasLiveSubscriptionHead().subscribe {
+            hasLiveSubscriptionHead = it
+            eventPublisher?.publishEvent(UpstreamChangeEvent(chain, this, UpstreamChangeEvent.ChangeType.UPDATED))
         }
         labelsDetector.detectLabels()
             .toStream()
