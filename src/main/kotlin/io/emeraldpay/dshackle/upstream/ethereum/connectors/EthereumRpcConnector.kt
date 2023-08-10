@@ -99,7 +99,7 @@ class EthereumRpcConnector(
                 )
             }
         }
-        liveness = HeadLivenessValidator(head, expectedBlockTime)
+        liveness = HeadLivenessValidator(head, expectedBlockTime, headScheduler)
     }
 
     override fun setCaches(caches: Caches) {

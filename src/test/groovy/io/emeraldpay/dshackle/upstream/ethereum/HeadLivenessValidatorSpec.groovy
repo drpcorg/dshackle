@@ -2,6 +2,7 @@ package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.test.EthereumHeadMock
 import io.emeraldpay.dshackle.test.TestingCommons
+import reactor.core.scheduler.Schedulers
 import reactor.test.StepVerifier
 import spock.lang.Specification
 
@@ -11,7 +12,7 @@ class HeadLivenessValidatorSpec extends Specification{
     def "emits true"() {
         when:
         def head = new EthereumHeadMock()
-        def checker = new HeadLivenessValidator(head, Duration.ofSeconds(10))
+        def checker = new HeadLivenessValidator(head, Duration.ofSeconds(10), Schedulers.boundedElastic())
         then:
         StepVerifier.create(checker.flux)
                 .then {
@@ -24,7 +25,7 @@ class HeadLivenessValidatorSpec extends Specification{
     def "starts accumulating trues but immediately emits after false"() {
         when:
         def head = new EthereumHeadMock()
-        def checker = new HeadLivenessValidator(head, Duration.ofSeconds(100))
+        def checker = new HeadLivenessValidator(head, Duration.ofSeconds(100), Schedulers.boundedElastic())
         then:
         StepVerifier.create(checker.flux)
                 .then {
@@ -42,7 +43,7 @@ class HeadLivenessValidatorSpec extends Specification{
     def "starts accumulating trues but timeouts because head staled"() {
         when:
         def head = new EthereumHeadMock()
-        def checker = new HeadLivenessValidator(head, Duration.ofMillis(100))
+        def checker = new HeadLivenessValidator(head, Duration.ofMillis(100), Schedulers.boundedElastic())
         then:
         StepVerifier.create(checker.flux)
                 .then {

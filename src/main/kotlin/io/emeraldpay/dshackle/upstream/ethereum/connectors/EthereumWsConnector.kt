@@ -46,7 +46,7 @@ class EthereumWsConnector(
             wsConnectionResubscribeScheduler,
             headScheduler
         )
-        liveness = HeadLivenessValidator(head, expectedBlockTime)
+        liveness = HeadLivenessValidator(head, expectedBlockTime, headScheduler)
         subscriptions = EthereumWsIngressSubscription(wsSubscriptions)
     }
 

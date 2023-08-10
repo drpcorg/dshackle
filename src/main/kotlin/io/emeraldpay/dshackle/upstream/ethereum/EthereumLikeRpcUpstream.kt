@@ -35,6 +35,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.subscribe.EthereumLabelsDetector
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.Lifecycle
 import reactor.core.Disposable
+import java.util.concurrent.atomic.AtomicBoolean
 
 open class EthereumLikeRpcUpstream(
     id: String,
@@ -52,12 +53,12 @@ open class EthereumLikeRpcUpstream(
     private val validator: EthereumUpstreamValidator = EthereumUpstreamValidator(chain, this, getOptions(), chainConfig.callLimitContract)
     protected val connector: EthereumConnector = connectorFactory.create(this, validator, chain, skipEnhance)
     private val labelsDetector = EthereumLabelsDetector(this.getIngressReader())
-    private var hasLiveSubscriptionHead: Boolean = false
+    private var hasLiveSubscriptionHead: AtomicBoolean = AtomicBoolean(false)
 
     private var validatorSubscription: Disposable? = null
 
     override fun getCapabilities(): Set<Capability> {
-        return if (hasLiveSubscriptionHead) {
+        return if (hasLiveSubscriptionHead.get()) {
             setOf(Capability.RPC, Capability.BALANCE, Capability.WS_HEAD)
         } else {
             setOf(Capability.RPC, Capability.BALANCE)
@@ -88,7 +89,7 @@ open class EthereumLikeRpcUpstream(
                 .subscribe(this::setStatus)
         }
         connector.hasLiveSubscriptionHead().subscribe {
-            hasLiveSubscriptionHead = it
+            hasLiveSubscriptionHead.set(it)
             eventPublisher?.publishEvent(UpstreamChangeEvent(chain, this, UpstreamChangeEvent.ChangeType.UPDATED))
         }
         labelsDetector.detectLabels()

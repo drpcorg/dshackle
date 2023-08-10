@@ -1,19 +1,16 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.upstream.Head
-import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.publisher.Flux
-import reactor.core.scheduler.Schedulers
+import reactor.core.scheduler.Scheduler
 import java.time.Duration
-import java.util.concurrent.Executors
 
 class HeadLivenessValidator(
     val head: Head,
-    val expectedBlockTime: Duration
+    val expectedBlockTime: Duration,
+    val scheduler: Scheduler
 ) {
 
-    val scheduler =
-        Schedulers.fromExecutor(Executors.newCachedThreadPool(CustomizableThreadFactory("head-liveness-validator")))
     companion object {
         const val CHECKED_BLOCKS_UNTIL_LIVE = 3
     }
