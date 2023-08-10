@@ -48,7 +48,7 @@ class EthereumRpcConnector(
     }
 
     override fun hasLiveSubscriptionHead(): Flux<Boolean> {
-        return liveness.getFlux() ?: Flux.just(false)
+        return liveness.getFlux()
     }
 
     init {
