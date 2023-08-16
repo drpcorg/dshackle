@@ -290,7 +290,7 @@ abstract class Multistream(
             .distinctUntilChanged {
                 it.getId()
             }.flatMap { upstream ->
-                upstream.observeStatus().distinctUntilChanged().map { upstream }
+                upstream.observeStatus().map { upstream }
                     .takeUntilOther(
                         subscribeRemovedUpstreams()
                             .filter { it.getId() == upstream.getId() }

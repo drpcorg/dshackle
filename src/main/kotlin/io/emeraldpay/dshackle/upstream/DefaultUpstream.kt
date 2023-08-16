@@ -107,7 +107,7 @@ abstract class DefaultUpstream(
     }
 
     override fun observeStatus(): Flux<UpstreamAvailability> {
-        return statusStream.asFlux()
+        return statusStream.asFlux().distinctUntilChanged()
     }
 
     override fun setLag(lag: Long) {
