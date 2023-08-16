@@ -11,6 +11,12 @@ tls:
     require: false
     ca: "/path/ca.dshackle.test.crt"
 
+auth:
+  enabled: true
+  key-pair:
+    provider-private-key: /keys/priv.p8.key
+    drpc-public-key: /keys/pub.key
+
 cache:
   redis:
     enabled: true

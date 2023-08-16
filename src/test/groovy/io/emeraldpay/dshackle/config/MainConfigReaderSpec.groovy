@@ -102,5 +102,11 @@ class MainConfigReaderSpec extends Specification {
                 id == "infura"
             }
         }
+        act.authorization != null
+        with(act.authorization) {
+            enabled
+            providerPrivateKeyPath == "/keys/priv.p8.key"
+            drpcPublicKeyPath == "/keys/pub.key"
+        }
     }
 }

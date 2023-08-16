@@ -1,0 +1,4 @@
+auth:
+  enabled: true
+  key-pair:
+    provider-private-key: /keys/priv.p8.key
