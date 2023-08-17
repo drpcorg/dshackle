@@ -156,7 +156,7 @@ open class EthereumGrpcUpstream(
         val upstreamStatusChanged = (upstreamStatus.update(conf) || (newCapabilities != capabilities)).also {
             capabilities = newCapabilities
         }
-        conf.status?.let { status -> onStatus(status) }
+        conf.status?.let { status -> onStatus(status, upstreamStatusChanged) }
         val subsChanged = (conf.supportedSubscriptionsList != subscriptionTopics).also {
             subscriptionTopics = conf.supportedSubscriptionsList
         }

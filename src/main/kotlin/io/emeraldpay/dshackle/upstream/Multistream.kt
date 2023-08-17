@@ -38,6 +38,7 @@ import reactor.core.Disposable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
+import reactor.util.function.Tuples
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
@@ -79,9 +80,9 @@ abstract class Multistream(
     private val removedUpstreams = Sinks.many()
         .multicast()
         .directBestEffort<Upstream>()
-    private val updateUpstreams = Sinks.many()
+    private val stateStream = Sinks.many()
         .multicast()
-        .directBestEffort<Upstream>()
+        .directBestEffort<UpstreamChangeState>()
 
     init {
         UpstreamAvailability.values().forEach { status ->
@@ -205,22 +206,16 @@ abstract class Multistream(
     open fun onUpstreamsUpdated() {
         reconfigLock.withLock {
             val upstreams = getAll()
-            upstreams.filter { it.isAvailable() }.map { it.getMethods() }.let {
+            upstreams.map { it.getMethods() }.let {
                 // TODO made list of uniq instances, and then if only one, just use it directly
                 callMethods = AggregatedCallMethods(it)
             }
             capabilities = if (upstreams.isEmpty()) {
                 emptySet()
             } else {
-                upstreams.filter { it.isAvailable() }.map { up ->
+                upstreams.map { up ->
                     up.getCapabilities()
-                }.let {
-                    if (it.isNotEmpty()) {
-                        it.reduce { acc, curr -> acc + curr }
-                    } else {
-                        emptySet()
-                    }
-                }
+                }.reduce { acc, curr -> acc + curr }
             }
             lagObserver?.stop()
             lagObserver = null
@@ -286,18 +281,26 @@ abstract class Multistream(
     }
 
     private fun observeUpstreamsStatuses() {
+        stateStream.asFlux()
+            .subscribe {
+                upstreams.filter { it.isAvailable() }.map { it.getMethods() }.let {
+                    callMethods = AggregatedCallMethods(it)
+                }
+            }
+
         subscribeAddedUpstreams()
+            .filter { !it.isGrpc() }
             .distinctUntilChanged {
                 it.getId()
-            }.flatMap { upstream ->
-                upstream.observeStatus().map { upstream }
-                    .takeUntilOther(
-                        subscribeRemovedUpstreams()
-                            .filter { it.getId() == upstream.getId() }
-                    )
+            }.map {
+                Tuples.of(it.getId(), it.observeStatus())
             }
-            .subscribe {
-                onUpstreamChange(UpstreamChangeEvent(this.chain, it, UpstreamChangeEvent.ChangeType.UPDATED))
+            .subscribe { pair ->
+                pair.t2.subscribe { status ->
+                    stateStream.emitNext(
+                        UpstreamChangeState(pair.t1, status)
+                    ) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                }
             }
     }
 
@@ -394,7 +397,6 @@ abstract class Multistream(
                     UpstreamChangeEvent.ChangeType.REVALIDATED -> {}
                     UpstreamChangeEvent.ChangeType.UPDATED -> {
                         onUpstreamsUpdated()
-                        updateUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                     }
                     UpstreamChangeEvent.ChangeType.ADDED -> {
                         if (!started) {
@@ -439,8 +441,9 @@ abstract class Multistream(
 
     fun subscribeRemovedUpstreams(): Flux<Upstream> =
         removedUpstreams.asFlux()
-    fun subscribeUpdatedUpstreams(): Flux<Upstream> =
-        updateUpstreams.asFlux()
+
+    fun subscribeStateChanges(): Flux<UpstreamChangeState> =
+        stateStream.asFlux()
 
     abstract fun makeLagObserver(): HeadLagObserver
 

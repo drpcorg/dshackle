@@ -260,19 +260,45 @@ class MultistreamSpec extends Specification {
         ms.onUpstreamChange(
                 new UpstreamChangeEvent(Chain.ETHEREUM__MAINNET, up2, UpstreamChangeEvent.ChangeType.ADDED)
         )
-        up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_UNAVAILABLE))
-        up2.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
-        up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
+        def states = ms.subscribeStateChanges()
         then:
-        assert ms.getMethods().supportedMethods == Set.of("eth_test1", "eth_test2", "eth_test3")
-        when:
-        up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_SYNCING))
-        then:
-        assert ms.getMethods().supportedMethods == Set.of("eth_test1", "eth_test2")
-        when:
-        up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
-        then:
-        assert ms.getMethods().supportedMethods == Set.of("eth_test1", "eth_test2", "eth_test3")
+        StepVerifier.create(states)
+            .then {
+                up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_UNAVAILABLE))
+                up2.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
+                up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
+            }
+                .expectNext(new Multistream.UpstreamChangeState(up1.getId(), UpstreamAvailability.UNAVAILABLE))
+                .expectNext(new Multistream.UpstreamChangeState(up2.getId(), UpstreamAvailability.OK))
+                .expectNext(new Multistream.UpstreamChangeState(up1.getId(), UpstreamAvailability.OK))
+                .then {
+                    assert ms.getMethods().supportedMethods == Set.of("eth_test1", "eth_test2", "eth_test3")
+                }
+                .then {
+                    up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_SYNCING))
+                }
+                .expectNext(new Multistream.UpstreamChangeState(up1.getId(), UpstreamAvailability.SYNCING))
+                .then {
+                    assert ms.getMethods().supportedMethods == Set.of("eth_test1", "eth_test2")
+                }
+                .then {
+                    up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
+                }
+                .expectNext(new Multistream.UpstreamChangeState(up1.getId(), UpstreamAvailability.OK))
+                .then {
+                    assert ms.getMethods().supportedMethods == Set.of("eth_test1", "eth_test2", "eth_test3")
+                }
+                .then {
+                    up1.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
+                }
+                .expectNextCount(0)
+                .then {
+                    up2.onStatus(status(BlockchainOuterClass.AvailabilityEnum.AVAIL_OK))
+                }
+                .expectNextCount(0)
+                .thenCancel()
+                .verify(Duration.ofSeconds(3))
+
     }
 
     def "Filter older blocks on multistream head"() {
