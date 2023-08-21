@@ -1,7 +1,9 @@
 package io.emeraldpay.dshackle.config
 
 import org.slf4j.LoggerFactory
+import org.springframework.util.ResourceUtils
 import org.yaml.snakeyaml.nodes.MappingNode
+import java.io.FileNotFoundException
 
 class AuthorizationConfigReader : YamlConfigReader<AuthorizationConfig>() {
 
@@ -28,6 +30,21 @@ class AuthorizationConfigReader : YamlConfigReader<AuthorizationConfig>() {
         val publicKey = getValueAsString(keyPair, "drpc-public-key")
             ?: throw IllegalStateException("Public key in not specified")
 
+        if (fileNotExists(privateKey)) {
+            throw IllegalStateException("There is no such file: $privateKey")
+        }
+        if (fileNotExists(publicKey)) {
+            throw IllegalStateException("There is no such file: $publicKey")
+        }
+
         return AuthorizationConfig(enabled, privateKey, publicKey)
+    }
+
+    private fun fileNotExists(path: String): Boolean {
+        return try {
+            !ResourceUtils.getFile(path).exists()
+        } catch (e: FileNotFoundException) {
+            true
+        }
     }
 }

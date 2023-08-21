@@ -2,7 +2,6 @@ package io.emeraldpay.dshackle.auth.processor
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
-import com.auth0.jwt.RegisteredClaims
 import com.auth0.jwt.algorithms.Algorithm
 import io.emeraldpay.dshackle.auth.AuthContext
 import io.emeraldpay.dshackle.auth.service.KeyReader
@@ -13,7 +12,6 @@ import java.security.PublicKey
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 const val SESSION_ID = "sessionId"
@@ -36,10 +34,6 @@ abstract class AuthProcessor {
         try {
             val verifier: JWTVerifier = JWT.require(verifyingAlgorithm(keyPair.drpcPublicKey))
                 .withIssuer("drpc")
-                .withClaim(RegisteredClaims.ISSUED_AT) { _, _ ->
-                    val tokenWrapper = AuthContext.tokenWrapper ?: return@withClaim true
-                    return@withClaim Instant.now().isAfter(tokenWrapper.lastAuthAt.plus(1, ChronoUnit.HOURS))
-                }
                 .build()
             verifier.verify(token)
         } catch (e: Exception) {
@@ -51,8 +45,7 @@ abstract class AuthProcessor {
         return processInternal(keyPair.providerPrivateKey)
             .also {
                 AuthContext.putTokenInContext(it)
-            }
-            .token
+            }.token
     }
 
     protected abstract fun processInternal(privateKey: PrivateKey): AuthContext.TokenWrapper
@@ -65,13 +58,14 @@ open class AuthProcessorV1 : AuthProcessor() {
 
     override fun processInternal(privateKey: PrivateKey): AuthContext.TokenWrapper {
         val issAt = Instant.now()
+        val sessionId = UUID.randomUUID().toString()
         val token = JWT.create()
             .withIssuedAt(issAt)
-            .withClaim(SESSION_ID, UUID.randomUUID().toString())
+            .withClaim(SESSION_ID, sessionId)
             .withClaim(VERSION, AuthVersion.V1.toString())
             .sign(Algorithm.RSA256(privateKey as RSAPrivateKey))
 
-        return AuthContext.TokenWrapper(token, issAt)
+        return AuthContext.TokenWrapper(token, issAt, sessionId)
     }
 
     override fun verifyingAlgorithm(publicKey: PublicKey): Algorithm =

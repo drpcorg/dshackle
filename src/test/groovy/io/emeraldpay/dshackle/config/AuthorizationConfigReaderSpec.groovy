@@ -46,4 +46,18 @@ class AuthorizationConfigReaderSpec extends Specification {
         "configs/auth-without-private-key.yaml" | "Private key in not specified"
         "configs/auth-without-key-pair.yaml"    | "Auth key-pair is not specified"
     }
+
+    def "exceptions if keys does not exist"() {
+        setup:
+        def yamlIs = this.class.getClassLoader().getResourceAsStream(filePath)
+        when:
+        reader.read(yamlIs)
+        then:
+        def t = thrown(IllegalStateException)
+        t.message == message
+        where:
+        filePath                                | message
+        "configs/auth-with-wrong-priv-key.yaml" | "There is no such file: classpath:keys/priv-wrong.p8.key"
+        "configs/auth-with-wrong-pub-key.yaml"  | "There is no such file: classpath:keys/pub-wrong.key"
+    }
 }

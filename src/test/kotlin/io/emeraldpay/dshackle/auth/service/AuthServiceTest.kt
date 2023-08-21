@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import java.security.PrivateKey
@@ -50,29 +51,19 @@ class AuthServiceTest {
     }
 
     @Test
-    fun `parallel try to auth`() {
+    fun `parallel try to auth is successful`() {
         val pair = KeyReader.KeyPair(mock(PrivateKey::class.java), mock(PublicKey::class.java))
         mainConfig.authorization = AuthorizationConfig(true, "privPath", "pubPath")
 
-        `when`(rsaKeyReader.getKeyPair("privPath", "pubPath"))
-            .thenAnswer {
-                Thread.sleep(500)
-                pair
-            }
+        `when`(rsaKeyReader.getKeyPair("privPath", "pubPath")).thenReturn(pair)
 
-        val task = Runnable {
-            try {
-                authService.authenticate(token)
-            } catch (e: Exception) {
-                assertEquals("FAILED_PRECONDITION: Authentication process is in progress", e.message)
-            }
-        }
+        val task = Runnable { authService.authenticate(token) }
 
         CompletableFuture.allOf(
             CompletableFuture.runAsync(task), CompletableFuture.runAsync(task)
         ).join()
 
-        verify(rsaKeyReader).getKeyPair("privPath", "pubPath")
-        verify(mockV1Processor).process(pair, token)
+        verify(rsaKeyReader, times(2)).getKeyPair("privPath", "pubPath")
+        verify(mockV1Processor, times(2)).process(pair, token)
     }
 }

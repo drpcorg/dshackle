@@ -8,10 +8,7 @@ import io.emeraldpay.dshackle.auth.AuthContext
 import io.emeraldpay.dshackle.auth.service.RsaKeyReader
 import io.grpc.StatusException
 import org.bouncycastle.openssl.PEMParser
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -23,8 +20,6 @@ import java.security.KeyFactory
 import java.security.PublicKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 class AuthProcessorV1Test {
     private val processor = AuthProcessorV1()
@@ -38,11 +33,6 @@ class AuthProcessorV1Test {
         "ehKw3KPZeBj0oQ"
     private val keyPair = rsaKeyReader.getKeyPair(privProviderPath, publicDrpcPath)
 
-    @AfterEach
-    fun clearContext() {
-        AuthContext.putTokenInContext(null)
-    }
-
     @Test
     fun `verify tokens is successful`() {
         val publicProviderPath = ResourceUtils.getFile("classpath:keys/public.pem").path
@@ -53,7 +43,20 @@ class AuthProcessorV1Test {
             .build()
         val decodedToken = verifier.verify(providerToken)
         assertTrue(!decodedToken.getClaim(SESSION_ID).isMissing)
+        assertTrue(AuthContext.sessions.containsKey(decodedToken.getClaim(SESSION_ID).asString()))
         assertTrue(!decodedToken.getClaim(RegisteredClaims.ISSUED_AT).isMissing)
+    }
+
+    @Test
+    fun `multiple auth is successful`() {
+        val providerToken = processor.process(keyPair, token)
+        val secondProviderToken = processor.process(keyPair, token)
+
+        val decodedToken = JWT.decode(providerToken)
+        val secondDecodedToken = JWT.decode(secondProviderToken)
+
+        assertTrue(AuthContext.sessions.containsKey(decodedToken.getClaim(SESSION_ID).asString()))
+        assertTrue(AuthContext.sessions.containsKey(secondDecodedToken.getClaim(SESSION_ID).asString()))
     }
 
     @Test
@@ -80,29 +83,6 @@ class AuthProcessorV1Test {
         assertEquals(
             "INVALID_ARGUMENT: Invalid token: The Claim 'iss' value doesn't match the required issuer.",
             e.message
-        )
-    }
-
-    @Test
-    fun `verify token is failed if the same token was sent`() {
-        processor.process(keyPair, token)
-
-        assertNotNull(AuthContext.tokenWrapper)
-        val e = assertThrows(StatusException::class.java) { processor.process(keyPair, token) }
-        assertEquals(
-            "INVALID_ARGUMENT: Invalid token: The Claim 'iat' value doesn't match the required one.",
-            e.message
-        )
-    }
-
-    @Test
-    fun `verify token is successful if the same token was sent lately`() {
-        val currentTokenWrapper = AuthContext.TokenWrapper(token, Instant.now().minus(1, ChronoUnit.HOURS))
-        AuthContext.putTokenInContext(currentTokenWrapper)
-
-        processor.process(keyPair, token)
-        assertNotEquals(
-            currentTokenWrapper, AuthContext.tokenWrapper
         )
     }
 

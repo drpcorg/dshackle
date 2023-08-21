@@ -14,8 +14,8 @@ tls:
 auth:
   enabled: true
   key-pair:
-    provider-private-key: /keys/priv.p8.key
-    drpc-public-key: /keys/pub.key
+    provider-private-key: "classpath:keys/priv.p8.key"
+    drpc-public-key: "classpath:keys/public.pem"
 
 cache:
   redis:

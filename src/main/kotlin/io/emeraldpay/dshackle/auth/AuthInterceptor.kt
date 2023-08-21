@@ -1,6 +1,5 @@
 package io.emeraldpay.dshackle.auth
 
-import com.auth0.jwt.JWT
 import io.emeraldpay.dshackle.auth.processor.SESSION_ID
 import io.grpc.Metadata
 import io.grpc.Metadata.ASCII_STRING_MARSHALLER
@@ -26,16 +25,8 @@ class AuthInterceptor : ServerInterceptor {
             Metadata.Key.of(SESSION_ID, ASCII_STRING_MARSHALLER)
         )
         val isOrdinaryMethod = !specialMethods.contains(call.methodDescriptor.fullMethodName)
-        val currentSessionId = AuthContext
-            .tokenWrapper
-            ?.token
-            ?.run {
-                JWT.decode(this).getClaim(SESSION_ID)
-                    .takeIf { !it.isMissing }
-                    ?.asString()
-            }
 
-        if (isOrdinaryMethod && (sessionId == null || sessionId != currentSessionId)) {
+        if (isOrdinaryMethod && (sessionId == null || !AuthContext.sessions.containsKey(sessionId))) {
             throw Status.UNAUTHENTICATED.asException()
         }
 

@@ -1,0 +1,5 @@
+auth:
+  enabled: true
+  key-pair:
+    provider-private-key: "classpath:keys/priv-wrong.p8.key"
+    drpc-public-key: "classpath:keys/pub-wrong.key"

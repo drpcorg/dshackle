@@ -22,6 +22,7 @@ class AuthRpc(
         request: AuthOuterClass.AuthRequest,
         responseObserver: StreamObserver<AuthOuterClass.AuthResponse>
     ) {
+        log.info("Start auth process...")
         try {
             val providerToken = authService.authenticate(request.token)
             responseObserver.onNext(
