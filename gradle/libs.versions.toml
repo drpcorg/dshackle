@@ -10,7 +10,7 @@ spring-boot = "2.6.15"
 spring-security = "5.5.3"
 reactor = "3.4.32"
 netty = "4.1.96.Final"
-netty-tcnative = "2.0.48.Final"
+netty-tcnative = "2.0.61.Final"
 kotlin = "1.7.20"
 httpcomponents = "4.5.8"
 
