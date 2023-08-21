@@ -88,8 +88,8 @@ netty-codec-http = { module = "io.netty:netty-codec-http", version.ref = "netty"
 netty-codec-http2 = { module = "io.netty:netty-codec-http2", version.ref = "netty" }
 netty-buffer = { module = "io.netty:netty-buffer", version.ref = "netty" }
 netty-tcnative-core = { module = "io.netty:netty-tcnative", version.ref = "netty-tcnative" }
-netty-tcnative-boringssl = { module = "io.netty:netty-tcnative-boringssl-static", version.ref = "netty-tcnative" }
-netty-macos = "io.netty:netty-resolver-dns-native-macos:4.1.72.Final"
+netty-tcnative-boringssl = { module = "io.netty:netty-tcnative-boringssl-static", version.ref = "netty-tcnative"}
+netty-macos = "io.netty:netty-resolver-dns-native-macos:4.1.96.Final"
 
 zeromq = "org.zeromq:jeromq:0.5.2"
 
@@ -131,7 +131,7 @@ grpc = ["grpc-protobuf", "grpc-stub", "grpc-netty", "grpc-proto-util", "grpc-ser
 httpcomponents = ["httpcomponents-httpmime", "httpcomponents-httpclient"]
 jackson = ["jackson-core", "jackson-databind", "jackson-datatype-jdk8", "jackson-datatype-jsr310", "jackson-module-kotlin"]
 kotlin = ["kotlin-stdlib-jdk8", "kotlin-reflect"]
-netty = ["netty-common", "netty-transport", "netty-handler-core", "netty-handler-proxy", "netty-resolver-core", "netty-resolver-dns", "netty-codec-core", "netty-codec-http", "netty-codec-http2", "netty-buffer", "netty-tcnative-core", "netty-tcnative-boringssl"]
+netty = ["netty-common", "netty-transport", "netty-handler-core", "netty-handler-proxy", "netty-resolver-core", "netty-resolver-dns", "netty-codec-core", "netty-codec-http", "netty-codec-http2", "netty-buffer", "netty-tcnative-core"]
 reactor = ["reactor-core", "reactor-netty", "reactor-extra", "reactor-kotlin"]
 spring-framework = ["spring-boot-starter", "spring-security-core", "spring-security-web", "spring-security-config"]
 testcontainers = ["testcontainers", "testcontainers-ganache"]
