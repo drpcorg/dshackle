@@ -28,7 +28,7 @@ class AuthorizationConfigReaderSpec extends Specification {
         def act = AuthorizationConfig.default()
         then:
         !act.enabled
-        act.drpcPublicKeyPath == ""
+        act.externalPublicKeyPath == ""
         act.providerPrivateKeyPath == ""
     }
 
@@ -42,21 +42,10 @@ class AuthorizationConfigReaderSpec extends Specification {
         t.message == message
         where:
         filePath                                | message
-        "configs/auth-without-public-key.yaml"  | "Public key in not specified"
+        "configs/auth-without-public-key.yaml"  | "External key in not specified"
         "configs/auth-without-private-key.yaml" | "Private key in not specified"
-        "configs/auth-without-key-pair.yaml"    | "Auth key-pair is not specified"
-    }
-
-    def "exceptions if keys does not exist"() {
-        setup:
-        def yamlIs = this.class.getClassLoader().getResourceAsStream(filePath)
-        when:
-        reader.read(yamlIs)
-        then:
-        def t = thrown(IllegalStateException)
-        t.message == message
-        where:
-        filePath                                | message
+        "configs/auth-without-key-pair.yaml"    | "Auth keys is not specified"
+        "configs/auth-without-key-owner.yaml"   | "Public key owner in not specified"
         "configs/auth-with-wrong-priv-key.yaml" | "There is no such file: classpath:keys/priv-wrong.p8.key"
         "configs/auth-with-wrong-pub-key.yaml"  | "There is no such file: classpath:keys/pub-wrong.key"
     }

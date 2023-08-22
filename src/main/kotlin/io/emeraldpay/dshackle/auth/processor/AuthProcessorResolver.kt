@@ -6,12 +6,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
-class AuthProcessorFactory(
+class AuthProcessorResolver(
     private val authProcessorV1: AuthProcessor
 ) {
 
     companion object {
-        private val log = LoggerFactory.getLogger(AuthProcessorFactory::class.java)
+        private val log = LoggerFactory.getLogger(AuthProcessorResolver::class.java)
     }
 
     fun getAuthProcessor(token: DecodedJWT): AuthProcessor {

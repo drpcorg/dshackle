@@ -5,6 +5,7 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import io.emeraldpay.dshackle.auth.AuthContext
 import io.emeraldpay.dshackle.auth.service.KeyReader
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import io.grpc.Status
 import org.springframework.stereotype.Component
 import java.security.PrivateKey
@@ -28,12 +29,14 @@ enum class AuthVersion {
     }
 }
 
-abstract class AuthProcessor {
+abstract class AuthProcessor(
+    private val authorizationConfig: AuthorizationConfig
+) {
 
-    open fun process(keyPair: KeyReader.KeyPair, token: String): String {
+    open fun process(keys: KeyReader.Keys, token: String): AuthContext.TokenWrapper {
         try {
-            val verifier: JWTVerifier = JWT.require(verifyingAlgorithm(keyPair.drpcPublicKey))
-                .withIssuer("drpc")
+            val verifier: JWTVerifier = JWT.require(verifyingAlgorithm(keys.externalPublicKey))
+                .withIssuer(authorizationConfig.publicKeyOwner)
                 .build()
             verifier.verify(token)
         } catch (e: Exception) {
@@ -42,10 +45,7 @@ abstract class AuthProcessor {
                 .asException()
         }
 
-        return processInternal(keyPair.providerPrivateKey)
-            .also {
-                AuthContext.putTokenInContext(it)
-            }.token
+        return processInternal(keys.providerPrivateKey)
     }
 
     protected abstract fun processInternal(privateKey: PrivateKey): AuthContext.TokenWrapper
@@ -54,7 +54,9 @@ abstract class AuthProcessor {
 }
 
 @Component
-open class AuthProcessorV1 : AuthProcessor() {
+open class AuthProcessorV1(
+    authorizationConfig: AuthorizationConfig
+) : AuthProcessor(authorizationConfig) {
 
     override fun processInternal(privateKey: PrivateKey): AuthContext.TokenWrapper {
         val issAt = Instant.now()

@@ -24,11 +24,14 @@ class AuthorizationConfigReader : YamlConfigReader<AuthorizationConfig>() {
             return AuthorizationConfig.default()
         }
 
-        val keyPair = getMapping(auth, "key-pair") ?: throw IllegalStateException("Auth key-pair is not specified")
+        val publicKeyOwner = getValueAsString(auth, "publicKeyOwner")
+            ?: throw IllegalStateException("Public key owner in not specified")
+
+        val keyPair = getMapping(auth, "keys") ?: throw IllegalStateException("Auth keys is not specified")
         val privateKey = getValueAsString(keyPair, "provider-private-key")
             ?: throw IllegalStateException("Private key in not specified")
-        val publicKey = getValueAsString(keyPair, "drpc-public-key")
-            ?: throw IllegalStateException("Public key in not specified")
+        val publicKey = getValueAsString(keyPair, "external-public-key")
+            ?: throw IllegalStateException("External key in not specified")
 
         if (fileNotExists(privateKey)) {
             throw IllegalStateException("There is no such file: $privateKey")
@@ -37,7 +40,7 @@ class AuthorizationConfigReader : YamlConfigReader<AuthorizationConfig>() {
             throw IllegalStateException("There is no such file: $publicKey")
         }
 
-        return AuthorizationConfig(enabled, privateKey, publicKey)
+        return AuthorizationConfig(enabled, publicKeyOwner, privateKey, publicKey)
     }
 
     private fun fileNotExists(path: String): Boolean {

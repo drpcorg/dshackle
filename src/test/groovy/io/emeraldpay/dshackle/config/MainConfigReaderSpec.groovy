@@ -106,7 +106,7 @@ class MainConfigReaderSpec extends Specification {
         with(act.authorization) {
             enabled
             providerPrivateKeyPath == "classpath:keys/priv.p8.key"
-            drpcPublicKeyPath == "classpath:keys/public.pem"
+            externalPublicKeyPath == "classpath:keys/public.pem"
         }
     }
 }

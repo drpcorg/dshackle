@@ -1,4 +1,5 @@
 auth:
   enabled: true
-  key-pair:
-    drpc-public-key: /keys/pub.key
+  publicKeyOwner: drpc
+  keys:
+    external-public-key: /keys/pub.key

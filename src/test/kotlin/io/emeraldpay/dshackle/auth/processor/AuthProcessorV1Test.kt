@@ -4,8 +4,8 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.RegisteredClaims
 import com.auth0.jwt.algorithms.Algorithm
-import io.emeraldpay.dshackle.auth.AuthContext
 import io.emeraldpay.dshackle.auth.service.RsaKeyReader
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import io.grpc.StatusException
 import org.bouncycastle.openssl.PEMParser
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,7 +22,7 @@ import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
 
 class AuthProcessorV1Test {
-    private val processor = AuthProcessorV1()
+    private val processor = AuthProcessorV1(AuthorizationConfig(true, "drpc", "", ""))
     private val rsaKeyReader = RsaKeyReader()
     private val privProviderPath = ResourceUtils.getFile("classpath:keys/priv.p8.key").path
     private val publicDrpcPath = ResourceUtils.getFile("classpath:keys/public-drpc.pem").path
@@ -37,26 +37,13 @@ class AuthProcessorV1Test {
     fun `verify tokens is successful`() {
         val publicProviderPath = ResourceUtils.getFile("classpath:keys/public.pem").path
 
-        val providerToken = processor.process(keyPair, token)
+        val providerToken = processor.process(keyPair, token).token
         val verifier: JWTVerifier = JWT.require(Algorithm.RSA256(generatePublicKey(publicProviderPath) as RSAPublicKey, null))
             .withClaim(VERSION, "V1")
             .build()
         val decodedToken = verifier.verify(providerToken)
         assertTrue(!decodedToken.getClaim(SESSION_ID).isMissing)
-        assertTrue(AuthContext.sessions.containsKey(decodedToken.getClaim(SESSION_ID).asString()))
         assertTrue(!decodedToken.getClaim(RegisteredClaims.ISSUED_AT).isMissing)
-    }
-
-    @Test
-    fun `multiple auth is successful`() {
-        val providerToken = processor.process(keyPair, token)
-        val secondProviderToken = processor.process(keyPair, token)
-
-        val decodedToken = JWT.decode(providerToken)
-        val secondDecodedToken = JWT.decode(secondProviderToken)
-
-        assertTrue(AuthContext.sessions.containsKey(decodedToken.getClaim(SESSION_ID).asString()))
-        assertTrue(AuthContext.sessions.containsKey(secondDecodedToken.getClaim(SESSION_ID).asString()))
     }
 
     @Test

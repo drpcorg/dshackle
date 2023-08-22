@@ -1,15 +1,16 @@
 package io.emeraldpay.dshackle.auth.processor
 
 import com.auth0.jwt.JWT
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import io.grpc.StatusException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-class AuthProcessorFactoryTest {
-    private val authProcessorV1 = AuthProcessorV1()
-    private val authProcessorFactory = AuthProcessorFactory(authProcessorV1)
+class AuthProcessorResolverTest {
+    private val authProcessorV1 = AuthProcessorV1(AuthorizationConfig.default())
+    private val authProcessorResolver = AuthProcessorResolver(authProcessorV1)
 
     @Test
     fun `get processor of V1 version`() {
@@ -20,7 +21,7 @@ class AuthProcessorFactoryTest {
                 "umEr0uEmkIKPTg4QwP-VMvqoLBYpMiJVzP_Ipg_wRHJ7fUN0BGEPjjMvhQ_6TWByiQUBz1kTMd0Ebf_kEuXFQeiwA-FXHJpWczzh66CbbmmWAWsi" +
                 "ehKw3KPZeBj0oQ"
         )
-        val processor = authProcessorFactory.getAuthProcessor(token)
+        val processor = authProcessorResolver.getAuthProcessor(token)
 
         assertTrue(processor is AuthProcessorV1)
     }
@@ -34,7 +35,7 @@ class AuthProcessorFactoryTest {
                 "lXtQzVjA80qSeYpkeFCOLwlQD_yTArDNWlwe7-CthtBOAtctoTMwyudfJezT2ilXrigzbauzU5BEi1cNxacHpjNuXhyY0TiacJGugWfRgaaGy6g"
         )
 
-        val e = assertThrows(StatusException::class.java) { authProcessorFactory.getAuthProcessor(token) }
+        val e = assertThrows(StatusException::class.java) { authProcessorResolver.getAuthProcessor(token) }
         assertEquals("INVALID_ARGUMENT: Version is not specified in the token", e.message)
     }
 
@@ -48,7 +49,7 @@ class AuthProcessorFactoryTest {
                 "cnR7jCN0kMIa8urQgdePZyRg"
         )
 
-        val e = assertThrows(StatusException::class.java) { authProcessorFactory.getAuthProcessor(token) }
+        val e = assertThrows(StatusException::class.java) { authProcessorResolver.getAuthProcessor(token) }
         assertEquals("INVALID_ARGUMENT: Unsupported auth version V2", e.message)
     }
 }

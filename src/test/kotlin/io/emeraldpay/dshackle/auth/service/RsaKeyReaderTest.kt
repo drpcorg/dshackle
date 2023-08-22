@@ -18,7 +18,7 @@ class RsaKeyReaderTest {
 
         val pair = rsaKeyReader.getKeyPair(privPath, publicPath)
         val privateKey = pair.providerPrivateKey
-        val publicKey = pair.drpcPublicKey
+        val publicKey = pair.externalPublicKey
 
         assertEquals("RSA", publicKey.algorithm)
         assertEquals("RSA", privateKey.algorithm)

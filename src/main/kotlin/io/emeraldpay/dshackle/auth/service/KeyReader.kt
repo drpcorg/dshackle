@@ -5,10 +5,10 @@ import java.security.PublicKey
 
 interface KeyReader {
 
-    fun getKeyPair(providerPrivateKeyPath: String, drpcPublicKeyPath: String): KeyPair
+    fun getKeyPair(providerPrivateKeyPath: String, externalPublicKeyPath: String): Keys
 
-    data class KeyPair(
+    data class Keys(
         val providerPrivateKey: PrivateKey,
-        val drpcPublicKey: PublicKey
+        val externalPublicKey: PublicKey
     )
 }

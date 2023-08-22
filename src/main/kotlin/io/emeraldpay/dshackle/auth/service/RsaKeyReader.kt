@@ -13,9 +13,9 @@ import java.security.spec.X509EncodedKeySpec
 class RsaKeyReader : KeyReader {
     private val factory = KeyFactory.getInstance("RSA")
 
-    override fun getKeyPair(providerPrivateKeyPath: String, drpcPublicKeyPath: String): KeyReader.KeyPair {
+    override fun getKeyPair(providerPrivateKeyPath: String, externalPublicKeyPath: String): KeyReader.Keys {
         val privateKeyReader = StringReader(Files.readString(Paths.get(providerPrivateKeyPath)))
-        val publicKeyReader = StringReader(Files.readString(Paths.get(drpcPublicKeyPath)))
+        val publicKeyReader = StringReader(Files.readString(Paths.get(externalPublicKeyPath)))
 
         val privatePem = PEMParser(privateKeyReader).readPemObject()
         val publicPem = PEMParser(publicKeyReader).readPemObject()
@@ -26,7 +26,7 @@ class RsaKeyReader : KeyReader {
         val pubKey = factory.generatePublic(publicKeySpec)
         val privateKey = factory.generatePrivate(privateKeySpec)
 
-        return KeyReader.KeyPair(
+        return KeyReader.Keys(
             privateKey,
             pubKey
         )

@@ -1,31 +1,37 @@
 package io.emeraldpay.dshackle.auth.service
 
 import com.auth0.jwt.JWT
-import io.emeraldpay.dshackle.auth.processor.AuthProcessorFactory
-import io.emeraldpay.dshackle.config.MainConfig
+import io.emeraldpay.dshackle.auth.AuthContext
+import io.emeraldpay.dshackle.auth.processor.AuthProcessorResolver
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import io.grpc.Status
 import org.springframework.stereotype.Service
 
 @Service
 class AuthService(
-    private val mainConfig: MainConfig,
+    private val authorizationConfig: AuthorizationConfig,
     private val rsaKeyReader: KeyReader,
-    private val authProcessorFactory: AuthProcessorFactory
+    private val authProcessorResolver: AuthProcessorResolver
 ) {
 
     fun authenticate(token: String): String {
-        val authConfig = mainConfig.authorization
-        if (!authConfig.enabled) {
+        if (!authorizationConfig.enabled) {
             throw Status.UNIMPLEMENTED
                 .withDescription("Authentication process is not enabled")
                 .asException()
         }
 
-        val keyPair = rsaKeyReader.getKeyPair(authConfig.providerPrivateKeyPath, authConfig.drpcPublicKeyPath)
+        val keys = rsaKeyReader.getKeyPair(
+            authorizationConfig.providerPrivateKeyPath, authorizationConfig.externalPublicKeyPath
+        )
         val decodedJwt = JWT.decode(token)
 
-        return authProcessorFactory
+        return authProcessorResolver
             .getAuthProcessor(decodedJwt)
-            .process(keyPair, token)
+            .process(keys, token)
+            .run {
+                AuthContext.putTokenInContext(this)
+                this.token
+            }
     }
 }

@@ -1,4 +1,5 @@
 auth:
   enabled: true
-  key-pair:
+  publicKeyOwner: drpc
+  keys:
     provider-private-key: /keys/priv.p8.key

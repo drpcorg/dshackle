@@ -1,47 +1,47 @@
 package io.emeraldpay.dshackle.auth
 
-import io.emeraldpay.api.proto.AuthGrpc.AuthImplBase
 import io.emeraldpay.api.proto.AuthOuterClass
+import io.emeraldpay.api.proto.ReactorAuthGrpc
 import io.emeraldpay.dshackle.auth.service.AuthService
 import io.grpc.Status
 import io.grpc.StatusException
-import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
 
 @Service
 class AuthRpc(
-    private val authService: AuthService
-) : AuthImplBase() {
+    private val authService: AuthService,
+    private val authScheduler: Scheduler
+) : ReactorAuthGrpc.AuthImplBase() {
 
     companion object {
         private val log = LoggerFactory.getLogger(AuthRpc::class.java)
     }
 
-    override fun authenticate(
-        request: AuthOuterClass.AuthRequest,
-        responseObserver: StreamObserver<AuthOuterClass.AuthResponse>
-    ) {
+    override fun authenticate(request: Mono<AuthOuterClass.AuthRequest>): Mono<AuthOuterClass.AuthResponse> {
         log.info("Start auth process...")
-        try {
-            val providerToken = authService.authenticate(request.token)
-            responseObserver.onNext(
+        return request
+            .subscribeOn(authScheduler)
+            .map {
+                val token = authService.authenticate(it.token)
                 AuthOuterClass.AuthResponse.newBuilder()
-                    .setProviderToken(providerToken)
+                    .setProviderToken(token)
                     .build()
-            )
-            responseObserver.onCompleted()
-        } catch (e: StatusException) {
-            log.error(e.message)
-            responseObserver.onError(e)
-        } catch (e: Exception) {
-            val message = "Internal error: ${e.message}"
-            log.error(message, e)
-            responseObserver.onError(
-                Status.INTERNAL
-                    .withDescription(message)
-                    .asException()
-            )
-        }
+            }.onErrorResume {
+                if (it is StatusException) {
+                    log.error(it.message)
+                    Mono.error(it)
+                } else {
+                    val message = "Internal error: ${it.message}"
+                    log.error(message, it)
+                    Mono.error(
+                        Status.INTERNAL
+                            .withDescription(message)
+                            .asException()
+                    )
+                }
+            }
     }
 }
