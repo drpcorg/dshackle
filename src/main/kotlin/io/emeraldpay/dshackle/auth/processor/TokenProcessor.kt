@@ -17,7 +17,7 @@ open class TokenProcessor {
     @Scheduled(fixedRate = 30000)
     fun invalidateTokens() {
         AuthContext.sessions
-            .filter { Instant.now().isAfter(it.value.issuedAt.plus(1, ChronoUnit.MINUTES)) }
+            .filter { Instant.now().isAfter(it.value.issuedAt.plus(1, ChronoUnit.HOURS)) }
             .forEach {
                 log.info("Invalidate token with sessionId ${it.key}")
                 AuthContext.removeToken(it.key)
