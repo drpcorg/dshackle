@@ -25,7 +25,6 @@ import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.MainConfigReader
 import io.emeraldpay.dshackle.config.MonitoringConfig
 import io.emeraldpay.dshackle.config.SignatureConfig
-import io.emeraldpay.dshackle.config.StreamingConfig
 import io.emeraldpay.dshackle.config.TokensConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -159,10 +158,5 @@ open class Config(
     @Bean
     open fun authorizationConfig(mainConfig: MainConfig): AuthorizationConfig {
         return mainConfig.authorization
-    }
-
-    @Bean
-    open fun streamingConfig(mainConfig: MainConfig): StreamingConfig {
-        return mainConfig.streamingConfig
     }
 }

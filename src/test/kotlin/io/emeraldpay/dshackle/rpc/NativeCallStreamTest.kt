@@ -5,11 +5,11 @@ import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.api.proto.BlockchainOuterClass.NativeCallRequest
 import io.emeraldpay.dshackle.Global
-import io.emeraldpay.dshackle.config.StreamingConfig
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
-import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 import org.springframework.util.ResourceUtils
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -22,10 +22,6 @@ class NativeCallStreamTest {
 
     @Test
     fun `streaming response is equal to the original response`() {
-        val nativeCallMock = Mockito.mock(NativeCall::class.java)
-        val nativeCallStream = NativeCallStream(
-            nativeCallMock, StreamingConfig(1000)
-        )
         val responseFile = ResourceUtils.getFile("classpath:responses/get-by-number-response.json")
         val response = mapper.writeValueAsBytes(mapper.readValue(responseFile, JsonNode::class.java))
         val nativeCallResponse = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
@@ -34,9 +30,15 @@ class NativeCallStreamTest {
             .setUpstreamId(upstreamId)
             .setPayload(ByteString.copyFrom(response))
             .build()
-        val req = Mono.empty<NativeCallRequest>()
-
-        `when`(nativeCallMock.nativeCall(req)).thenReturn(Flux.just(nativeCallResponse))
+        val nativeCallMock = mock<NativeCall> {
+            on { nativeCall(any()) } doReturn Flux.just(nativeCallResponse)
+        }
+        val nativeCallStream = NativeCallStream(nativeCallMock)
+        val req = Mono.just(
+            NativeCallRequest.newBuilder()
+                .setChunkSize(1000)
+                .build()
+        )
 
         val result = nativeCallStream.nativeCall(req)
             .collectList()
@@ -49,10 +51,6 @@ class NativeCallStreamTest {
 
     @Test
     fun `streaming responses is correct`() {
-        val nativeCallMock = Mockito.mock(NativeCall::class.java)
-        val nativeCallStream = NativeCallStream(
-            nativeCallMock, StreamingConfig(5)
-        )
         val response = "\"0x1126938\"".toByteArray()
         val nativeCallResponse = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
             .setId(15)
@@ -60,9 +58,15 @@ class NativeCallStreamTest {
             .setUpstreamId(upstreamId)
             .setPayload(ByteString.copyFrom(response))
             .build()
-        val req = Mono.empty<NativeCallRequest>()
-
-        `when`(nativeCallMock.nativeCall(req)).thenReturn(Flux.just(nativeCallResponse))
+        val nativeCallMock = mock<NativeCall> {
+            on { nativeCall(any()) } doReturn Flux.just(nativeCallResponse)
+        }
+        val nativeCallStream = NativeCallStream(nativeCallMock)
+        val req = Mono.just(
+            NativeCallRequest.newBuilder()
+                .setChunkSize(5)
+                .build()
+        )
 
         val result = nativeCallStream.nativeCall(req)
 
@@ -89,10 +93,6 @@ class NativeCallStreamTest {
 
     @Test
     fun `no streaming if response is too small`() {
-        val nativeCallMock = Mockito.mock(NativeCall::class.java)
-        val nativeCallStream = NativeCallStream(
-            nativeCallMock, StreamingConfig(5)
-        )
         val response = "\"0x1\"".toByteArray()
         val nativeCallResponse = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
             .setId(15)
@@ -100,9 +100,15 @@ class NativeCallStreamTest {
             .setUpstreamId(upstreamId)
             .setPayload(ByteString.copyFrom(response))
             .build()
-        val req = Mono.empty<NativeCallRequest>()
-
-        `when`(nativeCallMock.nativeCall(req)).thenReturn(Flux.just(nativeCallResponse))
+        val nativeCallMock = mock<NativeCall> {
+            on { nativeCall(any()) } doReturn Flux.just(nativeCallResponse)
+        }
+        val nativeCallStream = NativeCallStream(nativeCallMock)
+        val req = Mono.just(
+            NativeCallRequest.newBuilder()
+                .setChunkSize(1000)
+                .build()
+        )
 
         val result = nativeCallStream.nativeCall(req)
 
@@ -119,7 +125,6 @@ class NativeCallStreamTest {
             .setId(id)
             .setChunked(true)
             .setSucceed(true)
-            .setSignature(BlockchainOuterClass.NativeCallReplySignature.newBuilder().build())
             .setUpstreamId(upstreamId)
     }
 }

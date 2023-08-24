@@ -3,7 +3,6 @@ package io.emeraldpay.dshackle.rpc
 import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass.NativeCallReplyItem
 import io.emeraldpay.api.proto.BlockchainOuterClass.NativeCallRequest
-import io.emeraldpay.dshackle.config.StreamingConfig
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -12,29 +11,30 @@ import kotlin.math.min
 @Service
 class NativeCallStream(
     private val nativeCall: NativeCall,
-    streamingConfig: StreamingConfig
 ) {
-    private val chunkSize = streamingConfig.chunkSize
 
     fun nativeCall(
         requestMono: Mono<NativeCallRequest>
     ): Flux<NativeCallReplyItem> {
-        return nativeCall.nativeCall(requestMono)
-            .concatMap {
-                if (it.payload.size() <= chunkSize || !it.succeed) {
-                    Mono.just(it)
-                } else {
-                    Flux.fromIterable(chunks(it))
-                }
+        return requestMono.flatMapMany { req ->
+            nativeCall.nativeCall(Mono.just(req)).map { StreamNativeResult(it, req.chunkSize) }
+        }.concatMap {
+            val chunkSize = it.chunkSize
+            val response = it.response
+            if (chunkSize == 0 || response.payload.size() <= chunkSize || !response.succeed) {
+                Mono.just(response)
+            } else {
+                Flux.fromIterable(chunks(response, chunkSize))
             }
+        }
     }
 
-    private fun chunks(response: NativeCallReplyItem): List<NativeCallReplyItem> {
-        val chunks = mutableListOf<ByteArray>()
-        val responseBytes = response.payload.toByteArray()
+    private fun chunks(response: NativeCallReplyItem, chunkSize: Int): List<NativeCallReplyItem> {
+        val chunks = mutableListOf<ByteString>()
+        val responseBytes = response.payload
 
-        for (i in responseBytes.indices step+chunkSize) {
-            chunks.add(responseBytes.copyOfRange(i, min(i + chunkSize, responseBytes.size)))
+        for (i in 0 until responseBytes.size() step+chunkSize) {
+            chunks.add(responseBytes.substring(i, min(i + chunkSize, responseBytes.size())))
         }
 
         return chunks
@@ -42,13 +42,20 @@ class NativeCallStream(
                 NativeCallReplyItem.newBuilder()
                     .apply {
                         id = response.id
-                        payload = ByteString.copyFrom(bytes)
+                        payload = bytes
                         succeed = true
-                        signature = response.signature
                         upstreamId = response.upstreamId
                         chunked = true
                         finalChunk = index == chunks.size - 1
+                        if (this.finalChunk && response.hasSignature()) {
+                            signature = response.signature
+                        }
                     }.build()
             }
     }
+
+    private data class StreamNativeResult(
+        val response: NativeCallReplyItem,
+        val chunkSize: Int
+    )
 }
