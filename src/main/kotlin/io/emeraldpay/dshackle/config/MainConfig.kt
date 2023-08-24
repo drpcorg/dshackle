@@ -31,4 +31,5 @@ class MainConfig {
     var compression: CompressionConfig = CompressionConfig.default()
     var chains: ChainsConfig = ChainsConfig.default()
     var authorization: AuthorizationConfig = AuthorizationConfig.default()
+    var streamingConfig: StreamingConfig = StreamingConfig.default()
 }
