@@ -20,7 +20,7 @@ class NativeCallStream(
             nativeCall.nativeCall(Mono.just(req))
                 .map { StreamNativeResult(it, req.chunkSize) }
                 .transform {
-                    if (!req.sorted) {
+                    if (!req.sorted || req.itemsList.size == 1) {
                         it
                     } else {
                         it.sort { o1, o2 -> o1.response.id - o2.response.id }
