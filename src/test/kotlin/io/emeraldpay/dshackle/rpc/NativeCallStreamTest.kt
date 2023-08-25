@@ -68,21 +68,29 @@ class NativeCallStreamTest {
                 .build()
         )
 
+        val chunkResponse: (Int) -> BlockchainOuterClass.NativeCallReplyItem.Builder = { id ->
+            BlockchainOuterClass.NativeCallReplyItem.newBuilder()
+                .setId(id)
+                .setChunked(true)
+                .setSucceed(true)
+                .setUpstreamId(upstreamId)
+        }
+
         val result = nativeCallStream.nativeCall(req)
 
         StepVerifier.create(result)
             .expectNext(
-                nativeCallReplyItemBuilder(15)
+                chunkResponse(15)
                     .setPayload(ByteString.copyFrom("\"0x11".toByteArray()))
                     .build()
             )
             .expectNext(
-                nativeCallReplyItemBuilder(15)
+                chunkResponse(15)
                     .setPayload(ByteString.copyFrom("26938".toByteArray()))
                     .build()
             )
             .expectNext(
-                nativeCallReplyItemBuilder(15)
+                chunkResponse(15)
                     .setFinalChunk(true)
                     .setPayload(ByteString.copyFrom("\"".toByteArray()))
                     .build()
@@ -120,11 +128,46 @@ class NativeCallStreamTest {
             .verify(Duration.ofSeconds(3))
     }
 
-    private fun nativeCallReplyItemBuilder(id: Int): BlockchainOuterClass.NativeCallReplyItem.Builder {
-        return BlockchainOuterClass.NativeCallReplyItem.newBuilder()
-            .setId(id)
-            .setChunked(true)
-            .setSucceed(true)
-            .setUpstreamId(upstreamId)
+    @Test
+    fun `sort responses by request id is correct`() {
+        val response = "\"0x1\"".toByteArray()
+        val response2 = "\"0x2\"".toByteArray()
+        val response3 = "\"0x3\"".toByteArray()
+
+        val nativeCallResponse: (Int, ByteArray) -> BlockchainOuterClass.NativeCallReplyItem = { id, resp ->
+            BlockchainOuterClass.NativeCallReplyItem.newBuilder()
+                .setId(id)
+                .setChunked(true)
+                .setSucceed(true)
+                .setUpstreamId(upstreamId)
+                .setPayload(ByteString.copyFrom(resp))
+                .build()
+        }
+        val nativeCallMock = mock<NativeCall> {
+            on { nativeCall(any()) } doReturn Flux.just(
+                nativeCallResponse(1, response), nativeCallResponse(2, response2), nativeCallResponse(3, response3)
+            ).flatMap {
+                when (it.id) {
+                    1 -> Mono.just(it).delayElement(Duration.ofMillis(200))
+                    2 -> Mono.just(it).delayElement(Duration.ofMillis(100))
+                    else -> Mono.just(it)
+                }
+            }
+        }
+        val nativeCallStream = NativeCallStream(nativeCallMock)
+        val req = Mono.just(
+            NativeCallRequest.newBuilder()
+                .setSorted(true)
+                .build()
+        )
+
+        val result = nativeCallStream.nativeCall(req)
+
+        StepVerifier.create(result)
+            .expectNextMatches { it.payload.toByteArray().contentEquals(response) }
+            .expectNextMatches { it.payload.toByteArray().contentEquals(response2) }
+            .expectNextMatches { it.payload.toByteArray().contentEquals(response3) }
+            .expectComplete()
+            .verify(Duration.ofSeconds(3))
     }
 }

@@ -17,7 +17,15 @@ class NativeCallStream(
         requestMono: Mono<NativeCallRequest>
     ): Flux<NativeCallReplyItem> {
         return requestMono.flatMapMany { req ->
-            nativeCall.nativeCall(Mono.just(req)).map { StreamNativeResult(it, req.chunkSize) }
+            nativeCall.nativeCall(Mono.just(req))
+                .map { StreamNativeResult(it, req.chunkSize) }
+                .transform {
+                    if (!req.sorted) {
+                        it
+                    } else {
+                        it.sort { o1, o2 -> o1.response.id - o2.response.id }
+                    }
+                }
         }.concatMap {
             val chunkSize = it.chunkSize
             val response = it.response
