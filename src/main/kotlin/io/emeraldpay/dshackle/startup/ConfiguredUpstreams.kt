@@ -23,6 +23,7 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Defaults
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.Global
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.CompressionConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
@@ -84,7 +85,8 @@ open class ConfiguredUpstreams(
     @Autowired(required = false)
     private val clientSpansInterceptor: ClientInterceptor?,
     @Qualifier("headScheduler")
-    private val headScheduler: Scheduler
+    private val headScheduler: Scheduler,
+    private val authorizationConfig: AuthorizationConfig
 ) : ApplicationRunner {
     @Value("\${spring.application.max-metadata-size}")
     private var maxMetadataSize: Int = Defaults.maxMetadataSize
@@ -351,6 +353,8 @@ open class ConfiguredUpstreams(
             endpoint.host!!,
             endpoint.port,
             endpoint.auth,
+            endpoint.tokenAuth,
+            authorizationConfig,
             compression,
             fileResolver,
             endpoint.upstreamRating,

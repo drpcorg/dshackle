@@ -4,6 +4,7 @@ import brave.Tracing
 import brave.grpc.GrpcTracing
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.FileResolver
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.CompressionConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
@@ -33,6 +34,7 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Schedulers.boundedElastic(),
                 null,
                 Schedulers.boundedElastic(),
+                AuthorizationConfig.default()
         )
         def methods = new UpstreamsConfig.Methods(
                 [
@@ -65,6 +67,7 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Schedulers.boundedElastic(),
                 null,
                 Schedulers.boundedElastic(),
+                AuthorizationConfig.default()
         )
         def methods = new UpstreamsConfig.Methods(
                 [
@@ -96,6 +99,7 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Schedulers.boundedElastic(),
                 null,
                 Schedulers.boundedElastic(),
+                AuthorizationConfig.default()
         )
         expect:
         configurer.getHash(node, src) == expected
@@ -122,6 +126,7 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Schedulers.boundedElastic(),
                 null,
                 Schedulers.boundedElastic(),
+                AuthorizationConfig.default()
         )
         when:
         def h1 = configurer.getHash(null, "hohoho")
@@ -153,6 +158,7 @@ class ConfiguredUpstreamsSpec extends Specification {
                 Schedulers.boundedElastic(),
                 null,
                 Schedulers.boundedElastic(),
+                AuthorizationConfig.default()
         )
         def methodsGroup = new UpstreamsConfig.MethodGroups(
                 ["filter"] as Set,
