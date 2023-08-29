@@ -7,6 +7,8 @@ data class AuthorizationConfig(
     val clientConfig: ClientConfig
 ) {
 
+    fun hasServerConfig() = serverConfig != ServerConfig.default()
+
     companion object {
         @JvmStatic
         fun default() = AuthorizationConfig(
