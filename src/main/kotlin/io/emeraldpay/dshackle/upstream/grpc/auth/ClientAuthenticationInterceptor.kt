@@ -1,7 +1,7 @@
 package io.emeraldpay.dshackle.upstream.grpc.auth
 
 import io.emeraldpay.dshackle.upstream.grpc.auth.GrpcAuthContext.Companion.AUTHORIZATION_HEADER
-import io.emeraldpay.dshackle.upstream.grpc.auth.GrpcAuthContext.Companion.PROVIDER_ID_HEADER
+import io.emeraldpay.dshackle.upstream.grpc.auth.GrpcAuthContext.Companion.UPSTREAM_ID_HEADER
 import io.grpc.CallOptions
 import io.grpc.Channel
 import io.grpc.ClientCall
@@ -19,7 +19,7 @@ class ClientAuthenticationInterceptor : ClientInterceptor {
     ): ClientCall<ReqT, RespT> =
         object : ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(next.newCall(method, callOptions)) {
             override fun start(responseListener: Listener<RespT>, headers: Metadata) {
-                val providerId = headers[PROVIDER_ID_HEADER]
+                val providerId = headers[UPSTREAM_ID_HEADER]
                 if (providerId != null) {
                     GrpcAuthContext.sessions[providerId]?.let {
                         headers.put(AUTHORIZATION_HEADER, it)

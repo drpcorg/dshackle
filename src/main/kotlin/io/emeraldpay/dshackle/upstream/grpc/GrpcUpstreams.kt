@@ -109,7 +109,7 @@ class GrpcUpstreams(
                 grpcTracing.newClientInterceptor(),
                 ClientAuthenticationInterceptor(),
                 MetadataUtils.newAttachHeadersInterceptor(
-                    Metadata().apply { put(GrpcAuthContext.PROVIDER_ID_HEADER, id) }
+                    Metadata().apply { put(GrpcAuthContext.UPSTREAM_ID_HEADER, id) }
                 )
             )
             .executor(grpcExecutor)
