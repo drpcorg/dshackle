@@ -99,7 +99,7 @@ class GrpcUpstreamsAuthTest {
             .expectNext(
                 GrpcUpstreamsAuth.AuthResult(
                     false,
-                    "Invalid token: The Token's Signature resulted invalid when verified using the Algorithm: SHA256withRSA"
+                    "Error during auth - The Token's Signature resulted invalid when verified using the Algorithm: SHA256withRSA"
                 )
             )
             .then {
