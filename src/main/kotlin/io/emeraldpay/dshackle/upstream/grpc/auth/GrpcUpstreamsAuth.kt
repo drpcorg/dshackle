@@ -20,6 +20,7 @@ class AuthException(message: String) : RuntimeException(message)
 class GrpcUpstreamsAuth(
     private val authClient: ReactorAuthStub,
     private val authorizationConfig: AuthorizationConfig,
+    private val grpcAuthContext: GrpcAuthContext,
     publicKeyPath: String
 ) {
     private val rsaKeyReader = RsaKeyReader()
@@ -51,7 +52,7 @@ class GrpcUpstreamsAuth(
             .withClaim(SESSION_ID) { claim, _ -> !claim.isMissing }
             .build()
         val decodedToken = verifier.verify(token)
-        GrpcAuthContext.putTokenInContext(providerId, decodedToken.getClaim(SESSION_ID).asString())
+        grpcAuthContext.putTokenInContext(providerId, decodedToken.getClaim(SESSION_ID).asString())
 
         return AuthResult(true)
     }

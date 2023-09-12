@@ -87,7 +87,8 @@ class GrpcUpstreams(
     private val grpcTracing: GrpcTracing,
     private val clientSpansInterceptor: ClientInterceptor?,
     private var maxMetadataSize: Int,
-    private val headScheduler: Scheduler
+    private val headScheduler: Scheduler,
+    private val grpcAuthContext: GrpcAuthContext
 ) {
     private val log = LoggerFactory.getLogger(GrpcUpstreams::class.java)
 
@@ -105,7 +106,7 @@ class GrpcUpstreams(
             .enableRetry()
             .intercept(
                 grpcTracing.newClientInterceptor(),
-                ClientAuthenticationInterceptor(id),
+                ClientAuthenticationInterceptor(id, grpcAuthContext),
             )
             .executor(grpcExecutor)
             .maxRetryAttempts(3)
@@ -134,6 +135,7 @@ class GrpcUpstreams(
                 GrpcUpstreamsAuth(
                     ReactorAuthGrpc.newReactorStub(channel),
                     authorizationConfig,
+                    grpcAuthContext,
                     tokenAuth.publicKeyPath!!
                 )
             } else null
@@ -321,7 +323,7 @@ class GrpcUpstreams(
     private fun authAndDescribe(grpcUpstreamsAuth: GrpcUpstreamsAuth?): Mono<DescribeResponse> {
         return Mono.justOrEmpty(grpcUpstreamsAuth)
             .flatMap {
-                if (GrpcAuthContext.containsToken(id)) {
+                if (grpcAuthContext.containsToken(id)) {
                     Mono.empty()
                 } else {
                     auth(it)
@@ -331,7 +333,7 @@ class GrpcUpstreams(
                 describe()
                     .onErrorResume {
                         if (it is StatusRuntimeException && it.status.code == Status.Code.UNAUTHENTICATED) {
-                            GrpcAuthContext.removeToken(id)
+                            grpcAuthContext.removeToken(id)
                             auth(grpcUpstreamsAuth).then(describe())
                         } else {
                             Mono.error(it)

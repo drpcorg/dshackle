@@ -30,6 +30,7 @@ import java.util.UUID
 class GrpcUpstreamsAuthTest {
     private val privateKeyPath = ResourceUtils.getFile("classpath:keys/priv-drpc.p8.key").path
     private val providerPublicKeyPath = ResourceUtils.getFile("classpath:keys/public.pem").path
+    private val grpcAuthContext = GrpcAuthContext()
     private val authConfig = AuthorizationConfig(
         true, "drpc",
         AuthorizationConfig.ServerConfig.default(),
@@ -42,14 +43,14 @@ class GrpcUpstreamsAuthTest {
 
     @BeforeEach
     fun clearSessions() {
-        GrpcAuthContext.removeToken(upstreamId)
+        grpcAuthContext.removeToken(upstreamId)
     }
 
     @Test
     fun `success auth`() {
         val sessionId = UUID.randomUUID().toString()
         val authStub = Mockito.mock(ReactorAuthStub::class.java)
-        val grpcAuth = GrpcUpstreamsAuth(authStub, authConfig, providerPublicKeyPath)
+        val grpcAuth = GrpcUpstreamsAuth(authStub, authConfig, grpcAuthContext, providerPublicKeyPath)
         val token = JWT.create()
             .withClaim(SESSION_ID, sessionId)
             .sign(Algorithm.RSA256(generatePrivateKey(providerPrivateKeyPath) as RSAPrivateKey))
@@ -68,7 +69,7 @@ class GrpcUpstreamsAuthTest {
         StepVerifier.create(result)
             .expectNext(GrpcUpstreamsAuth.AuthResult(true))
             .then {
-                assertEquals(sessionId, GrpcAuthContext.getToken(upstreamId))
+                assertEquals(sessionId, grpcAuthContext.getToken(upstreamId))
             }
             .expectComplete()
             .verify(Duration.ofSeconds(3))
@@ -79,7 +80,7 @@ class GrpcUpstreamsAuthTest {
         val providerId = "providerId"
         val sessionId = UUID.randomUUID().toString()
         val authStub = Mockito.mock(ReactorAuthStub::class.java)
-        val grpcAuth = GrpcUpstreamsAuth(authStub, authConfig, providerPublicKeyPath)
+        val grpcAuth = GrpcUpstreamsAuth(authStub, authConfig, grpcAuthContext, providerPublicKeyPath)
         val token = JWT.create()
             .withClaim(SESSION_ID, sessionId)
             .sign(Algorithm.RSA256(generatePrivateKey(privateKeyPath) as RSAPrivateKey))
@@ -103,7 +104,7 @@ class GrpcUpstreamsAuthTest {
                 )
             )
             .then {
-                assertEquals(null, GrpcAuthContext.getToken(upstreamId))
+                assertEquals(null, grpcAuthContext.getToken(upstreamId))
             }
             .expectComplete()
             .verify(Duration.ofSeconds(3))
@@ -115,7 +116,7 @@ class GrpcUpstreamsAuthTest {
         val sessionId = UUID.randomUUID().toString()
         val sessionId1 = UUID.randomUUID().toString()
         val authStub = Mockito.mock(ReactorAuthStub::class.java)
-        val grpcAuth = GrpcUpstreamsAuth(authStub, authConfig, providerPublicKeyPath)
+        val grpcAuth = GrpcUpstreamsAuth(authStub, authConfig, grpcAuthContext, providerPublicKeyPath)
         val token = JWT.create()
             .withClaim(SESSION_ID, sessionId)
             .sign(Algorithm.RSA256(generatePrivateKey(providerPrivateKeyPath) as RSAPrivateKey))
@@ -145,7 +146,7 @@ class GrpcUpstreamsAuthTest {
         StepVerifier.create(result)
             .expectNext(GrpcUpstreamsAuth.AuthResult(true))
             .then {
-                assertEquals(sessionId1, GrpcAuthContext.getToken(upstreamId))
+                assertEquals(sessionId1, grpcAuthContext.getToken(upstreamId))
             }
             .expectComplete()
             .verify(Duration.ofSeconds(3))
