@@ -9,6 +9,7 @@ import io.emeraldpay.dshackle.auth.processor.AuthVersion
 import io.emeraldpay.dshackle.auth.processor.SESSION_ID
 import io.emeraldpay.dshackle.auth.processor.VERSION
 import io.emeraldpay.dshackle.auth.service.RsaKeyReader
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import reactor.core.publisher.Mono
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -18,11 +19,11 @@ class AuthException(message: String) : RuntimeException(message)
 
 class GrpcUpstreamsAuth(
     private val authClient: ReactorAuthStub,
-    publicKeyPath: String,
-    privateKeyPath: String
+    private val authorizationConfig: AuthorizationConfig,
+    publicKeyPath: String
 ) {
     private val rsaKeyReader = RsaKeyReader()
-    private val keys = rsaKeyReader.getKeyPair(privateKeyPath, publicKeyPath)
+    private val keys = rsaKeyReader.getKeyPair(authorizationConfig.clientConfig.privateKeyPath, publicKeyPath)
 
     fun auth(providerId: String): Mono<AuthResult> {
         return authClient.authenticate(
@@ -32,14 +33,14 @@ class GrpcUpstreamsAuth(
         ).map {
             verify(it.providerToken, providerId)
         }.onErrorResume {
-            Mono.just(AuthResult(false, "Invalid token: ${it.message}"))
+            Mono.just(AuthResult(false, "Error during auth - ${it.message}"))
         }
     }
 
     private fun generateToken(): String {
         return JWT.create()
             .withIssuedAt(Instant.now())
-            .withIssuer("drpc")
+            .withIssuer(authorizationConfig.publicKeyOwner)
             .withClaim(VERSION, AuthVersion.V1.toString())
             .sign(Algorithm.RSA256(keys.providerPrivateKey as RSAPrivateKey))
     }

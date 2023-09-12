@@ -44,11 +44,9 @@ import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcGrpcClient
 import io.emeraldpay.dshackle.upstream.rpcclient.RpcMetrics
 import io.grpc.ClientInterceptor
 import io.grpc.Codec
-import io.grpc.Metadata
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
 import io.grpc.netty.NettyChannelBuilder
-import io.grpc.stub.MetadataUtils
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Metrics
 import io.micrometer.core.instrument.Tag
@@ -107,10 +105,7 @@ class GrpcUpstreams(
             .enableRetry()
             .intercept(
                 grpcTracing.newClientInterceptor(),
-                ClientAuthenticationInterceptor(),
-                MetadataUtils.newAttachHeadersInterceptor(
-                    Metadata().apply { put(GrpcAuthContext.UPSTREAM_ID_HEADER, id) }
-                )
+                ClientAuthenticationInterceptor(id),
             )
             .executor(grpcExecutor)
             .maxRetryAttempts(3)
@@ -138,8 +133,8 @@ class GrpcUpstreams(
             if (tokenAuth != null && authorizationConfig.enabled) {
                 GrpcUpstreamsAuth(
                     ReactorAuthGrpc.newReactorStub(channel),
-                    tokenAuth.publicKeyPath!!,
-                    authorizationConfig.clientConfig.privateKeyPath
+                    authorizationConfig,
+                    tokenAuth.publicKeyPath!!
                 )
             } else null
 
@@ -326,7 +321,7 @@ class GrpcUpstreams(
     private fun authAndDescribe(grpcUpstreamsAuth: GrpcUpstreamsAuth?): Mono<DescribeResponse> {
         return Mono.justOrEmpty(grpcUpstreamsAuth)
             .flatMap {
-                if (GrpcAuthContext.sessions.containsKey(id)) {
+                if (GrpcAuthContext.containsToken(id)) {
                     Mono.empty()
                 } else {
                     auth(it)
