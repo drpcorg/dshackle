@@ -70,6 +70,4 @@ class UpstreamChangeEvent(
     override fun toString(): String {
         return "UpstreamChangeEvent(chain=$chain, upstream=${upstream.getId()}, type=$type)"
     }
-
-
 }
