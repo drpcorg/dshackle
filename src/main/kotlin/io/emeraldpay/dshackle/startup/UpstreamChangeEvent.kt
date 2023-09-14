@@ -66,4 +66,10 @@ class UpstreamChangeEvent(
             upstream.setCaches(caches)
         }
     }
+
+    override fun toString(): String {
+        return "UpstreamChangeEvent(chain=$chain, upstream=${upstream.getId()}, type=$type)"
+    }
+
+
 }
