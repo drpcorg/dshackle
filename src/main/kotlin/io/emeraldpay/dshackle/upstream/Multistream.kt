@@ -220,11 +220,11 @@ abstract class Multistream(
                 }
             }
             when {
-                upstreams.size == 1 -> upstreams[0].setLag(0)
-                    .also {
-                        lagObserver?.stop()
-                        lagObserver = null
-                    }
+                upstreams.size == 1 -> kotlin.run {
+                    lagObserver?.stop()
+                    lagObserver = null
+                    upstreams[0].setLag(0)
+                }
                 upstreams.size > 1 -> if (lagObserver == null) lagObserver = makeLagObserver()
             }
         }
