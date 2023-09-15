@@ -221,6 +221,10 @@ abstract class Multistream(
             }
             when {
                 upstreams.size == 1 -> upstreams[0].setLag(0)
+                    .also {
+                        lagObserver?.stop()
+                        lagObserver = null
+                    }
                 upstreams.size > 1 -> if (lagObserver == null) lagObserver = makeLagObserver()
             }
         }
