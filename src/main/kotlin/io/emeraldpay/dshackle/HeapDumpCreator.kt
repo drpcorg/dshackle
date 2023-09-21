@@ -50,7 +50,6 @@ class HeapDumpCreator {
                 "com.sun.management:type=HotSpotDiagnostic",
                 HotSpotDiagnosticMXBean::class.java
             )
-            log.info(fileName)
             bean.setVMOption("HeapDumpOnOutOfMemoryError", "true")
             bean.setVMOption("HeapDumpPath", fileName)
         }
