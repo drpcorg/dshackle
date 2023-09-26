@@ -142,7 +142,7 @@ class EthereumWsHead(
             }
             .timeout(Duration.ofSeconds(60), Mono.error(RuntimeException("No response from subscribe to newHeads")))
             .onErrorResume {
-                log.error("Error getting heads - ${it.message}")
+                log.error("Error getting heads for $upstreamId - ${it.message}")
                 upstream.setStatus(UpstreamAvailability.UNAVAILABLE)
                 subscribed = false
                 Mono.empty()
