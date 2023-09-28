@@ -47,8 +47,8 @@ class Global {
             "ethereum" to Chain.ETHEREUM__MAINNET,
             "ethereum-classic" to Chain.ETHEREUM_CLASSIC__MAINNET,
             "eth" to Chain.ETHEREUM__MAINNET,
-            "polygon" to Chain.POLYGON_POS__MAINNET,
-            "matic" to Chain.POLYGON_POS__MAINNET,
+            "polygon" to Chain.POLYGON__MAINNET,
+            "matic" to Chain.POLYGON__MAINNET,
             "arbitrum" to Chain.ARBITRUM__MAINNET,
             "arb" to Chain.ARBITRUM__MAINNET,
             "optimism" to Chain.OPTIMISM__MAINNET,
@@ -57,13 +57,8 @@ class Global {
             "bnb-smart-chain" to Chain.BSC__MAINNET,
             "bsc-testnet" to Chain.BSC__TESTNET,
             "etc" to Chain.ETHEREUM_CLASSIC__MAINNET,
-            "morden" to Chain.ETHEREUM__MORDEN,
-            "kovan" to Chain.ETHEREUM__KOVAN,
-            "kovan-testnet" to Chain.ETHEREUM__KOVAN,
             "goerli" to Chain.ETHEREUM__GOERLI,
             "goerli-testnet" to Chain.ETHEREUM__GOERLI,
-            "rinkeby" to Chain.ETHEREUM__RINKEBY,
-            "rinkeby-testnet" to Chain.ETHEREUM__RINKEBY,
             "ropsten" to Chain.ETHEREUM__ROPSTEN,
             "ropsten-testnet" to Chain.ETHEREUM__ROPSTEN,
             "bitcoin" to Chain.BITCOIN__MAINNET,
@@ -78,7 +73,7 @@ class Global {
             "polygon-zkevm-testnet" to Chain.POLYGON_ZKEVM__TESTNET,
             "zksync" to Chain.ZKSYNC__MAINNET,
             "zksync-testnet" to Chain.ZKSYNC__TESTNET,
-            "polygon-mumbai" to Chain.POLYGON_POS__MUMBAI,
+            "polygon-mumbai" to Chain.POLYGON__MUMBAI,
             "base" to Chain.BASE__MAINNET,
             "base-goerli" to Chain.BASE__GOERLI,
             "linea" to Chain.LINEA__MAINNET,
@@ -105,7 +100,7 @@ class Global {
             "celo-alfajores" to Chain.CELO__ALFAJORES,
             "moonriver" to Chain.MOONBEAM__MOONRIVER,
             "moonbeam" to Chain.MOONBEAM__MAINNET,
-            "moonbase-alpha" to Chain.MOONBEAM__ALPHA
+            "moonbase-alpha" to Chain.MOONBEAM__MOONBASE_ALPHA,
         )
 
         fun chainById(id: String?): Chain {
@@ -113,7 +108,7 @@ class Global {
                 return Chain.UNSPECIFIED
             }
             return chainNames[
-                id.lowercase(Locale.getDefault()).replace("_", "-").trim()
+                id.lowercase(Locale.getDefault()).replace("_", "-").trim(),
             ] ?: Chain.UNSPECIFIED
         }
 

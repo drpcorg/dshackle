@@ -71,7 +71,6 @@ open class EthereumMultistream(
     private val supportsEIP1559set = setOf(
         Chain.ETHEREUM__MAINNET, Chain.ETHEREUM__ROPSTEN,
         Chain.ETHEREUM__GOERLI,
-        Chain.ETHEREUM__RINKEBY,
         Chain.ETHEREUM__SEPOLIA,
         Chain.ARBITRUM__MAINNET,
         Chain.OPTIMISM__MAINNET,

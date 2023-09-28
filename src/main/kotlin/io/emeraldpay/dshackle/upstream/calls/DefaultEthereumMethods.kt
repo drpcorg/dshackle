@@ -32,7 +32,7 @@ import io.emeraldpay.etherjar.rpc.RpcException
  * hardcoded results for base methods, such as `net_version`, `web3_clientVersion` and similar
  */
 class DefaultEthereumMethods(
-    private val chain: Chain
+    private val chain: Chain,
 ) : CallMethods {
 
     private val version = "\"EmeraldDshackle/${Global.version}\""
@@ -41,7 +41,7 @@ class DefaultEthereumMethods(
         val withFilterIdMethods = listOf(
             "eth_getFilterChanges",
             "eth_getFilterLogs",
-            "eth_uninstallFilter"
+            "eth_uninstallFilter",
         )
 
         val newFilterMethods = listOf(
@@ -69,22 +69,20 @@ class DefaultEthereumMethods(
             "debug_traceBlockByNumber",
             "debug_traceCall",
             "debug_traceCallMany",
-            "debug_traceTransaction"
+            "debug_traceTransaction",
         )
 
         val CHAIN_DATA = mapOf(
             Chain.ETHEREUM__MAINNET to createHardcodedData("\"1\"", "\"0x1\""),
-            Chain.ETHEREUM__RINKEBY to createHardcodedData("\"4\"", "\"0x4\""),
             Chain.ETHEREUM__ROPSTEN to createHardcodedData("\"3\"", "\"0x3\""),
-            Chain.ETHEREUM__KOVAN to createHardcodedData("\"42\"", "\"0x2a\""),
             Chain.ETHEREUM__GOERLI to createHardcodedData("\"5\"", "\"0x5\""),
             Chain.ETHEREUM__SEPOLIA to createHardcodedData("\"11155111\"", "\"0xaa36a7\""),
             Chain.ETHEREUM__HOLESKY to createHardcodedData("\"17000\"", "\"0x4268\""),
 
             Chain.ETHEREUM_CLASSIC__MAINNET to createHardcodedData("\"1\"", "\"0x3d\""),
 
-            Chain.POLYGON_POS__MAINNET to createHardcodedData("\"137\"", "\"0x89\""),
-            Chain.POLYGON_POS__MUMBAI to createHardcodedData("\"80001\"", "\"0x13881\""),
+            Chain.POLYGON__MAINNET to createHardcodedData("\"137\"", "\"0x89\""),
+            Chain.POLYGON__MUMBAI to createHardcodedData("\"80001\"", "\"0x13881\""),
 
             Chain.ARBITRUM__MAINNET to createHardcodedData("\"42161\"", "\"0xa4b1\""),
             Chain.ARBITRUM__GOERLI to createHardcodedData("\"421613\"", "\"0x66eed\""),
@@ -130,7 +128,7 @@ class DefaultEthereumMethods(
 
             Chain.MOONBEAM__MAINNET to createHardcodedData("\"1284\"", "\"0x504\""),
             Chain.MOONBEAM__MOONRIVER to createHardcodedData("\"1285\"", "\"0x505\""),
-            Chain.MOONBEAM__ALPHA to createHardcodedData("\"1287\"", "\"0x507\""),
+            Chain.MOONBEAM__MOONBASE_ALPHA to createHardcodedData("\"1287\"", "\"0x507\""),
 
             Chain.CELO__MAINNET to createHardcodedData("\"42220\"", "\"0xa4ec\""),
             Chain.CELO__ALFAJORES to createHardcodedData("\"44787\"", "\"0xaef3\""),
@@ -141,7 +139,7 @@ class DefaultEthereumMethods(
 
     private val anyResponseMethods = listOf(
         "eth_gasPrice",
-        "eth_estimateGas"
+        "eth_estimateGas",
     )
 
     private val possibleNotIndexedMethods = listOf(
@@ -153,7 +151,7 @@ class DefaultEthereumMethods(
         "eth_getTransactionByBlockHashAndIndex",
         "eth_getTransactionByBlockNumberAndIndex",
         "eth_getUncleByBlockHashAndIndex",
-        "eth_getUncleCountByBlockHash"
+        "eth_getUncleCountByBlockHash",
     )
 
     private val firstValueMethods = listOf(
@@ -162,21 +160,21 @@ class DefaultEthereumMethods(
         "eth_getCode",
         "eth_getLogs",
         "eth_maxPriorityFeePerGas",
-        "eth_getProof"
+        "eth_getProof",
     )
 
     private val specialMethods = listOf(
         "eth_getTransactionCount",
         "eth_blockNumber",
         "eth_getBalance",
-        "eth_sendRawTransaction"
+        "eth_sendRawTransaction",
     )
 
     private val headVerifiedMethods = listOf(
         "eth_getBlockTransactionCountByNumber",
         "eth_getUncleCountByBlockNumber",
         "eth_getUncleByBlockNumberAndIndex",
-        "eth_feeHistory"
+        "eth_feeHistory",
     )
 
     private val filterMethods = withFilterIdMethods + newFilterMethods
@@ -192,7 +190,7 @@ class DefaultEthereumMethods(
         "eth_mining",
         "eth_hashrate",
         "eth_accounts",
-        "eth_chainId"
+        "eth_chainId",
     )
 
     private val allowedMethods: List<String>
@@ -244,16 +242,16 @@ class DefaultEthereumMethods(
     private fun getChainSpecificMethods(chain: Chain): List<String> {
         return when (chain) {
             Chain.OPTIMISM__MAINNET, Chain.OPTIMISM__GOERLI -> listOf(
-                "rollup_gasPrices"
+                "rollup_gasPrices",
             )
 
-            Chain.POLYGON_POS__MAINNET, Chain.POLYGON_POS__MUMBAI -> listOf(
+            Chain.POLYGON__MAINNET, Chain.POLYGON__MUMBAI -> listOf(
                 "bor_getAuthor",
                 "bor_getCurrentValidators",
                 "bor_getCurrentProposer",
                 "bor_getRootHash",
                 "bor_getSignersAtHash",
-                "eth_getRootHash"
+                "eth_getRootHash",
             )
 
             Chain.POLYGON_ZKEVM__MAINNET, Chain.POLYGON_ZKEVM__TESTNET -> listOf(
@@ -265,7 +263,7 @@ class DefaultEthereumMethods(
                 "zkevm_virtualBatchNumber",
                 "zkevm_verifiedBatchNumber",
                 "zkevm_getBatchByNumber",
-                "zkevm_getBroadcastURI"
+                "zkevm_getBroadcastURI",
             )
 
             Chain.ZKSYNC__MAINNET, Chain.ZKSYNC__TESTNET -> listOf(
@@ -286,7 +284,7 @@ class DefaultEthereumMethods(
                 "zks_getTokenPrice",
                 "zks_getTransactionDetails",
                 "zks_L1BatchNumber",
-                "zks_L1ChainId"
+                "zks_L1ChainId",
             )
 
             else -> emptyList()
@@ -373,7 +371,7 @@ class DefaultEthereumMethods(
 
     data class HardcodedData private constructor(
         val netVersion: String,
-        val chainId: String
+        val chainId: String,
     ) {
         companion object {
             fun createHardcodedData(netVersion: String, chainId: String): HardcodedData =
