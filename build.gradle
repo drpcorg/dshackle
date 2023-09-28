@@ -322,3 +322,9 @@ static def getVersion() {
 
     return result.replaceAll(/^v/, '')
 }
+
+ktlint {
+    filter {
+        exclude { element -> element.file.path.contains("generated/") }
+    }
+}

@@ -23,9 +23,6 @@ import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
-import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
-import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods.Companion.CHAIN_DATA
-import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods.Companion.getChainByData
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.etherjar.domain.Address
@@ -159,13 +156,10 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
             netVersion(),
         )
             .map {
-                val chainData = CHAIN_DATA[chain] ?: return@map false
-                val isChainValid = chainData.chainId == it.t1 && chainData.netVersion == it.t2
+                val isChainValid = chain.chainId == it.t1 && chain.netVersion.toString() == it.t2
 
                 if (!isChainValid) {
-                    val actualChain = getChainByData(
-                        DefaultEthereumMethods.HardcodedData.createHardcodedData(it.t2, it.t1),
-                    )?.chainName
+                    val actualChain = Global.chainByChainId(it.t1).chainName
                     log.warn(
                         "${chain.chainName} is specified for upstream ${upstream.getId()} " +
                             "but actually it is $actualChain with chainId ${it.t1} and net_version ${it.t2}",
@@ -266,8 +260,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                 )
             }
             .doOnError { log.error("Error during execution 'eth_chainId' - ${it.message} for ${upstream.getId()}") }
-            .flatMap(JsonRpcResponse::requireResult)
-            .map { String(it) }
+            .flatMap(JsonRpcResponse::requireStringResult)
     }
 
     private fun netVersion(): Mono<String> {
@@ -280,7 +273,6 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                 )
             }
             .doOnError { log.error("Error during execution 'net_version' - ${it.message} for ${upstream.getId()}") }
-            .flatMap(JsonRpcResponse::requireResult)
-            .map { String(it) }
+            .flatMap(JsonRpcResponse::requireStringResult)
     }
 }

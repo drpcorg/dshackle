@@ -1,4 +1,5 @@
 import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.ChainsConfigReader
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
@@ -16,7 +17,7 @@ open class CodeGen(private val config: ChainsConfig) {
         builder.addEnumConstant(
             "UNSPECIFIED",
             TypeSpec.anonymousClassBuilder()
-                .addSuperclassConstructorParameter("%L, %S, %S", 0, "UNSPECIFIED", "Unknown")
+                .addSuperclassConstructorParameter("%L, %S, %S, %S, %L, %L", 0, "UNSPECIFIED", "Unknown", "0x0", 0, "emptyList()")
                 .build(),
         )
         for (chain in config) {
@@ -24,10 +25,13 @@ open class CodeGen(private val config: ChainsConfig) {
                 chain.blockchain.uppercase().replace('-', '_') + "__" + chain.id.uppercase().replace('-', '_'),
                 TypeSpec.anonymousClassBuilder()
                     .addSuperclassConstructorParameter(
-                        "%L, %S, %S",
+                        "%L, %S, %S, %S, %L, %L",
                         chain.grpcId,
                         chain.code,
                         chain.blockchain.replaceFirstChar { it.uppercase() } + " " + chain.id.replaceFirstChar { it.uppercase() },
+                        chain.chainId,
+                        chain.netVersion,
+                        "listOf(" + chain.shortNames.map { "\"${it}\"" }.joinToString() + ")",
                     )
                     .build(),
             )
@@ -55,6 +59,9 @@ open class CodeGen(private val config: ChainsConfig) {
                         .addParameter("id", Int::class)
                         .addParameter("chainCode", String::class)
                         .addParameter("chainName", String::class)
+                        .addParameter("chainId", String::class)
+                        .addParameter("netVersion", Long::class)
+                        .addParameter("shortNames", List::class.asClassName().parameterizedBy(String::class.asClassName()))
                         .build(),
                 )
                 .addProperty(
@@ -68,8 +75,23 @@ open class CodeGen(private val config: ChainsConfig) {
                         .build(),
                 )
                 .addProperty(
+                    PropertySpec.builder("netVersion", Long::class)
+                        .initializer("netVersion")
+                        .build(),
+                )
+                .addProperty(
+                    PropertySpec.builder("chainId", String::class)
+                        .initializer("chainId")
+                        .build(),
+                )
+                .addProperty(
                     PropertySpec.builder("chainName", String::class)
                         .initializer("chainName")
+                        .build(),
+                )
+                .addProperty(
+                    PropertySpec.builder("shortNames", List::class.asClassName().parameterizedBy(String::class.asClassName()))
+                        .initializer("shortNames")
                         .build(),
                 ),
         ).build()
