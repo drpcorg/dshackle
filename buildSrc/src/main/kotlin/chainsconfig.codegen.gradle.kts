@@ -116,7 +116,3 @@ open class ChainsCodeGenTask : DefaultTask() {
 }
 
 tasks.register<ChainsCodeGenTask>("chainscodegen")
-
-tasks.named("build") {
-    dependsOn("chainscodegen")
-}

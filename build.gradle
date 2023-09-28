@@ -328,3 +328,5 @@ ktlint {
         exclude { element -> element.file.path.contains("generated/") }
     }
 }
+
+compileKotlin.dependsOn chainscodegen
