@@ -59,7 +59,7 @@ open class EthereumMultistream(
     private var head: DynamicMergedHead = DynamicMergedHead(
         PriorityForkChoice(),
         "ETH Multistream of ${chain.chainCode}",
-        headScheduler
+        headScheduler,
     )
 
     private val filteredHeads: MutableMap<String, Head> =
@@ -81,13 +81,16 @@ open class EthereumMultistream(
         Chain.POLYGON_ZKEVM__TESTNET,
         Chain.ZKSYNC__MAINNET,
         Chain.ZKSYNC__TESTNET,
-        Chain.ARBITRUM_NOVA__MAINNET
+        Chain.ARBITRUM_NOVA__MAINNET,
     )
 
     private val supportsEIP1559 = supportsEIP1559set.contains(chain)
 
-    private val feeEstimation = if (supportsEIP1559) EthereumPriorityFees(this, reader, 256)
-    else EthereumLegacyFees(this, reader, 256)
+    private val feeEstimation = if (supportsEIP1559) {
+        EthereumPriorityFees(this, reader, 256)
+    } else {
+        EthereumLegacyFees(this, reader, 256)
+    }
 
     init {
         this.init()
@@ -161,7 +164,7 @@ open class EthereumMultistream(
 
     override fun tryProxy(
         matcher: Selector.Matcher,
-        request: BlockchainOuterClass.NativeSubscribeRequest
+        request: BlockchainOuterClass.NativeSubscribeRequest,
     ): Flux<out Any>? =
         upstreams.filter {
             matcher.matches(it)
@@ -220,13 +223,15 @@ open class EthereumMultistream(
                 }.let {
                     val selected = it.map { source -> source.getHead() }
                     EnrichedMergedHead(
-                        selected, getHead(), headScheduler,
+                        selected,
+                        getHead(),
+                        headScheduler,
                         object :
                             Reader<BlockHash, BlockContainer> {
                             override fun read(key: BlockHash): Mono<BlockContainer> {
                                 return reader.blocksByHashAsCont().read(key).map { res -> res.data }
                             }
-                        }
+                        },
                     )
                 }
         }
