@@ -9,6 +9,10 @@ build-main:
 test: build-foundation
 	./gradlew check
 
+
+jib: build-foundation
+	./gradlew jib -Pdocker=drpcorg
+
 clean:
 	./gradlew clean;
 	cd foundation && ../gradlew clean
