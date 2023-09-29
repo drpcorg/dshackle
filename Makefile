@@ -6,6 +6,9 @@ build-foundation:
 build-main:
 	./gradlew build
 
+test: build-foundation
+	./gradlew check
+
 clean:
 	./gradlew clean;
 	cd foundation && ../gradlew clean
