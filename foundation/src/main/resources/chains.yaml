@@ -408,3 +408,22 @@ chain-settings:
           grpcId: 10025
           short-names: [scroll-sepolia]
           chain-id: 0x8274f
+    - id: cronos
+      settings:
+        expected-block-time: 5s
+        options:
+          validate-peers: false
+        lags:
+          syncing: 10
+          lagging: 5
+      chains:
+        - id: mainnet
+          code: CRONOS_MAINNET
+          short-names: [cronos]
+          chain-id: 0x19
+          grpcId: 1022
+        - id: testnet
+          code: CRONOS_TESTNET
+          short-names: [cronos-testnet]
+          chain-id: 0x152
+          grpcId: 10030
