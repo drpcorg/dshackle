@@ -9,11 +9,13 @@ import reactor.core.scheduler.Scheduler
 open class DynamicMergedHead(
     forkChoice: ForkChoice,
     private val label: String = "",
-    headScheduler: Scheduler,
+    private val headScheduler: Scheduler,
 ) : AbstractHead(forkChoice, headScheduler, upstreamId = label), Lifecycle {
 
     private var subscription: Disposable? = null
-    private val dynamicFlux: DynamicMergeFlux<String, BlockContainer> = DynamicMergeFlux(headScheduler)
+
+    @Volatile
+    private var dynamicFlux: DynamicMergeFlux<String, BlockContainer>? = DynamicMergeFlux(headScheduler)
 
     override fun isRunning(): Boolean {
         return subscription != null
@@ -21,26 +23,30 @@ open class DynamicMergedHead(
 
     override fun start() {
         super.start()
+        if (dynamicFlux == null) {
+            dynamicFlux = DynamicMergeFlux(headScheduler)
+        }
         subscription?.dispose()
         subscription = super.follow(
-            dynamicFlux.asFlux(),
+            dynamicFlux!!.asFlux(),
         )
     }
 
     override fun stop() {
         super.stop()
-        dynamicFlux.stop()
+        dynamicFlux?.stop()
+        dynamicFlux = null
         subscription?.dispose()
         subscription = null
     }
 
     fun addHead(upstream: Upstream) {
-        log.debug("adding upstream head of [${upstream.getId()}] to dynamic head of [$label]. Current heads ${dynamicFlux.getKeys()}")
-        dynamicFlux.add(upstream.getHead().getFlux(), upstream.getId())
+        log.debug("adding upstream head of [${upstream.getId()}] to dynamic head of [$label]. Current heads ${dynamicFlux?.getKeys()}")
+        dynamicFlux?.add(upstream.getHead().getFlux(), upstream.getId())
     }
 
     fun removeHead(id: String) {
-        log.debug("removing upstream head of [$id] from dynamic head $label. Current heads ${dynamicFlux.getKeys()}")
-        dynamicFlux.remove(id)
+        log.debug("removing upstream head of [$id] from dynamic head $label. Current heads ${dynamicFlux?.getKeys()}")
+        dynamicFlux?.remove(id)
     }
 }

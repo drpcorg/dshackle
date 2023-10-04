@@ -24,6 +24,7 @@ import io.emeraldpay.dshackle.config.HealthConfig
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.MainConfigReader
 import io.emeraldpay.dshackle.config.MonitoringConfig
+import io.emeraldpay.dshackle.config.ReloadConfiguration
 import io.emeraldpay.dshackle.config.SignatureConfig
 import io.emeraldpay.dshackle.config.TokensConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
@@ -158,5 +159,10 @@ open class Config(
     @Bean
     open fun authorizationConfig(mainConfig: MainConfig): AuthorizationConfig {
         return mainConfig.authorization
+    }
+
+    @Bean
+    open fun reloadConfiguration(mainConfig: MainConfig): ReloadConfiguration {
+        return mainConfig.reloadConfiguration
     }
 }

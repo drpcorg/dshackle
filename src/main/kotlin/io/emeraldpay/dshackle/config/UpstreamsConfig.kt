@@ -23,21 +23,23 @@ import java.util.Arrays
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
-open class UpstreamsConfig {
-    var defaultOptions: MutableList<ChainOptions.DefaultOptions> = ArrayList()
-    var upstreams: MutableList<Upstream<*>> = ArrayList<Upstream<*>>()
+data class UpstreamsConfig(
+    var defaultOptions: MutableList<ChainOptions.DefaultOptions> = ArrayList(),
+    var upstreams: MutableList<Upstream<*>> = ArrayList(),
+) {
 
-    class Upstream<T : UpstreamConnection> {
-        var id: String? = null
-        var nodeId: Int? = null
-        var chain: String? = null
-        var options: ChainOptions.PartialOptions? = null
-        var isEnabled = true
-        var connection: T? = null
-        val labels = Labels()
-        var methods: Methods? = null
-        var methodGroups: MethodGroups? = null
-        var role: UpstreamRole = UpstreamRole.PRIMARY
+    data class Upstream<T : UpstreamConnection>(
+        var id: String? = null,
+        var nodeId: Int? = null,
+        var chain: String? = null,
+        var options: ChainOptions.PartialOptions? = null,
+        var isEnabled: Boolean = true,
+        var connection: T? = null,
+        val labels: Labels = Labels(),
+        var methods: Methods? = null,
+        var methodGroups: MethodGroups? = null,
+        var role: UpstreamRole = UpstreamRole.PRIMARY,
+    ) {
 
         @Suppress("UNCHECKED_CAST")
         fun <Z : UpstreamConnection> cast(type: Class<Z>): Upstream<Z> {
@@ -58,6 +60,19 @@ open class UpstreamsConfig {
 
     open class RpcConnection : UpstreamConnection() {
         var rpc: HttpEndpoint? = null
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is RpcConnection) return false
+
+            if (rpc != other.rpc) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return rpc?.hashCode() ?: 0
+        }
     }
 
     class GrpcConnection : UpstreamConnection() {
@@ -85,6 +100,24 @@ open class UpstreamsConfig {
                 ConnectorMode.parse(connectorMode!!)
             }
         }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is EthereumConnection) return false
+            if (!super.equals(other)) return false
+
+            if (ws != other.ws) return false
+            if (connectorMode != other.connectorMode) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = super.hashCode()
+            result = 31 * result + (ws?.hashCode() ?: 0)
+            result = 31 * result + (connectorMode?.hashCode() ?: 0)
+            return result
+        }
     }
 
     class BitcoinConnection : RpcConnection() {
@@ -95,6 +128,22 @@ open class UpstreamsConfig {
     class EthereumPosConnection : UpstreamConnection() {
         var execution: EthereumConnection? = null
         var upstreamRating: Int = 0
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is EthereumPosConnection) return false
+
+            if (execution != other.execution) return false
+            if (upstreamRating != other.upstreamRating) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = execution?.hashCode() ?: 0
+            result = 31 * result + upstreamRating
+            return result
+        }
     }
 
     data class BitcoinZeroMq(
@@ -102,12 +151,12 @@ open class UpstreamsConfig {
         val port: Int,
     )
 
-    class HttpEndpoint(val url: URI) {
+    data class HttpEndpoint(val url: URI) {
         var basicAuth: AuthConfig.ClientBasicAuth? = null
         var tls: AuthConfig.ClientTlsAuth? = null
     }
 
-    class WsEndpoint(val url: URI) {
+    data class WsEndpoint(val url: URI) {
         var origin: URI? = null
         var basicAuth: AuthConfig.ClientBasicAuth? = null
         var frameSize: Int? = null
@@ -159,17 +208,17 @@ open class UpstreamsConfig {
         }
     }
 
-    class Methods(
+    data class Methods(
         val enabled: Set<Method>,
         val disabled: Set<Method>,
     )
 
-    class MethodGroups(
+    data class MethodGroups(
         val enabled: Set<String>,
         val disabled: Set<String>,
     )
 
-    class Method(
+    data class Method(
         val name: String,
         val quorum: String? = null,
         val static: String? = null,
