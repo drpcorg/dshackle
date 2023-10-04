@@ -5,6 +5,7 @@ import io.emeraldpay.dshackle.Chain.POLYGON__MAINNET
 import io.emeraldpay.dshackle.Config
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.config.MainConfig
+import io.emeraldpay.dshackle.config.ReloadConfiguration
 import io.emeraldpay.dshackle.config.ReloadConfiguration.Companion.default
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfigReader
@@ -35,7 +36,7 @@ class ReloadConfigTest {
     private val optionsReader = ChainOptionsReader()
     private val upstreamsConfigReader = UpstreamsConfigReader(fileResolver, optionsReader)
 
-    private val request = HttpPost("http://localhost:8093/reload")
+    private val request = HttpPost("http://localhost:18000/reload")
     private val client = HttpClientBuilder.create().build()
 
     @BeforeEach
@@ -72,7 +73,7 @@ class ReloadConfigTest {
             currentMultistreamHolder,
             configuredUpstreams,
         )
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, default())
+        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, ReloadConfiguration(18000))
         reloadConfig.start()
 
         val initialConfigIs = ResourceUtils.getFile("classpath:configs/upstreams-initial.yaml").inputStream()
