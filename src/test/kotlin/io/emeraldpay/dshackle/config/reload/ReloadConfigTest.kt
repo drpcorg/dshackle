@@ -6,7 +6,6 @@ import io.emeraldpay.dshackle.Config
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.ReloadConfiguration
-import io.emeraldpay.dshackle.config.ReloadConfiguration.Companion.default
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfigReader
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
