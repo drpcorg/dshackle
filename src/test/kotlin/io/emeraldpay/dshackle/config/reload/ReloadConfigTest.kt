@@ -16,7 +16,6 @@ import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Upstream
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.impl.client.HttpClientBuilder
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,7 +27,6 @@ import org.mockito.kotlin.verify
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.util.ResourceUtils
 import java.io.File
-
 
 class ReloadConfigTest {
     private val fileResolver = FileResolver(File(""))
@@ -70,7 +68,9 @@ class ReloadConfigTest {
         }
         val configuredUpstreams = mock<ConfiguredUpstreams>()
         val reloadConfigUpstreamService = ReloadConfigUpstreamService(
-            applicationEventPublisher, currentMultistreamHolder, configuredUpstreams,
+            applicationEventPublisher,
+            currentMultistreamHolder,
+            configuredUpstreams,
         )
         val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, default())
         reloadConfig.start()
@@ -82,24 +82,24 @@ class ReloadConfigTest {
 
         client.execute(request)
 
-        val captor = ArgumentCaptor.forClass(UpstreamChangeEvent::class.java);
+        val captor = ArgumentCaptor.forClass(UpstreamChangeEvent::class.java)
         verify(applicationEventPublisher, times(2)).publishEvent(captor.capture())
         verify(configuredUpstreams).processUpstreams(
             UpstreamsConfig(
                 newConfig.defaultOptions,
-                mutableListOf(newConfig.upstreams[0], newConfig.upstreams[2])
-            )
+                mutableListOf(newConfig.upstreams[0], newConfig.upstreams[2]),
+            ),
         )
 
         assertEquals(3, mainConfig.upstreams!!.upstreams.size)
         assertEquals(newConfig, mainConfig.upstreams)
         assertEquals(
             UpstreamChangeEvent(ETHEREUM__MAINNET, up1, UpstreamChangeEvent.ChangeType.REMOVED),
-            captor.allValues[0]
+            captor.allValues[0],
         )
         assertEquals(
             UpstreamChangeEvent(POLYGON__MAINNET, up3, UpstreamChangeEvent.ChangeType.REMOVED),
-            captor.allValues[1]
+            captor.allValues[1],
         )
 
         reloadConfig.stop()
