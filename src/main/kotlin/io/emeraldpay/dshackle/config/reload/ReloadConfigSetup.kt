@@ -1,73 +1,41 @@
 package io.emeraldpay.dshackle.config.reload
 
-import com.sun.net.httpserver.HttpServer
 import io.emeraldpay.dshackle.Chain
-import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.Global.Companion.chainById
-import io.emeraldpay.dshackle.config.ReloadConfiguration
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import java.net.InetSocketAddress
+import sun.misc.Signal
+import sun.misc.SignalHandler
 import java.util.stream.Collectors
-import javax.annotation.PostConstruct
-import javax.annotation.PreDestroy
 
 @Component
 class ReloadConfigSetup(
     private val reloadConfigService: ReloadConfigService,
     private val reloadConfigUpstreamService: ReloadConfigUpstreamService,
-    private val reloadConfiguration: ReloadConfiguration,
-) {
+) : SignalHandler {
+
     companion object {
         private val log = LoggerFactory.getLogger(this::class.java)
+        private val signalHup = Signal("HUP")
     }
 
-    private lateinit var server: HttpServer
+    init {
+        Signal.handle(signalHup, this)
+    }
 
-    @PostConstruct
-    fun start() {
-        server = HttpServer.create(
-            InetSocketAddress("0.0.0.0", reloadConfiguration.port),
-            0,
-        )
+    override fun handle(sig: Signal) {
+        if (sig == signalHup) {
+            try {
+                log.info("Reloading config...")
 
-        server.createContext("/reload") { httpExchange ->
-            if (httpExchange.requestMethod == "POST") {
-                try {
-                    log.info("Reloading config...")
-                    reloadConfig()
-                } catch (e: Exception) {
-                    val response = Global.objectMapper.writeValueAsBytes(
-                        ErrorResponse(e.message),
-                    )
-                    httpExchange.responseHeaders.add("Content-Type", "application/json")
-                    httpExchange.sendResponseHeaders(500, response.size.toLong())
-                    httpExchange.responseBody.use { it.write(response) }
-                    return@createContext
-                }
+                reloadConfig()
 
-                httpExchange.sendResponseHeaders(202, 0)
-                httpExchange.responseBody.close()
-                log.info("Config reload is done")
-            } else {
-                val response = Global.objectMapper.writeValueAsBytes(
-                    ErrorResponse("${httpExchange.requestMethod} is not supported"),
-                )
-                httpExchange.responseHeaders.add("Content-Type", "application/json")
-                httpExchange.sendResponseHeaders(404, response.size.toLong())
-                httpExchange.responseBody.use { it.write(response) }
+                log.info("Config is reloaded")
+            } catch (e: Exception) {
+                log.warn("Config is not reloaded, cause - ${e.message}")
             }
-        }
-
-        server.start()
-    }
-
-    @PreDestroy
-    fun stop() {
-        if (::server.isInitialized) {
-            server.stop(0)
         }
     }
 
@@ -165,10 +133,6 @@ class ReloadConfigSetup(
                 ),
             )
     }
-
-    private data class ErrorResponse(
-        val error: String?,
-    )
 
     private data class UpstreamAnalyzeData(
         val added: Set<String> = emptySet(),

@@ -37,7 +37,6 @@ class MainConfigReader(
     private val compressionConfigReader = CompressionConfigReader()
     private val chainsConfigReader = ChainsConfigReader(optionsReader)
     private val authorizationConfigReader = AuthorizationConfigReader()
-    private val reloadConfigurationReader = ReloadConfigurationReader()
 
     override fun read(input: MappingNode?): MainConfig {
         val config = MainConfig()
@@ -87,9 +86,6 @@ class MainConfigReader(
         }
         authorizationConfigReader.read(input).let {
             config.authorization = it
-        }
-        reloadConfigurationReader.read(input).let {
-            config.reloadConfiguration = it
         }
         return config
     }
