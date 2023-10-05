@@ -45,9 +45,9 @@ class EthereumUpstreamValidatorSpec extends Specification {
         setup:
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, Stub(EthereumLikeUpstream), ChainOptions.PartialOptions.getDefaults().buildOptions())
         expect:
-        validator.resolve(Tuples.of(sync, peers, call)) == exp
+        validator.resolve(Tuples.of(sync, peers, settings)) == exp
         where:
-        exp         | sync          | peers       | call
+        exp         | sync          | peers       | settings
         OK          | OK            | OK          | OK
         IMMATURE    | OK            | IMMATURE    | OK
         UNAVAILABLE | OK            | UNAVAILABLE | OK
@@ -57,6 +57,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         UNAVAILABLE | UNAVAILABLE   | OK          | OK
         UNAVAILABLE | UNAVAILABLE   | IMMATURE    | OK
         UNAVAILABLE | UNAVAILABLE   | UNAVAILABLE | OK
+        UNAVAILABLE | OK            | OK          | UNAVAILABLE
     }
 
     def "Doesnt check eth_syncing when disabled"() {
@@ -280,7 +281,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options)
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         act
     }
@@ -304,7 +305,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         act
     }
@@ -328,7 +329,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         !act
     }
@@ -350,7 +351,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         act
     }
@@ -372,7 +373,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(OPTIMISM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         !act
     }
@@ -396,7 +397,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         act
     }
@@ -420,7 +421,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, up, options, "0x32268860cAAc2948Ab5DdC7b20db5a420467Cf96")
 
         when:
-        def act = validator.validateUpstreamSettings()
+        def act = validator.validateUpstreamSettingsOnStartup()
         then:
         !act
     }

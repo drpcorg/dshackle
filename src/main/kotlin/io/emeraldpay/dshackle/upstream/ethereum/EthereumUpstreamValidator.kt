@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import reactor.kotlin.extra.retry.retryRandomBackoff
-import reactor.util.function.Tuple2
+import reactor.util.function.Tuple3
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeoutException
@@ -58,6 +58,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
         return Mono.zip(
             validateSyncing(),
             validatePeers(),
+            validateUpstreamSettings().map { if (it) UpstreamAvailability.OK else UpstreamAvailability.UNAVAILABLE }
         )
             .map(::resolve)
             .defaultIfEmpty(UpstreamAvailability.UNAVAILABLE)
@@ -67,9 +68,9 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
             }
     }
 
-    fun resolve(results: Tuple2<UpstreamAvailability, UpstreamAvailability>): UpstreamAvailability {
+    fun resolve(results: Tuple3<UpstreamAvailability, UpstreamAvailability, UpstreamAvailability>): UpstreamAvailability {
         val cp = Comparator { avail1: UpstreamAvailability, avail2: UpstreamAvailability -> if (avail1.isBetterTo(avail2)) -1 else 1 }
-        return listOf(results.t1, results.t2).sortedWith(cp).last()
+        return listOf(results.t1, results.t2, results.t3).sortedWith(cp).last()
     }
 
     fun validateSyncing(): Mono<UpstreamAvailability> {
@@ -137,14 +138,18 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
             }
     }
 
-    fun validateUpstreamSettings(): Boolean {
+    fun validateUpstreamSettingsOnStartup(): Boolean {
+        return validateUpstreamSettings().block() ?: false
+    }
+
+    private fun validateUpstreamSettings(): Mono<Boolean> {
         return Mono.zip(
             validateChain(),
             validateCallLimit(),
             validateOldBlocks(),
         ).map {
             it.t1 && it.t2 && it.t3
-        }.block() ?: false
+        }
     }
 
     private fun validateChain(): Mono<Boolean> {
