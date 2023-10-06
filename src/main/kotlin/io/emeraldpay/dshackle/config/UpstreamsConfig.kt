@@ -58,22 +58,9 @@ data class UpstreamsConfig(
 
     open class UpstreamConnection
 
-    open class RpcConnection : UpstreamConnection() {
-        var rpc: HttpEndpoint? = null
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is RpcConnection) return false
-
-            if (rpc != other.rpc) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            return rpc?.hashCode() ?: 0
-        }
-    }
+    open class RpcConnection(
+        open var rpc: HttpEndpoint? = null,
+    ) : UpstreamConnection()
 
     class GrpcConnection : UpstreamConnection() {
         var host: String? = null
@@ -83,9 +70,11 @@ data class UpstreamsConfig(
         var upstreamRating: Int = 0
     }
 
-    class EthereumConnection : RpcConnection() {
-        var ws: WsEndpoint? = null
-        var connectorMode: String? = null
+    data class EthereumConnection(
+        override var rpc: HttpEndpoint? = null,
+        var ws: WsEndpoint? = null,
+        var connectorMode: String? = null,
+    ) : RpcConnection(rpc) {
 
         fun resolveMode(): ConnectorMode {
             return if (connectorMode == null) {
@@ -100,51 +89,18 @@ data class UpstreamsConfig(
                 ConnectorMode.parse(connectorMode!!)
             }
         }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is EthereumConnection) return false
-            if (!super.equals(other)) return false
-
-            if (ws != other.ws) return false
-            if (connectorMode != other.connectorMode) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = super.hashCode()
-            result = 31 * result + (ws?.hashCode() ?: 0)
-            result = 31 * result + (connectorMode?.hashCode() ?: 0)
-            return result
-        }
     }
 
-    class BitcoinConnection : RpcConnection() {
-        var esplora: HttpEndpoint? = null
-        var zeroMq: BitcoinZeroMq? = null
-    }
+    data class BitcoinConnection(
+        override var rpc: HttpEndpoint? = null,
+        var esplora: HttpEndpoint? = null,
+        var zeroMq: BitcoinZeroMq? = null,
+    ) : RpcConnection()
 
-    class EthereumPosConnection : UpstreamConnection() {
-        var execution: EthereumConnection? = null
-        var upstreamRating: Int = 0
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is EthereumPosConnection) return false
-
-            if (execution != other.execution) return false
-            if (upstreamRating != other.upstreamRating) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = execution?.hashCode() ?: 0
-            result = 31 * result + upstreamRating
-            return result
-        }
-    }
+    data class EthereumPosConnection(
+        var execution: EthereumConnection? = null,
+        var upstreamRating: Int = 0,
+    ) : UpstreamConnection()
 
     data class BitcoinZeroMq(
         val host: String = "127.0.0.1",

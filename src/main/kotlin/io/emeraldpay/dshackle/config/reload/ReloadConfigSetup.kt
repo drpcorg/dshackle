@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import sun.misc.Signal
 import sun.misc.SignalHandler
+import java.util.concurrent.locks.ReentrantLock
 import java.util.stream.Collectors
 
 @Component
@@ -21,6 +22,8 @@ class ReloadConfigSetup(
         private val signalHup = Signal("HUP")
     }
 
+    private val reloadLock = ReentrantLock()
+
     init {
         Signal.handle(signalHup, this)
     }
@@ -28,14 +31,26 @@ class ReloadConfigSetup(
     override fun handle(sig: Signal) {
         if (sig == signalHup) {
             try {
+                handle()
+            } catch (e: Exception) {
+                log.warn("Config is not reloaded, cause - ${e.message}", e)
+            }
+        }
+    }
+
+    private fun handle() {
+        if (reloadLock.tryLock()) {
+            try {
                 log.info("Reloading config...")
 
                 reloadConfig()
 
                 log.info("Config is reloaded")
-            } catch (e: Exception) {
-                log.warn("Config is not reloaded, cause - ${e.message}")
+            } finally {
+                reloadLock.unlock()
             }
+        } else {
+            log.warn("Reloading is in progress")
         }
     }
 
