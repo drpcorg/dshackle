@@ -37,6 +37,9 @@ import java.time.Duration
 import static io.emeraldpay.dshackle.Chain.ETHEREUM__MAINNET
 import static io.emeraldpay.dshackle.Chain.OPTIMISM__MAINNET
 import static io.emeraldpay.dshackle.upstream.UpstreamAvailability.*
+import static io.emeraldpay.dshackle.upstream.ethereum.EthereumUpstreamValidator.ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
+import static io.emeraldpay.dshackle.upstream.ethereum.EthereumUpstreamValidator.ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+import static io.emeraldpay.dshackle.upstream.ethereum.EthereumUpstreamValidator.ValidateUpstreamSettingsResult.UPSTREAM_VALID
 import static java.util.Collections.emptyList
 
 class EthereumUpstreamValidatorSpec extends Specification {
@@ -45,19 +48,18 @@ class EthereumUpstreamValidatorSpec extends Specification {
         setup:
         def validator = new EthereumUpstreamValidator(ETHEREUM__MAINNET, Stub(EthereumLikeUpstream), ChainOptions.PartialOptions.getDefaults().buildOptions())
         expect:
-        validator.resolve(Tuples.of(sync, peers, settings)) == exp
+        validator.resolve(Tuples.of(sync, peers)) == exp
         where:
-        exp         | sync          | peers       | settings
-        OK          | OK            | OK          | OK
-        IMMATURE    | OK            | IMMATURE    | OK
-        UNAVAILABLE | OK            | UNAVAILABLE | OK
-        SYNCING     | SYNCING       | OK          | OK
-        SYNCING     | SYNCING       | IMMATURE    | OK
-        UNAVAILABLE | SYNCING       | UNAVAILABLE | OK
-        UNAVAILABLE | UNAVAILABLE   | OK          | OK
-        UNAVAILABLE | UNAVAILABLE   | IMMATURE    | OK
-        UNAVAILABLE | UNAVAILABLE   | UNAVAILABLE | OK
-        UNAVAILABLE | OK            | OK          | UNAVAILABLE
+        exp         | sync          | peers
+        OK          | OK            | OK
+        IMMATURE    | OK            | IMMATURE
+        UNAVAILABLE | OK            | UNAVAILABLE
+        SYNCING     | SYNCING       | OK
+        SYNCING     | SYNCING       | IMMATURE
+        UNAVAILABLE | SYNCING       | UNAVAILABLE
+        UNAVAILABLE | UNAVAILABLE   | OK
+        UNAVAILABLE | UNAVAILABLE   | IMMATURE
+        UNAVAILABLE | UNAVAILABLE   | UNAVAILABLE
     }
 
     def "Doesnt check eth_syncing when disabled"() {
@@ -283,7 +285,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        act
+        act == UPSTREAM_VALID
     }
 
     def "Upstream is valid if not error from call limit check"() {
@@ -307,7 +309,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        act
+        act == UPSTREAM_VALID
     }
 
     def "Upstream is not valid if error returned on call limit check"() {
@@ -331,7 +333,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        !act
+        act == UPSTREAM_SETTINGS_ERROR
     }
 
     def "Upstream is valid if chain settings are valid"() {
@@ -353,7 +355,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        act
+        act == UPSTREAM_VALID
     }
 
     def "Upstream is not valid - specified optimism but got ethereum"() {
@@ -375,7 +377,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        !act
+        act == UPSTREAM_FATAL_SETTINGS_ERROR
     }
 
     def "Upstream is valid if all setting are valid"() {
@@ -399,7 +401,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        act
+        act == UPSTREAM_VALID
     }
 
     def "Upstream is not valid if there are errors"() {
@@ -423,7 +425,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
         when:
         def act = validator.validateUpstreamSettingsOnStartup()
         then:
-        !act
+        act == UPSTREAM_SETTINGS_ERROR
     }
 
 
