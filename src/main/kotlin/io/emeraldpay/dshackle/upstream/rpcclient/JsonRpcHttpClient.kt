@@ -152,7 +152,7 @@ class JsonRpcHttpClient(
                 val err = when (t) {
                     is RpcException -> JsonRpcException.from(t)
                     is JsonRpcException -> t
-                    else -> JsonRpcException(key.id, t.message ?: t.javaClass.name)
+                    else -> JsonRpcException(key.id, t.message ?: t.javaClass.name, cause = t)
                 }
                 // here we're measure the internal errors, not upstream errors
                 metrics.fails.increment()
