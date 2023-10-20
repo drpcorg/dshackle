@@ -50,18 +50,15 @@ class JsonRpcHttpClient(
     tlsCAAuth: ByteArray? = null,
 ) : JsonRpcReader {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(JsonRpcHttpClient::class.java)
-    }
-
     private val parser = ResponseRpcParser()
     private val httpClient: HttpClient
 
     init {
         val connectionProvider = ConnectionProvider.builder("dshackleConnectionPool")
-            .maxConnections(1000)
-            .pendingAcquireMaxCount(5000)
+            .maxConnections(1500)
+            .pendingAcquireMaxCount(10000)
             .build()
+
         var build = HttpClient.create(connectionProvider)
             .compress(true)
             .resolver(DefaultAddressResolverGroup.INSTANCE)
