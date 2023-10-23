@@ -25,7 +25,9 @@ open class JsonRpcException(
     cause: Throwable? = null,
 ) : Exception(error.message, cause, true, writableStackTrace) {
 
-    constructor(id: Int, message: String, cause: Throwable? = null) : this(JsonRpcResponse.NumberId(id), JsonRpcError(-32005, message), cause = cause)
+    constructor(id: Int, message: String) : this(JsonRpcResponse.NumberId(id), JsonRpcError(-32005, message))
+
+    constructor(id: Int, message: String, cause: Throwable) : this(JsonRpcResponse.NumberId(id), JsonRpcError(-32005, message), cause = cause)
 
     companion object {
         fun from(err: RpcException): JsonRpcException {
