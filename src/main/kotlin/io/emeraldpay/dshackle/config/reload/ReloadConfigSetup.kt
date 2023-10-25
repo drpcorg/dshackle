@@ -43,9 +43,7 @@ class ReloadConfigSetup(
             try {
                 log.info("Reloading config...")
 
-                val reloaded = reloadConfig()
-
-                if (reloaded) {
+                if (reloadConfig()) {
                     log.info("Config is reloaded")
                 } else {
                     log.info("There is nothing to reload, config is the same")
