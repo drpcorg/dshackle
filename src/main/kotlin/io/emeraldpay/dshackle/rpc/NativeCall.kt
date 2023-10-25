@@ -76,7 +76,6 @@ open class NativeCall(
     private val log = LoggerFactory.getLogger(NativeCall::class.java)
     private val objectMapper: ObjectMapper = Global.objectMapper
 
-    private val localRouterEnabled = config.cache?.requestsCacheEnabled ?: true
     private val passthrough = config.passthrough
 
     var rpcReaderFactory: RpcReaderFactory = RpcReaderFactory.default()
@@ -359,7 +358,7 @@ open class NativeCall(
         if (method in DefaultEthereumMethods.newFilterMethods) CreateFilterDecorator() else NoneResultDecorator()
 
     fun fetch(ctx: ValidCallContext<ParsedCallDetails>): Mono<CallResult> {
-        return ctx.upstream.getLocalReader(localRouterEnabled)
+        return ctx.upstream.getLocalReader()
             .flatMap { api ->
                 SpannedReader(api, tracer, LOCAL_READER)
                     .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))

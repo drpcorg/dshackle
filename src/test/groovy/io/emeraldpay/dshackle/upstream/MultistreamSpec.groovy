@@ -31,7 +31,7 @@ import io.emeraldpay.dshackle.upstream.calls.DirectCallMethods
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLikeRpcUpstream
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumPosMultiStream
 import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
-import io.emeraldpay.dshackle.upstream.grpc.EthereumPosGrpcUpstream
+import io.emeraldpay.dshackle.upstream.grpc.GenericGrpcUpstream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.etherjar.domain.BlockHash
@@ -205,13 +205,13 @@ class MultistreamSpec extends Specification {
                 .setMethod("newHeads")
                 .build()
 
-        def up1 = Mock(EthereumPosGrpcUpstream) {
+        def up1 = Mock(GenericGrpcUpstream) {
             1 * isGrpc() >> true
             1 * getId() >> "internal"
             1 * getLabels() >> [UpstreamsConfig.Labels.fromMap(Collections.singletonMap("provider", "internal"))]
             1 * proxySubscribe(call) >> Flux.just("{}")
         }
-        def up2 = Mock(EthereumPosGrpcUpstream) {
+        def up2 = Mock(GenericGrpcUpstream) {
             1 * getId() >> "external"
             1 * getLabels() >> [UpstreamsConfig.Labels.fromMap(Collections.singletonMap("provider", "external"))]
         }
@@ -235,7 +235,7 @@ class MultistreamSpec extends Specification {
                 .setMethod("newHeads")
                 .build()
 
-        def up2 = Mock(EthereumPosGrpcUpstream) {
+        def up2 = Mock(GenericGrpcUpstream) {
             1 * isGrpc() >> false
             1 * getId() >> "2"
             1 * getLabels() >> [UpstreamsConfig.Labels.fromMap(Collections.singletonMap("provider", "internal"))]
