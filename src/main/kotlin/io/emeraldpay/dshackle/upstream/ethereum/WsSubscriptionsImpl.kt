@@ -17,6 +17,7 @@ package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcException
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
+import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -37,7 +38,7 @@ class WsSubscriptionsImpl(
         val subscriptionId = AtomicReference("")
         val conn = wsPool.getConnection()
         val messages = conn.getSubscribeResponses()
-            .filter { it.subscriptionId == subscriptionId.get() }
+           // .filter { it.subscriptionId == subscriptionId.get() }
             .filter { it.result != null } // should never happen
             .map { it.result!! }
 
@@ -52,7 +53,15 @@ class WsSubscriptionsImpl(
                 }
             }
 
-        return WsSubscriptions.SubscribeData(messageFlux, conn.connectionId())
+        return WsSubscriptions.SubscribeData(messageFlux, conn.connectionId(), subscriptionId)
+    }
+
+    override fun unsubscribe(id: String): Mono<JsonRpcResponse> {
+        if (id.isEmpty()) {
+            return Mono.empty()
+        }
+        return wsPool.getConnection()
+            .callRpc(JsonRpcRequest("eth_unsubscribe", listOf(id), ids.incrementAndGet()))
     }
 
     override fun connectionInfoFlux(): Flux<WsConnection.ConnectionInfo> =

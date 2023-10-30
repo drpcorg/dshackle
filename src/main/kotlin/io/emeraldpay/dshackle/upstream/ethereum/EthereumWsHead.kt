@@ -25,7 +25,6 @@ import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
 import io.emeraldpay.dshackle.upstream.Lifecycle
-import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.forkchoice.ForkChoice
 import io.emeraldpay.dshackle.upstream.generic.ChainSpecific
@@ -40,6 +39,7 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Scheduler
 import java.time.Duration
+import java.util.concurrent.atomic.AtomicReference
 
 class EthereumWsHead(
     forkChoice: ForkChoice,
@@ -49,11 +49,12 @@ class EthereumWsHead(
     private val skipEnhance: Boolean,
     private val wsConnectionResubscribeScheduler: Scheduler,
     private val headScheduler: Scheduler,
-    private val upstream: DefaultUpstream,
+    upstream: DefaultUpstream,
     chainSpecific: ChainSpecific,
 ) : GenericHead(upstream.getId(), forkChoice, blockValidator, headScheduler, chainSpecific), Lifecycle {
 
     private var connectionId: String? = null
+    private var subscriptionId = AtomicReference("")
     private var subscribed = false
     private var connected = false
     private var isSyncing = false
@@ -94,9 +95,6 @@ class EthereumWsHead(
 
     fun listenNewHeads(): Flux<BlockContainer> {
         return subscribe()
-            .transform {
-                Flux.concat(it.next().doOnNext { upstream.setStatus(UpstreamAvailability.OK) }, it)
-            }
             .map {
                 val block = Global.objectMapper.readValue(it, BlockJson::class.java) as BlockJson<TransactionRefJson>
                 if (!block.checkExtraData() && skipEnhance) {
@@ -144,11 +142,10 @@ class EthereumWsHead(
                 }
             }
             .timeout(Duration.ofSeconds(60), Mono.error(RuntimeException("No response from subscribe to newHeads")))
-            .onErrorResume {
-                log.error("Error getting heads for $upstreamId - ${it.message}")
-                upstream.setStatus(UpstreamAvailability.UNAVAILABLE)
+            .onErrorResume { err ->
+                log.error("Error getting heads for $upstreamId - ${err.message}")
                 subscribed = false
-                Mono.empty()
+                unsubscribe()
             }
     }
 
@@ -158,11 +155,23 @@ class EthereumWsHead(
         noHeadUpdatesSink.tryEmitComplete()
     }
 
+    private fun unsubscribe(): Mono<BlockContainer> {
+        return wsSubscriptions.unsubscribe(subscriptionId.get())
+            .flatMap { it.requireResult() }
+            .doOnNext { log.warn("{} has just unsubscribed from newHeads", upstreamId) }
+            .onErrorResume {
+                log.error("{} couldn't unsubscribe from newHeads", upstreamId, it)
+                Mono.empty()
+            }
+            .then(Mono.empty())
+    }
+
     private fun subscribe(): Flux<ByteArray> {
         return try {
             wsSubscriptions.subscribe("newHeads")
                 .also {
                     connectionId = it.connectionId
+                    subscriptionId = it.subId
                     if (!connected) {
                         connected = true
                     }
