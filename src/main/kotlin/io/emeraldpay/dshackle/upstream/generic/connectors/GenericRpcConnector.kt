@@ -40,6 +40,7 @@ class GenericRpcConnector(
     skipEnhance: Boolean,
     wsConnectionResubscribeScheduler: Scheduler,
     headScheduler: Scheduler,
+    headLivenessScheduler: Scheduler,
     expectedBlockTime: Duration,
     chainSpecific: ChainSpecific,
 ) : GenericConnector, CachesEnabled {
@@ -110,7 +111,7 @@ class GenericRpcConnector(
                 )
             }
         }
-        liveness = HeadLivenessValidator(head, expectedBlockTime, headScheduler, id)
+        liveness = HeadLivenessValidator(head, expectedBlockTime, headLivenessScheduler, id)
     }
 
     override fun setCaches(caches: Caches) {

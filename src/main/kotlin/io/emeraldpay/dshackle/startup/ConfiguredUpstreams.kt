@@ -100,6 +100,8 @@ open class ConfiguredUpstreams(
     private val headScheduler: Scheduler,
     @Qualifier("wsScheduler")
     private val wsScheduler: Scheduler,
+    @Qualifier("headLivenessScheduler")
+    private val headLivenessScheduler: Scheduler,
     private val authorizationConfig: AuthorizationConfig,
     private val grpcAuthContext: GrpcAuthContext,
 ) : ApplicationRunner {
@@ -520,6 +522,7 @@ open class ConfiguredUpstreams(
                 blockValidator,
                 wsConnectionResubscribeScheduler,
                 headScheduler,
+                headLivenessScheduler,
                 chainsConf.expectedBlockTime,
             )
         if (!connectorFactory.isValid()) {
