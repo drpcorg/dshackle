@@ -68,15 +68,14 @@ class FilteredApisSpec extends Specification {
             )
             new GenericUpstream(
                     "test",
-                    (byte) 123,
                     Chain.ETHEREUM__MAINNET,
+                    (byte) 123,
                     new ChainOptions.PartialOptions().buildOptions(),
                     UpstreamsConfig.UpstreamRole.PRIMARY,
                     ethereumTargets,
                     new QuorumForLabels.QuorumItem(1, UpstreamsConfig.Labels.fromMap(it)),
                     ChainsConfig.ChainConfig.default(),
                     connectorFactory,
-                    false,
                     null,
                     cs.&validator,
                     cs.&labelDetector,

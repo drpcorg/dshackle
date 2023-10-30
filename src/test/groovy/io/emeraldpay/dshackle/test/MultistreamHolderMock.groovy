@@ -26,6 +26,7 @@ import io.emeraldpay.dshackle.upstream.bitcoin.BitcoinRpcUpstream
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumCachingReader
+import io.emeraldpay.dshackle.upstream.ethereum.EthereumChainSpecific
 import org.jetbrains.annotations.NotNull
 import org.springframework.cloud.sleuth.brave.bridge.BraveTracer
 import reactor.core.scheduler.Schedulers
@@ -47,7 +48,10 @@ class MultistreamHolderMock implements MultistreamHolder {
                 } else if (up instanceof GenericUpstream) {
                     upstreams[chain] = new GenericMultistream(
                             chain, [up as GenericUpstream], Caches.default(),
-                            Schedulers.boundedElastic(), TestingCommons.tracerMock()
+                            Schedulers.boundedElastic(),
+                            EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                            EthereumChainSpecific.INSTANCE.&localReaderBuilder,
+                            EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic())
                     )
                 } else {
                     throw new IllegalArgumentException("Unsupported upstream type ${up.class}")
@@ -96,7 +100,10 @@ class MultistreamHolderMock implements MultistreamHolder {
         Head customHead = null
 
         EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<GenericUpstream> upstreams, @NotNull Caches caches) {
-            super(chain, upstreams, caches, Schedulers.boundedElastic(), new BraveTracer(null, null, null))
+            super(chain, upstreams, caches, Schedulers.boundedElastic(),
+                    EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(new BraveTracer(null, null, null)),
+                    EthereumChainSpecific.INSTANCE.&localReaderBuilder,
+                    EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
         }
 
         EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<GenericUpstream> upstreams) {

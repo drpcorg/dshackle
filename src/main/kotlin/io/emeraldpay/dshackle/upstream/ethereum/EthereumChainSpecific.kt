@@ -41,7 +41,7 @@ object EthereumChainSpecific : ChainSpecific {
 
     override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {
         return { ms ->
-//            val pendingTxes: PendingTxesSource = (ms.upstreams as MutableList<EthereumLikeUpstream>)
+//            val pendingTxes: PendingTxesSource = (ms.getAll())
 //            .mapNotNull {
 //                it.getIngressSubscription().getPendingTxes()
 //            }.let {
@@ -54,6 +54,7 @@ object EthereumChainSpecific : ChainSpecific {
 //                }
 //            }
 //            return
+
             EmptyEgressSubscription
         }
     }

@@ -50,7 +50,7 @@ open class GenericUpstream(
     private var validationSettingsSubscription: Disposable? = null
 
     private val hasLiveSubscriptionHead: AtomicBoolean = AtomicBoolean(false)
-    private val connector: GenericConnector = connectorFactory.create(this, chain, true)
+    protected val connector: GenericConnector = connectorFactory.create(this, chain, true)
     private var livenessSubscription: Disposable? = null
     private val labelsDetector = labelsDetectorBuilder(chain, this.getIngressReader())
 

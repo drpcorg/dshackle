@@ -16,6 +16,7 @@
  */
 package io.emeraldpay.dshackle.upstream.generic
 
+import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.config.UpstreamsConfig
@@ -34,14 +35,16 @@ import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.Selector.Matcher
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.forkchoice.PriorityForkChoice
+import io.emeraldpay.dshackle.upstream.grpc.GrpcUpstream
 import org.springframework.util.ConcurrentReferenceHashMap
 import org.springframework.util.ConcurrentReferenceHashMap.ReferenceType.WEAK
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 
 open class GenericMultistream(
     chain: Chain,
-    private val upstreams: MutableList<GenericUpstream>,
+    private val upstreams: MutableList<Upstream>,
     caches: Caches,
     private val headScheduler: Scheduler,
     cachingReaderBuilder: CachingReaderBuilder,
@@ -179,4 +182,20 @@ open class GenericMultistream(
         super.onUpstreamsUpdated()
         subscription = subscriptionBuilder(this)
     }
+
+    override fun tryProxySubscribe(
+        matcher: Matcher,
+        request: BlockchainOuterClass.NativeSubscribeRequest,
+    ): Flux<out Any>? =
+        upstreams.filter {
+            matcher.matches(it)
+        }.takeIf { ups ->
+            ups.size == 1 && ups.all { it.isGrpc() }
+        }?.map {
+            it as GrpcUpstream
+        }?.map {
+            it.proxySubscribe(request)
+        }?.let {
+            Flux.merge(it)
+        }
 }

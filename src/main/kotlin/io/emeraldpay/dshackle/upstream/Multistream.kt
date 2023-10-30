@@ -131,6 +131,26 @@ abstract class Multistream(
         onUpstreamsUpdated()
     }
 
+    init {
+        UpstreamAvailability.entries.forEach { status ->
+            Metrics.gauge(
+                "$metrics.availability",
+                listOf(Tag.of("chain", chain.chainCode), Tag.of("status", status.name.lowercase())),
+                this,
+            ) {
+                getAll().count { it.getStatus() == status }.toDouble()
+            }
+        }
+
+        Metrics.gauge(
+            "$metrics.connected",
+            listOf(Tag.of("chain", chain.chainCode)),
+            this,
+        ) {
+            getAll().size.toDouble()
+        }
+    }
+
     /**
      * Get list of all underlying upstreams
      */
