@@ -38,7 +38,7 @@ class WsSubscriptionsImpl(
         val subscriptionId = AtomicReference("")
         val conn = wsPool.getConnection()
         val messages = conn.getSubscribeResponses()
-           // .filter { it.subscriptionId == subscriptionId.get() }
+            .filter { it.subscriptionId == subscriptionId.get() }
             .filter { it.result != null } // should never happen
             .map { it.result!! }
 
