@@ -90,7 +90,7 @@ class TestingCommons {
     }
 
     static Multistream multistream(GenericUpstreamMock up) {
-        return new GenericUpstreamMock(Chain.ETHEREUM__MAINNET, [up], Caches.default(), Schedulers.boundedElastic(), tracerMock()).tap {
+        return new EthereumMultistreamMock(Chain.ETHEREUM__MAINNET, [up], Caches.default(), Schedulers.boundedElastic(), tracerMock()).tap {
             start()
         }
     }

@@ -63,15 +63,19 @@ class GenericUpstreamMock extends GenericUpstream {
     }
 
     GenericUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods, Map<String, String> labels) {
-        super(id, (byte)id.hashCode(), chain,
+        super(id,
+                chain,
+                (byte)id.hashCode(),
                 getOpts(),
                 UpstreamsConfig.UpstreamRole.PRIMARY,
                 methods,
                 new QuorumForLabels.QuorumItem(1, UpstreamsConfig.Labels.fromMap(labels)),
-                new ConnectorFactoryMock(api, new EthereumHeadMock()),
                 ChainConfig.default(),
-                true,
-                null
+                new ConnectorFactoryMock(api, new EthereumHeadMock()),
+                null,
+                io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific.INSTANCE.&validator,
+                io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific.INSTANCE.&labelDetector,
+                io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific.INSTANCE.&subscriptionTopics,
         )
         this.ethereumHeadMock = this.getHead() as EthereumHeadMock
         setLag(0)
