@@ -20,13 +20,12 @@ import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.upstream.*
+import io.emeraldpay.dshackle.upstream.generic.*
 import io.emeraldpay.dshackle.upstream.bitcoin.BitcoinMultistream
 import io.emeraldpay.dshackle.upstream.bitcoin.BitcoinRpcUpstream
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumCachingReader
-import io.emeraldpay.dshackle.upstream.ethereum.EthereumLikeRpcUpstream
-import io.emeraldpay.dshackle.upstream.ethereum.EthereumPosMultiStream
 import org.jetbrains.annotations.NotNull
 import org.springframework.cloud.sleuth.brave.bridge.BraveTracer
 import reactor.core.scheduler.Schedulers
@@ -43,11 +42,11 @@ class MultistreamHolderMock implements MultistreamHolder {
     Multistream addUpstream(@NotNull Chain chain, @NotNull Upstream up) {
         if (!upstreams.containsKey(chain)) {
             if (BlockchainType.from(chain) == BlockchainType.EVM_POS) {
-                if (up instanceof EthereumPosMultiStream) {
+                if (up instanceof GenericMultistream) {
                     upstreams[chain] = up
-                } else if (up instanceof EthereumLikeRpcUpstream) {
-                    upstreams[chain] = new EthereumPosMultiStream(
-                            chain, [up as EthereumLikeRpcUpstream], Caches.default(),
+                } else if (up instanceof GenericUpstream) {
+                    upstreams[chain] = new GenericMultistream(
+                            chain, [up as GenericUpstream], Caches.default(),
                             Schedulers.boundedElastic(), TestingCommons.tracerMock()
                     )
                 } else {
@@ -90,21 +89,21 @@ class MultistreamHolderMock implements MultistreamHolder {
         return upstreams.values().toList()
     }
 
-    static class EthereumMultistreamMock extends EthereumPosMultiStream {
+    static class EthereumMultistreamMock extends GenericMultistream {
 
         EthereumCachingReader customReader = null
         CallMethods customMethods = null
         Head customHead = null
 
-        EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<EthereumLikeRpcUpstream> upstreams, @NotNull Caches caches) {
+        EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<GenericUpstream> upstreams, @NotNull Caches caches) {
             super(chain, upstreams, caches, Schedulers.boundedElastic(), new BraveTracer(null, null, null))
         }
 
-        EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<EthereumLikeRpcUpstream> upstreams) {
+        EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<GenericUpstream> upstreams) {
             this(chain, upstreams, Caches.default())
         }
 
-        EthereumMultistreamMock(@NotNull Chain chain, @NotNull EthereumLikeRpcUpstream upstream) {
+        EthereumMultistreamMock(@NotNull Chain chain, @NotNull GenericUpstream upstream) {
             this(chain, [upstream])
         }
 

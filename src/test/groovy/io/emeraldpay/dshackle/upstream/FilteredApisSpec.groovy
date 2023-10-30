@@ -24,7 +24,7 @@ import io.emeraldpay.dshackle.startup.QuorumForLabels
 import io.emeraldpay.dshackle.test.EthereumApiStub
 import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
-import io.emeraldpay.dshackle.upstream.ethereum.EthereumLikeRpcUpstream
+import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
 import io.emeraldpay.dshackle.upstream.generic.connectors.GenericConnectorFactory
 import io.emeraldpay.dshackle.upstream.forkchoice.MostWorkForkChoice
 import reactor.core.scheduler.Schedulers
@@ -44,13 +44,15 @@ class FilteredApisSpec extends Specification {
     def "Verifies labels"() {
         setup:
         def i = 0
-        List<EthereumLikeRpcUpstream> upstreams = [
+        def cs = io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific.INSTANCE
+        List<GenericUpstream> upstreams = [
                 [test: "foo"],
                 [test: "bar"],
                 [test: "foo", test2: "baz"],
                 [test: "foo"],
                 [test: "baz"]
         ].collect {
+
             def httpFactory = Mock(HttpFactory) {
                 create(_, _) >> Stub(JsonRpcHttpReader)
             }
@@ -64,7 +66,7 @@ class FilteredApisSpec extends Specification {
                     Schedulers.boundedElastic(),
                     Duration.ofSeconds(12)
             )
-            new EthereumLikeRpcUpstream(
+            new GenericUpstream(
                     "test",
                     (byte) 123,
                     Chain.ETHEREUM__MAINNET,
@@ -72,10 +74,13 @@ class FilteredApisSpec extends Specification {
                     UpstreamsConfig.UpstreamRole.PRIMARY,
                     ethereumTargets,
                     new QuorumForLabels.QuorumItem(1, UpstreamsConfig.Labels.fromMap(it)),
-                    connectorFactory,
                     ChainsConfig.ChainConfig.default(),
+                    connectorFactory,
                     false,
-                    null
+                    null,
+                    cs.&validator,
+                    cs.&labelDetector,
+                    cs.&subscriptionTopics,
             )
         }
         def matcher = new Selector.LabelMatcher("test", ["foo"])

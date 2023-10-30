@@ -48,6 +48,8 @@ interface ChainSpecific {
 }
 
 object ChainSpecificRegistry {
+
+    @JvmStatic
     fun resolve(chain: Chain): ChainSpecific {
         if (BlockchainType.from(chain) == STARKNET) {
             return StarknetChainSpecific

@@ -37,9 +37,9 @@ import java.time.Duration
 import static io.emeraldpay.dshackle.Chain.ETHEREUM__MAINNET
 import static io.emeraldpay.dshackle.Chain.OPTIMISM__MAINNET
 import static io.emeraldpay.dshackle.upstream.UpstreamAvailability.*
-import static io.emeraldpay.dshackle.upstream.ethereum.EthereumUpstreamValidator.ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
-import static io.emeraldpay.dshackle.upstream.ethereum.EthereumUpstreamValidator.ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
-import static io.emeraldpay.dshackle.upstream.ethereum.EthereumUpstreamValidator.ValidateUpstreamSettingsResult.UPSTREAM_VALID
+import static io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
+import static io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+import static io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult.UPSTREAM_VALID
 import static java.util.Collections.emptyList
 
 class EthereumUpstreamValidatorSpec extends Specification {

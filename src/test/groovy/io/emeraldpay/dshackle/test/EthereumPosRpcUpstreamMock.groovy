@@ -24,14 +24,14 @@ import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.startup.QuorumForLabels
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.calls.*
-import io.emeraldpay.dshackle.upstream.ethereum.EthereumLikeRpcUpstream
+import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import org.jetbrains.annotations.NotNull
 import org.reactivestreams.Publisher
 import io.emeraldpay.dshackle.foundation.ChainOptions
 
-class EthereumPosRpcUpstreamMock extends EthereumLikeRpcUpstream {
+class GenericUpstreamMock extends GenericUpstream {
     EthereumHeadMock ethereumHeadMock
 
     static CallMethods allMethods() {
@@ -42,27 +42,27 @@ class EthereumPosRpcUpstreamMock extends EthereumLikeRpcUpstream {
         ])
     }
 
-    EthereumPosRpcUpstreamMock(@NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api) {
+    GenericUpstreamMock(@NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api) {
         this(chain, api, allMethods())
     }
 
-    EthereumPosRpcUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, Map<String, String> labels) {
+    GenericUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, Map<String, String> labels) {
         this(id, chain, api, allMethods(), labels)
     }
 
-    EthereumPosRpcUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api) {
+    GenericUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api) {
         this(id, chain, api, allMethods())
     }
 
-    EthereumPosRpcUpstreamMock(@NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods) {
+    GenericUpstreamMock(@NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods) {
         this("test", chain, api, methods)
     }
 
-    EthereumPosRpcUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods) {
+    GenericUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods) {
         this(id, chain, api, methods, Collections.<String, String>emptyMap())
     }
 
-    EthereumPosRpcUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods, Map<String, String> labels) {
+    GenericUpstreamMock(@NotNull String id, @NotNull Chain chain, @NotNull Reader<JsonRpcRequest, JsonRpcResponse> api, CallMethods methods, Map<String, String> labels) {
         super(id, (byte)id.hashCode(), chain,
                 getOpts(),
                 UpstreamsConfig.UpstreamRole.PRIMARY,

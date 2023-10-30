@@ -39,7 +39,7 @@ import org.springframework.util.ConcurrentReferenceHashMap.ReferenceType.WEAK
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 
-class GenericMultistream(
+open class GenericMultistream(
     chain: Chain,
     private val upstreams: MutableList<GenericUpstream>,
     caches: Caches,

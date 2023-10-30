@@ -29,7 +29,7 @@ import reactor.core.publisher.Flux
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 
-class GenericUpstream(
+open class GenericUpstream(
     id: String,
     val chain: Chain,
     hash: Byte,
