@@ -8,14 +8,16 @@ import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.upstream.CachingReader
 import io.emeraldpay.dshackle.upstream.Capability
 import io.emeraldpay.dshackle.upstream.EgressSubscription
-import io.emeraldpay.dshackle.upstream.EmptyEgressSubscription
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.LabelsDetector
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
+import io.emeraldpay.dshackle.upstream.ethereum.subscribe.AggregatedPendingTxes
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.EthereumLabelsDetector
+import io.emeraldpay.dshackle.upstream.ethereum.subscribe.NoPendingTxes
+import io.emeraldpay.dshackle.upstream.ethereum.subscribe.PendingTxesSource
 import io.emeraldpay.dshackle.upstream.generic.CachingReaderBuilder
 import io.emeraldpay.dshackle.upstream.generic.ChainSpecific
 import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
@@ -41,21 +43,20 @@ object EthereumChainSpecific : ChainSpecific {
 
     override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {
         return { ms ->
-//            val pendingTxes: PendingTxesSource = (ms.getAll())
-//            .mapNotNull {
-//                it.getIngressSubscription().getPendingTxes()
-//            }.let {
-//                if (it.isEmpty()) {
-//                    NoPendingTxes()
-//                } else if (it.size == 1) {
-//                    it.first()
-//                } else {
-//                    AggregatedPendingTxes(it)
-//                }
-//            }
-//            return
-
-            EmptyEgressSubscription
+            val pendingTxes: PendingTxesSource = (ms.getAll())
+                .map { it as GenericUpstream }
+                .mapNotNull {
+                    (it.getIngressSubscription() as EthereumIngressSubscription).getPendingTxes()
+                }.let {
+                    if (it.isEmpty()) {
+                        NoPendingTxes()
+                    } else if (it.size == 1) {
+                        it.first()
+                    } else {
+                        AggregatedPendingTxes(it)
+                    }
+                }
+            EthereumEgressSubscription(ms, headScheduler, pendingTxes)
         }
     }
 

@@ -47,7 +47,7 @@ class GenericConnectorMock implements GenericConnector {
     }
 
     @Override
-    EthereumIngressSubscription getIngressSubscription() {
+    error.NonExistentClass getIngressSubscription() {
         return NoEthereumIngressSubscription.DEFAULT
     }
 }
