@@ -7,6 +7,8 @@ import io.emeraldpay.dshackle.config.UpstreamsConfig.Labels
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.startup.QuorumForLabels
+import io.emeraldpay.dshackle.startup.UpstreamChangeEvent
+import io.emeraldpay.dshackle.startup.UpstreamChangeEvent.ChangeType.UPDATED
 import io.emeraldpay.dshackle.upstream.Capability
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
 import io.emeraldpay.dshackle.upstream.Head
@@ -81,12 +83,12 @@ class GenericUpstream(
         log.info("Configured for ${chain.chainName}")
         connector.start()
 
-//        livenessSubscription = connector.hasLiveSubscriptionHead().subscribe({
-//            hasLiveSubscriptionHead.set(it)
-//            eventPublisher?.publishEvent(UpstreamChangeEvent(chain, this, UPDATED))
-//        }, {
-//            log.debug("Error while checking live subscription for ${getId()}", it)
-//        },)
+        livenessSubscription = connector.hasLiveSubscriptionHead().subscribe({
+            hasLiveSubscriptionHead.set(it)
+            eventPublisher?.publishEvent(UpstreamChangeEvent(chain, this, UPDATED))
+        }, {
+            log.debug("Error while checking live subscription for ${getId()}", it)
+        },)
     }
 
     override fun stop() {

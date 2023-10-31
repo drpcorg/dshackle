@@ -3,9 +3,12 @@ package io.emeraldpay.dshackle.upstream.ethereum
 import io.emeraldpay.dshackle.ThrottledLogger
 import io.emeraldpay.dshackle.upstream.Head
 import org.slf4j.LoggerFactory
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.publisher.Flux
 import reactor.core.scheduler.Scheduler
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
+import java.util.concurrent.Executors
 
 class HeadLivenessValidator(
     private val head: Head,
@@ -16,6 +19,8 @@ class HeadLivenessValidator(
     companion object {
         const val CHECKED_BLOCKS_UNTIL_LIVE = 3
         private val log = LoggerFactory.getLogger(HeadLivenessValidator::class.java)
+        val schedulerTimeout =
+            Schedulers.fromExecutor(Executors.newScheduledThreadPool(4, CustomizableThreadFactory("timeout-liveness")))
     }
 
     fun getFlux(): Flux<Boolean> {
@@ -51,6 +56,7 @@ class HeadLivenessValidator(
                     ThrottledLogger.log(log, "head liveness check broken with timeout in $upstreamId")
                 }
             },
+            schedulerTimeout,
         ).repeat().subscribeOn(scheduler)
     }
 }
