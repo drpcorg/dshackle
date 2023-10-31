@@ -51,7 +51,7 @@ class MultistreamHolderMock implements MultistreamHolder {
                             Schedulers.boundedElastic(),
                             EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
                             EthereumChainSpecific.INSTANCE.&localReaderBuilder,
-                            EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic())
+                            io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic())
                     )
                 } else {
                     throw new IllegalArgumentException("Unsupported upstream type ${up.class}")
