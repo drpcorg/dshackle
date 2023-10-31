@@ -20,7 +20,7 @@ import brave.grpc.GrpcTracing
 import com.google.common.annotations.VisibleForTesting
 import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
-import io.emeraldpay.dshackle.BlockchainType.EVM_POS
+import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Defaults
 import io.emeraldpay.dshackle.FileResolver
@@ -145,7 +145,7 @@ open class ConfiguredUpstreams(
                         )
                     }
 
-                    EVM_POS -> {
+                    ETHEREUM -> {
                         val posConn = up.cast(EthereumPosConnection::class.java)
 
                         buildGenericUpstream(

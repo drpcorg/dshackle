@@ -42,7 +42,7 @@ class MultistreamHolderMock implements MultistreamHolder {
 
     Multistream addUpstream(@NotNull Chain chain, @NotNull Upstream up) {
         if (!upstreams.containsKey(chain)) {
-            if (BlockchainType.from(chain) == BlockchainType.EVM_POS) {
+            if (BlockchainType.from(chain) == BlockchainType.ETHEREUM) {
                 if (up instanceof GenericMultistream) {
                     upstreams[chain] = up
                 } else if (up instanceof GenericUpstream) {
