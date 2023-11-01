@@ -1,7 +1,6 @@
 package io.emeraldpay.dshackle.upstream.polkadot
 
 import io.emeraldpay.dshackle.data.BlockId
-import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -35,7 +34,7 @@ val example = """
 class PolkadotChainSpecificTest {
     @Test
     fun parseResponse() {
-        val result = PolkadotChainSpecific.parseBlock(JsonRpcResponse.ok(example), "1")
+        val result = PolkadotChainSpecific.parseBlock(example.toByteArray(), "1")
 
         Assertions.assertThat(result.height).isEqualTo(17963964)
         Assertions.assertThat(result.hash).isEqualTo(BlockId.from("0xb52a9b51fb698a891cf378b990b0b6a5743e52fa5175b44a8a6d4e0b2cfd0a53"))

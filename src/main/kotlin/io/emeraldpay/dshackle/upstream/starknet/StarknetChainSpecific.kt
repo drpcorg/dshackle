@@ -24,7 +24,6 @@ import io.emeraldpay.dshackle.upstream.generic.ChainSpecific
 import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
 import io.emeraldpay.dshackle.upstream.generic.LocalReader
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
-import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
@@ -32,9 +31,8 @@ import java.math.BigInteger
 import java.time.Instant
 
 object StarknetChainSpecific : ChainSpecific {
-    override fun parseBlock(data: JsonRpcResponse, upstreamId: String): BlockContainer {
-        val raw = data.getResult()
-        val block = Global.objectMapper.readValue(raw, StarknetBlock::class.java)
+    override fun parseBlock(data: ByteArray, upstreamId: String): BlockContainer {
+        val block = Global.objectMapper.readValue(data, StarknetBlock::class.java)
 
         return BlockContainer(
             height = block.number,
@@ -42,7 +40,7 @@ object StarknetChainSpecific : ChainSpecific {
             difficulty = BigInteger.ZERO,
             timestamp = block.timestamp,
             full = false,
-            json = raw,
+            json = data,
             parsed = block,
             transactions = emptyList(),
             upstreamId = upstreamId,
@@ -50,8 +48,16 @@ object StarknetChainSpecific : ChainSpecific {
         )
     }
 
+    override fun parseHeader(data: ByteArray, upstreamId: String): BlockContainer {
+        throw NotImplementedError()
+    }
+
     override fun latestBlockRequest(): JsonRpcRequest =
         JsonRpcRequest("starknet_getBlockWithTxHashes", listOf("latest"))
+
+    override fun listenNewHeadsRequest(): JsonRpcRequest {
+        throw NotImplementedError()
+    }
 
     override fun localReaderBuilder(
         cachingReader: CachingReader,

@@ -24,7 +24,6 @@ import io.emeraldpay.dshackle.upstream.generic.ChainSpecific
 import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
 import io.emeraldpay.dshackle.upstream.generic.LocalReader
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
-import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
@@ -32,26 +31,38 @@ import java.math.BigInteger
 import java.time.Instant
 
 object PolkadotChainSpecific : ChainSpecific {
-    override fun parseBlock(data: JsonRpcResponse, upstreamId: String): BlockContainer {
-        val raw = data.getResult()
-        val response = Global.objectMapper.readValue(raw, PolkadotBlockResponse::class.java)
+    override fun parseBlock(data: ByteArray, upstreamId: String): BlockContainer {
+        val response = Global.objectMapper.readValue(data, PolkadotBlockResponse::class.java)
 
+        return makeBlock(response.block.header, data, upstreamId)
+    }
+
+    override fun parseHeader(data: ByteArray, upstreamId: String): BlockContainer {
+        val header = Global.objectMapper.readValue(data, PolkadotHeader::class.java)
+
+        return makeBlock(header, data, upstreamId)
+    }
+
+    private fun makeBlock(header: PolkadotHeader, data: ByteArray, upstreamId: String): BlockContainer {
         return BlockContainer(
-            height = response.block.header.number.substring(2).toLong(16),
-            hash = BlockId.from(response.block.header.parentHash), // todo
+            height = header.number.substring(2).toLong(16),
+            hash = BlockId.from(header.parentHash), // todo
             difficulty = BigInteger.ZERO,
             timestamp = Instant.MIN,
             full = false,
-            json = raw,
-            parsed = response.block,
+            json = data,
+            parsed = header,
             transactions = emptyList(),
             upstreamId = upstreamId,
-            parentHash = BlockId.from(response.block.header.parentHash),
+            parentHash = BlockId.from(header.parentHash),
         )
     }
 
     override fun latestBlockRequest(): JsonRpcRequest =
         JsonRpcRequest("chain_getBlock", listOf())
+
+    override fun listenNewHeadsRequest(): JsonRpcRequest =
+        JsonRpcRequest("chain_subscribeNewHeads", listOf())
 
     override fun localReaderBuilder(
         cachingReader: CachingReader,
