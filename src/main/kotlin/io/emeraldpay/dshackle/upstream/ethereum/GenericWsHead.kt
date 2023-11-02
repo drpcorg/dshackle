@@ -21,7 +21,6 @@ import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
 import io.emeraldpay.dshackle.upstream.Lifecycle
-import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.forkchoice.ForkChoice
 import io.emeraldpay.dshackle.upstream.generic.ChainSpecific
 import io.emeraldpay.dshackle.upstream.generic.GenericHead
@@ -31,8 +30,8 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Scheduler
 import java.time.Duration
-import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 class GenericWsHead(
     forkChoice: ForkChoice,
@@ -40,9 +39,8 @@ class GenericWsHead(
     private val api: JsonRpcReader,
     private val wsSubscriptions: WsSubscriptions,
     private val wsConnectionResubscribeScheduler: Scheduler,
-    private val headScheduler: Scheduler,
+    headScheduler: Scheduler,
     upstream: DefaultUpstream,
-    chainSpecific: ChainSpecific,
     private val chainSpecific: ChainSpecific,
 ) : GenericHead(upstream.getId(), forkChoice, blockValidator, headScheduler, chainSpecific), Lifecycle {
 
@@ -110,7 +108,7 @@ class GenericWsHead(
     override fun headLiveness(): Flux<Boolean> = headLivenessSink.asFlux()
 
     private fun unsubscribe(): Mono<BlockContainer> {
-        return wsSubscriptions.unsubscribe(subscriptionId.get())
+        return wsSubscriptions.unsubscribe(chainSpecific.unsubscribeNewHeadsRequest(subscriptionId.get()).copy(id = ids.getAndIncrement()))
             .flatMap { it.requireResult() }
             .doOnNext { log.warn("{} has just unsubscribed from newHeads", upstreamId) }
             .onErrorResume {

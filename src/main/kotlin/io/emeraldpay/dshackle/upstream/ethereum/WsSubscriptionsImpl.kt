@@ -53,12 +53,12 @@ class WsSubscriptionsImpl(
         return WsSubscriptions.SubscribeData(messageFlux, conn.connectionId(), subscriptionId)
     }
 
-    override fun unsubscribe(id: String): Mono<JsonRpcResponse> {
-        if (id.isEmpty()) {
+    override fun unsubscribe(request: JsonRpcRequest): Mono<JsonRpcResponse> {
+        if (request.params.isEmpty() || request.params.contains("")) {
             return Mono.empty()
         }
         return wsPool.getConnection()
-            .callRpc(JsonRpcRequest("eth_unsubscribe", listOf(id), ids.incrementAndGet()))
+            .callRpc(request)
     }
 
     override fun connectionInfoFlux(): Flux<WsConnection.ConnectionInfo> =
