@@ -197,5 +197,5 @@ open class GenericUpstream(
         return connector.getIngressSubscription()
     }
 
-    override fun isRunning() = connector.isRunning()
+    override fun isRunning() = connector.isRunning() && validationSettingsSubscription == null
 }
