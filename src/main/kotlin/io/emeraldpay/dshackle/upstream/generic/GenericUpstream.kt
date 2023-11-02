@@ -165,7 +165,7 @@ open class GenericUpstream(
         }
         livenessSubscription = connector.hasLiveSubscriptionHead().subscribe({
             hasLiveSubscriptionHead.set(it)
-            eventPublisher?.publishEvent(UpstreamChangeEvent(chain, this, UpstreamChangeEvent.ChangeType.UPDATED))
+            stateStream.tryEmitNext(true)
         }, {
             log.debug("Error while checking live subscription for ${getId()}", it)
         },)

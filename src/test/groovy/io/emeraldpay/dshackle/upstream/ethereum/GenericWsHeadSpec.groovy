@@ -38,6 +38,7 @@ import spock.lang.Specification
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.atomic.AtomicReference
 
 class GenericWsHeadSpec extends Specification {
 
@@ -74,7 +75,7 @@ class GenericWsHeadSpec extends Specification {
         act == res
 
         1 * ws.subscribe(_) >> new WsSubscriptions.SubscribeData(
-                Flux.fromIterable([headBlock]), "id"
+                Flux.fromIterable([headBlock]), "id", new AtomicReference<String>("")
         )
     }
 
@@ -96,8 +97,8 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             2 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.error(new RuntimeException()), "id"),
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id")
+                    new WsSubscriptions.SubscribeData(Flux.error(new RuntimeException()), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>(""))
             ]
         }
 
@@ -150,8 +151,8 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             2 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id"),
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id")
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>(""))
             ]
         }
 
@@ -191,7 +192,7 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             1 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id"),
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
             ]
         }
 
@@ -230,7 +231,7 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             1 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id"),
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
             ]
         }
 
@@ -282,8 +283,8 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             2 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id"),
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id"),
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>("")),
             ]
         }
 

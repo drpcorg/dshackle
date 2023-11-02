@@ -15,8 +15,11 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * A JSON-RPC Subscription client.
@@ -42,8 +45,11 @@ interface WsSubscriptions {
 
     fun connectionInfoFlux(): Flux<WsConnection.ConnectionInfo>
 
+    fun unsubscribe(id: String): Mono<JsonRpcResponse>
+
     data class SubscribeData(
         val data: Flux<ByteArray>,
         val connectionId: String,
+        val subId: AtomicReference<String>,
     )
 }
