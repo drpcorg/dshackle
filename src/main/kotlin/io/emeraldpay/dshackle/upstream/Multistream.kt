@@ -424,7 +424,7 @@ abstract class Multistream(
         val chain = event.chain
         if (this.chain == chain) {
             eventLock.withLock {
-                log.info("Processing event $event")
+                log.debug("Processing event $event")
                 when (event.type) {
                     UpstreamChangeEvent.ChangeType.REVALIDATED -> {}
                     UpstreamChangeEvent.ChangeType.UPDATED -> {
