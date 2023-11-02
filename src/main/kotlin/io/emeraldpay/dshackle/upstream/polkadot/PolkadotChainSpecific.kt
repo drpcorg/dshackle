@@ -48,7 +48,7 @@ object PolkadotChainSpecific : ChainSpecific {
             height = header.number.substring(2).toLong(16),
             hash = BlockId.from(header.parentHash), // todo
             difficulty = BigInteger.ZERO,
-            timestamp = Instant.MIN,
+            timestamp = Instant.EPOCH,
             full = false,
             json = data,
             parsed = header,
