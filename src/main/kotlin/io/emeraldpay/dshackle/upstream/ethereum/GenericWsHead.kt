@@ -139,7 +139,7 @@ class GenericWsHead(
         val connectionStates = wsSubscriptions.connectionInfoFlux()
             .map {
                 if (it.connectionId == connectionId && it.connectionState == WsConnection.ConnectionState.DISCONNECTED) {
-                    headLivenessSink.tryEmitNext(false)
+                    headLivenessSink.emitNext(false) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                     subscribed = false
                     connected = false
                     connectionId = null
