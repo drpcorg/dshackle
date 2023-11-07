@@ -30,12 +30,12 @@ import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.DirectCallMethods
+import io.emeraldpay.dshackle.upstream.ethereum.EthereumChainSpecific
+import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.generic.GenericMultistream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
-import io.emeraldpay.dshackle.upstream.ethereum.EthereumChainSpecific
 import io.emeraldpay.etherjar.domain.BlockHash
-import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.etherjar.domain.TransactionId
 import io.emeraldpay.etherjar.rpc.json.TransactionRefJson
 import io.micrometer.core.instrument.MeterRegistry
@@ -93,7 +93,7 @@ class TestingCommons {
     }
 
     static Multistream multistream(GenericUpstreamMock up) {
-        return new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.boundedElastic(), new ArrayList<Upstream>(), Caches.default(),
+        return new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.immediate(), new ArrayList<Upstream>(), Caches.default(),
                 Schedulers.boundedElastic(),
                 EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(tracerMock()),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
@@ -121,14 +121,14 @@ class TestingCommons {
     }
 
     static Multistream multistreamWithoutUpstreams(Chain chain) {
-        return new GenericMultistream(chain, Schedulers.boundedElastic(), [], emptyCaches().getCaches(chain), Schedulers.boundedElastic(),
+        return new GenericMultistream(chain, Schedulers.immediate(), [], emptyCaches().getCaches(chain), Schedulers.boundedElastic(),
                 EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(tracerMock()),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
     }
 
     static Multistream multistreamClassicWithoutUpstreams(Chain chain) {
-        return new GenericMultistream(chain, Schedulers.boundedElastic(), [], emptyCaches().getCaches(chain), Schedulers.boundedElastic(),
+        return new GenericMultistream(chain, Schedulers.immediate(), [], emptyCaches().getCaches(chain), Schedulers.boundedElastic(),
                 EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(tracerMock()),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
