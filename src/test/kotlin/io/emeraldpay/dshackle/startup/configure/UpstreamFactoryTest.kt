@@ -22,7 +22,7 @@ class UpstreamFactoryTest {
     @MethodSource("data")
     fun `create upstream based on chain`(
         blockchain: BlockchainType,
-        verify: Runnable
+        verify: Runnable,
     ) {
         upstreamFactory.createUpstream(blockchain, UpstreamsConfig.Upstream<UpstreamsConfig.UpstreamConnection>(), emptyMap())
 
@@ -39,25 +39,24 @@ class UpstreamFactoryTest {
         fun data() = listOf(
             Arguments.of(
                 BlockchainType.ETHEREUM,
-                Runnable { verify(ethereumUpstreamCreator).createUpstream(any(), any()) }
+                Runnable { verify(ethereumUpstreamCreator).createUpstream(any(), any()) },
             ),
             Arguments.of(
                 BlockchainType.BITCOIN,
-                Runnable { verify(bitcoinUpstreamCreator).createUpstream(any(), any()) }
+                Runnable { verify(bitcoinUpstreamCreator).createUpstream(any(), any()) },
             ),
             Arguments.of(
                 BlockchainType.POLKADOT,
-                Runnable { verify(genericUpstreamCreator).createUpstream(any(), any()) }
+                Runnable { verify(genericUpstreamCreator).createUpstream(any(), any()) },
             ),
             Arguments.of(
                 BlockchainType.STARKNET,
-                Runnable { verify(genericUpstreamCreator).createUpstream(any(), any()) }
+                Runnable { verify(genericUpstreamCreator).createUpstream(any(), any()) },
             ),
             Arguments.of(
                 BlockchainType.UNKNOWN,
-                Runnable { verify(genericUpstreamCreator).createUpstream(any(), any()) }
+                Runnable { verify(genericUpstreamCreator).createUpstream(any(), any()) },
             ),
         )
-
     }
 }
