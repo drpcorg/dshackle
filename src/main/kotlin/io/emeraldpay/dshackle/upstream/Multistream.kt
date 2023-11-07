@@ -17,6 +17,7 @@
 package io.emeraldpay.dshackle.upstream
 
 import io.emeraldpay.api.proto.BlockchainOuterClass
+import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.cache.CachesEnabled
@@ -27,6 +28,8 @@ import io.emeraldpay.dshackle.startup.QuorumForLabels
 import io.emeraldpay.dshackle.startup.UpstreamChangeEvent
 import io.emeraldpay.dshackle.upstream.calls.AggregatedCallMethods
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
+import io.emeraldpay.dshackle.upstream.calls.CallSelector
+import io.emeraldpay.dshackle.upstream.calls.EthereumCallSelector
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.Metrics
@@ -34,17 +37,13 @@ import io.micrometer.core.instrument.Tag
 import org.apache.commons.collections4.Factory
 import org.apache.commons.collections4.FunctorException
 import org.slf4j.LoggerFactory
-import org.springframework.context.event.EventListener
-import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
 import reactor.core.Disposable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
+import reactor.core.scheduler.Scheduler
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
 
 /**
  * Aggregation of multiple upstreams responding to a single blockchain
@@ -52,7 +51,9 @@ import kotlin.concurrent.withLock
 abstract class Multistream(
     val chain: Chain,
     val caches: Caches,
+    multistreamEventsScheduler: Scheduler,
 ) : Upstream, Lifecycle {
+    val callSelector: CallSelector?
 
     abstract fun getUpstreams(): MutableList<out Upstream>
     abstract fun addUpstreamInternal(u: Upstream)
@@ -66,8 +67,6 @@ abstract class Multistream(
     private var started = false
 
     private var cacheSubscription: Disposable? = null
-    private val reconfigLock = ReentrantLock()
-    private val eventLock = ReentrantLock()
 
     @Volatile
     private var callMethods: CallMethods? = null
@@ -94,6 +93,9 @@ abstract class Multistream(
     private val updateUpstreams = Sinks.many()
         .multicast()
         .directBestEffort<Upstream>()
+    private val upstreamsSink = Sinks.many()
+        .multicast()
+        .directBestEffort<UpstreamChangeEvent>()
 
     override fun getSubscriptionTopics(): List<String> {
         return getEgressSubscription().getAvailableTopics()
@@ -127,10 +129,6 @@ abstract class Multistream(
         )
     }
 
-    open fun init() {
-        onUpstreamsUpdated()
-    }
-
     init {
         UpstreamAvailability.entries.forEach { status ->
             Metrics.gauge(
@@ -149,6 +147,18 @@ abstract class Multistream(
         ) {
             getAll().size.toDouble()
         }
+
+        callSelector = if (chain.type == BlockchainType.ETHEREUM) {
+            EthereumCallSelector(caches)
+        } else {
+            null
+        }
+
+        upstreamsSink.asFlux()
+            .publishOn(multistreamEventsScheduler)
+            .subscribe {
+                onUpstreamChange(it)
+            }
     }
 
     /**
@@ -206,36 +216,34 @@ abstract class Multistream(
         throw NotImplementedError("Immediate direct API is not implemented for Aggregated Upstream")
     }
 
-    open fun onUpstreamsUpdated() {
-        reconfigLock.withLock {
-            val upstreams = getAll()
-            val availableUpstreams = upstreams.filter { it.isAvailable() }
-            availableUpstreams.map { it.getMethods() }.let {
-                callMethods = AggregatedCallMethods(it)
-            }
-            capabilities = if (upstreams.isEmpty()) {
-                emptySet()
-            } else {
-                availableUpstreams.map { up ->
-                    up.getCapabilities()
-                }.let {
-                    if (it.isNotEmpty()) {
-                        it.reduce { acc, curr -> acc + curr }
-                    } else {
-                        emptySet()
-                    }
+    protected open fun onUpstreamsUpdated() {
+        val upstreams = getAll()
+        val availableUpstreams = upstreams.filter { it.isAvailable() }
+        availableUpstreams.map { it.getMethods() }.let {
+            callMethods = AggregatedCallMethods(it)
+        }
+        capabilities = if (upstreams.isEmpty()) {
+            emptySet()
+        } else {
+            availableUpstreams.map { up ->
+                up.getCapabilities()
+            }.let {
+                if (it.isNotEmpty()) {
+                    it.reduce { acc, curr -> acc + curr }
+                } else {
+                    emptySet()
                 }
             }
-            quorumLabels = getQuorumLabels(availableUpstreams)
-            when {
-                upstreams.size == 1 -> {
-                    lagObserver?.stop()
-                    lagObserver = null
-                    upstreams[0].setLag(0)
-                }
+        }
+        quorumLabels = getQuorumLabels(availableUpstreams)
+        when {
+            upstreams.size == 1 -> {
+                lagObserver?.stop()
+                lagObserver = null
+                upstreams[0].setLag(0)
+            }
 
-                upstreams.size > 1 -> if (lagObserver == null) lagObserver = makeLagObserver()
-            }
+            upstreams.size > 1 -> if (lagObserver == null) lagObserver = makeLagObserver()
         }
     }
 
@@ -265,7 +273,7 @@ abstract class Multistream(
         ).distinct()
     }
 
-    override fun observeState(): Flux<Boolean> {
+    override fun observeState(): Flux<UpstreamChangeEvent> {
         return Flux.empty()
     }
 
@@ -319,8 +327,9 @@ abstract class Multistream(
             .distinctUntilChanged {
                 it.getId()
             }.flatMap { upstream ->
-                val statusStream = upstream.observeStatus().map { upstream }
-                val stateStream = upstream.observeState().map { upstream }
+                val statusStream = upstream.observeStatus()
+                    .map { UpstreamChangeEvent(this.chain, upstream, UpstreamChangeEvent.ChangeType.UPDATED) }
+                val stateStream = upstream.observeState()
                 Flux.merge(stateStream, statusStream)
                     .takeUntilOther(
                         subscribeRemovedUpstreams()
@@ -330,7 +339,7 @@ abstract class Multistream(
                     )
             }
             .subscribe {
-                onUpstreamChange(UpstreamChangeEvent(this.chain, it, UpstreamChangeEvent.ChangeType.UPDATED))
+                this.processUpstreamsEvents(it)
             }
     }
 
@@ -350,11 +359,9 @@ abstract class Multistream(
     }
 
     fun onHeadUpdated(head: Head) {
-        reconfigLock.withLock {
-            cacheSubscription?.dispose()
-            cacheSubscription = head.getFlux().subscribe {
-                caches.cache(Caches.Tag.LATEST, it)
-            }
+        cacheSubscription?.dispose()
+        cacheSubscription = head.getFlux().subscribe {
+            caches.cache(Caches.Tag.LATEST, it)
         }
         caches.setHead(head)
     }
@@ -418,47 +425,49 @@ abstract class Multistream(
         return event.chain == this.chain
     }
 
-    @EventListener
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    fun onUpstreamChange(event: UpstreamChangeEvent) {
+    fun processUpstreamsEvents(event: UpstreamChangeEvent) {
+        upstreamsSink.emitNext(
+            event,
+        ) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+    }
+
+    private fun onUpstreamChange(event: UpstreamChangeEvent) {
         val chain = event.chain
         if (this.chain == chain) {
-            eventLock.withLock {
-                log.debug("Processing event $event")
-                when (event.type) {
-                    UpstreamChangeEvent.ChangeType.REVALIDATED -> {}
-                    UpstreamChangeEvent.ChangeType.UPDATED -> {
-                        onUpstreamsUpdated()
-                        updateUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
-                    }
+            log.debug("Processing event {}", event)
+            when (event.type) {
+                UpstreamChangeEvent.ChangeType.REVALIDATED -> {}
+                UpstreamChangeEvent.ChangeType.UPDATED -> {
+                    onUpstreamsUpdated()
+                    updateUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                }
 
-                    UpstreamChangeEvent.ChangeType.ADDED -> {
-                        if (!started) {
-                            start()
-                        }
-                        if (event.upstream is CachesEnabled) {
-                            event.upstream.setCaches(caches)
-                        }
-                        addUpstream(event.upstream).takeIf { it }?.let {
-                            try {
-                                addedUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
-                                onUpstreamsUpdated()
-                                log.info("Upstream ${event.upstream.getId()} with chain $chain has been added")
-                            } catch (e: Sinks.EmissionException) {
-                                log.error("error during event processing $event", e)
-                            }
+                UpstreamChangeEvent.ChangeType.ADDED -> {
+                    if (!started) {
+                        start()
+                    }
+                    if (event.upstream is CachesEnabled) {
+                        event.upstream.setCaches(caches)
+                    }
+                    addUpstream(event.upstream).takeIf { it }?.let {
+                        try {
+                            addedUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                            onUpstreamsUpdated()
+                            log.info("Upstream ${event.upstream.getId()} with chain $chain has been added")
+                        } catch (e: Sinks.EmissionException) {
+                            log.error("error during event processing $event", e)
                         }
                     }
+                }
 
-                    UpstreamChangeEvent.ChangeType.REMOVED -> {
-                        removeUpstream(event.upstream.getId()).takeIf { it }?.let {
-                            try {
-                                removedUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
-                                onUpstreamsUpdated()
-                                log.info("Upstream ${event.upstream.getId()} with chain $chain has been removed")
-                            } catch (e: Sinks.EmissionException) {
-                                log.error("error during event processing $event", e)
-                            }
+                UpstreamChangeEvent.ChangeType.REMOVED -> {
+                    removeUpstream(event.upstream.getId()).takeIf { it }?.let {
+                        try {
+                            removedUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                            onUpstreamsUpdated()
+                            log.info("Upstream ${event.upstream.getId()} with chain $chain has been removed")
+                        } catch (e: Sinks.EmissionException) {
+                            log.error("error during event processing $event", e)
                         }
                     }
                 }

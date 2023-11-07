@@ -25,14 +25,15 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         @Qualifier("headScheduler")
         headScheduler: Scheduler,
         tracer: Tracer,
+        multistreamEventsScheduler: Scheduler,
     ): List<Multistream> {
         return Chain.entries
             .filterNot { it == Chain.UNSPECIFIED }
             .map { chain ->
                 if (chain.type == BITCOIN) {
-                    bitcoinMultistream(chain, cachesFactory, headScheduler)
+                    bitcoinMultistream(chain, cachesFactory, headScheduler, multistreamEventsScheduler)
                 } else {
-                    genericMultistream(chain, cachesFactory, headScheduler, tracer)
+                    genericMultistream(chain, cachesFactory, headScheduler, tracer, multistreamEventsScheduler)
                 }
             }
     }
@@ -42,11 +43,13 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         cachesFactory: CachesFactory,
         headScheduler: Scheduler,
         tracer: Tracer,
+        multistreamEventsScheduler: Scheduler,
     ): Multistream {
         val name = "multi-$chain"
         val cs = ChainSpecificRegistry.resolve(chain)
         return GenericMultistream(
             chain,
+            multistreamEventsScheduler,
             CopyOnWriteArrayList(),
             cachesFactory.getCaches(chain),
             headScheduler,
@@ -60,11 +63,13 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         chain: Chain,
         cachesFactory: CachesFactory,
         headScheduler: Scheduler,
+        multistreamEventsScheduler: Scheduler,
     ): BitcoinMultistream {
         val name = "multi-bitcoin-$chain"
 
         return BitcoinMultistream(
             chain,
+            multistreamEventsScheduler,
             ArrayList(),
             cachesFactory.getCaches(chain),
             headScheduler,
