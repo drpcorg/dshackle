@@ -34,6 +34,7 @@ import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.Selector.Matcher
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.calls.CallSelector
 import io.emeraldpay.dshackle.upstream.forkchoice.PriorityForkChoice
 import io.emeraldpay.dshackle.upstream.grpc.GrpcUpstream
 import org.springframework.util.ConcurrentReferenceHashMap
@@ -45,13 +46,14 @@ import reactor.core.scheduler.Scheduler
 open class GenericMultistream(
     chain: Chain,
     multistreamEventsScheduler: Scheduler,
+    callSelector: CallSelector?,
     private val upstreams: MutableList<Upstream>,
     caches: Caches,
     private val headScheduler: Scheduler,
     cachingReaderBuilder: CachingReaderBuilder,
     private val localReaderBuilder: LocalReaderBuilder,
     private val subscriptionBuilder: SubscriptionBuilder,
-) : Multistream(chain, caches, multistreamEventsScheduler) {
+) : Multistream(chain, caches, callSelector, multistreamEventsScheduler) {
 
     private val cachingReader = cachingReaderBuilder(this, caches, getMethodsFactory())
 

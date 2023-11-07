@@ -32,7 +32,7 @@ open class SchedulersConfig {
 
     @Bean
     open fun multistreamEventsScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("events-scheduler", 10, monitoringConfig)
+        return makeScheduler("events-scheduler", 4, monitoringConfig)
     }
 
     @Bean

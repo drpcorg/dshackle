@@ -47,11 +47,13 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
     ): Multistream {
         val name = "multi-$chain"
         val cs = ChainSpecificRegistry.resolve(chain)
+        val caches = cachesFactory.getCaches(chain)
         return GenericMultistream(
             chain,
             multistreamEventsScheduler,
+            cs.callSelector(caches),
             CopyOnWriteArrayList(),
-            cachesFactory.getCaches(chain),
+            caches,
             headScheduler,
             cs.makeCachingReaderBuilder(tracer),
             cs::localReaderBuilder,

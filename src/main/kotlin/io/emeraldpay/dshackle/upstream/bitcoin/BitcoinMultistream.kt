@@ -44,7 +44,7 @@ open class BitcoinMultistream(
     private val sourceUpstreams: MutableList<BitcoinUpstream>,
     caches: Caches,
     private val headScheduler: Scheduler,
-) : Multistream(chain, caches, multistreamEventsScheduler), Lifecycle {
+) : Multistream(chain, caches, null, multistreamEventsScheduler), Lifecycle {
 
     private var head: Head = EmptyHead()
     private var esplora = sourceUpstreams.find { it.esploraClient != null }?.esploraClient

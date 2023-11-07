@@ -47,7 +47,7 @@ class MultistreamHolderMock implements MultistreamHolder {
                     upstreams[chain] = up
                 } else if (up instanceof GenericUpstream) {
                     upstreams[chain] = new GenericMultistream(
-                            chain, Schedulers.boundedElastic(), new ArrayList<Upstream>(), Caches.default(),
+                            chain, Schedulers.boundedElastic(), null, new ArrayList<Upstream>(), Caches.default(),
                             Schedulers.boundedElastic(),
                             EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
                             EthereumChainSpecific.INSTANCE.&localReaderBuilder,
@@ -101,7 +101,7 @@ class MultistreamHolderMock implements MultistreamHolder {
         Head customHead = null
 
         EthereumMultistreamMock(@NotNull Chain chain, @NotNull List<GenericUpstream> upstreams, @NotNull Caches caches) {
-            super(chain, Schedulers.boundedElastic(), upstreams, caches, Schedulers.boundedElastic(),
+            super(chain, Schedulers.boundedElastic(), null, upstreams, caches, Schedulers.boundedElastic(),
                     EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(new BraveTracer(null, null, null)),
                     EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                     EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))

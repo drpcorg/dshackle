@@ -17,7 +17,6 @@
 package io.emeraldpay.dshackle.upstream
 
 import io.emeraldpay.api.proto.BlockchainOuterClass
-import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.cache.CachesEnabled
@@ -29,7 +28,6 @@ import io.emeraldpay.dshackle.startup.UpstreamChangeEvent
 import io.emeraldpay.dshackle.upstream.calls.AggregatedCallMethods
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.CallSelector
-import io.emeraldpay.dshackle.upstream.calls.EthereumCallSelector
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.Meter
 import io.micrometer.core.instrument.Metrics
@@ -51,10 +49,9 @@ import java.util.concurrent.ConcurrentHashMap
 abstract class Multistream(
     val chain: Chain,
     val caches: Caches,
+    val callSelector: CallSelector?,
     multistreamEventsScheduler: Scheduler,
 ) : Upstream, Lifecycle {
-    val callSelector: CallSelector?
-
     abstract fun getUpstreams(): MutableList<out Upstream>
     abstract fun addUpstreamInternal(u: Upstream)
 
@@ -146,12 +143,6 @@ abstract class Multistream(
             this,
         ) {
             getAll().size.toDouble()
-        }
-
-        callSelector = if (chain.type == BlockchainType.ETHEREUM) {
-            EthereumCallSelector(caches)
-        } else {
-            null
         }
 
         upstreamsSink.asFlux()
