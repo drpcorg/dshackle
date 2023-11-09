@@ -62,7 +62,7 @@ class GenericRpcConnector(
         head = when (connectorType) {
             RPC_ONLY -> {
                 log.warn("Setting up connector for $id upstream with RPC-only access, less effective than WS+RPC")
-                GenericRpcHead(getIngressReader(), forkChoice, id, blockValidator, headScheduler, chainSpecific)
+                GenericRpcHead(getIngressReader(), forkChoice, id, blockValidator, headScheduler, chainSpecific, expectedBlockTime)
             }
 
             WS_ONLY -> {
