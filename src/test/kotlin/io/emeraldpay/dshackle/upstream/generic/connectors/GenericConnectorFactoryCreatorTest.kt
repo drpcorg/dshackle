@@ -23,16 +23,20 @@ import java.io.File
 import java.net.URI
 import java.time.Duration
 
-class GenericRpcConnectorTest {
+class GenericConnectorFactoryCreatorTest {
 
     @ParameterizedTest
     @MethodSource("data")
     fun `rpc head poll interval must equal to expected-block-time`(
         expectedBlockTime: Duration,
-        config: ChainsConfig.ChainConfig
+        config: ChainsConfig.ChainConfig,
     ) {
         val factory = GenericConnectorFactoryCreator(
-            FileResolver(File("")), immediate(), immediate(), immediate(), immediate()
+            FileResolver(File("")),
+            immediate(),
+            immediate(),
+            immediate(),
+            immediate(),
         )
         var args: List<*>? = null
 
@@ -41,14 +45,16 @@ class GenericRpcConnectorTest {
                 factory.createConnectorFactoryCreator(
                     "id",
                     UpstreamsConfig.RpcConnection(
-                        UpstreamsConfig.HttpEndpoint(URI("http://localhost"))
+                        UpstreamsConfig.HttpEndpoint(URI("http://localhost")),
                     ),
-                    Chain.ETHEREUM__MAINNET, AlwaysForkChoice(),
-                    BlockValidator.ALWAYS_VALID, config
+                    Chain.ETHEREUM__MAINNET,
+                    AlwaysForkChoice(),
+                    BlockValidator.ALWAYS_VALID,
+                    config,
                 )?.create(mock<DefaultUpstream> { on { getId() } doReturn "id" }, Chain.ETHEREUM__MAINNET)
 
                 assertEquals(expectedBlockTime, args?.get(6))
-        }
+            }
     }
 
     companion object {
@@ -57,7 +63,9 @@ class GenericRpcConnectorTest {
         @JvmStatic
         fun data(): List<Arguments> = chainsConfigReader.read(null)
             .flatMap { cfg ->
-                cfg.shortNames.map { Arguments.of(cfg.expectedBlockTime, cfg) }
+                cfg.shortNames.map {
+                    Arguments.of(cfg.expectedBlockTime, cfg)
+                }
             }
     }
 }
