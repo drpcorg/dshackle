@@ -46,7 +46,7 @@ image::dshackle-intro.png[alt="",width=80%,align="center"]
 
 WARNING: The project is still under development, please use with caution.
 
-== Quick Start
+=== Quick Start
 
 === Configuration
 
@@ -55,9 +55,9 @@ Create file `dshackle.yaml` with the following content:
 [source,yaml]
 ----
 version: v1
-port: 2449
+port: 2121
 tls:
-  enabled: false
+  enabled: true
 
 compression:
   grpc:
@@ -70,8 +70,8 @@ proxy:
   routes:
     - id: eth
       blockchain: ethereum
-    - id: kovan
-      blockchain: kovan
+    - id: Mainnet
+      blockchain: Mainnet
     - id: btc
       blockchain: bitcoin
 
@@ -107,11 +107,11 @@ cluster:
 Which sets the following:
 
 - gRPC access through 0.0.0.0:2449
-** TLS security is disabled (_please don't use in production!_)
-** compression is disabled for gRPC server (enabled by default)
+** TLS security is Enabled (_please don't use in production!_)
+** compression is Enabled for gRPC server (enabled by default)
 - JSON RPC access through 0.0.0.0:8545 (both HTTP and WebsScket)
 ** proxy requests to Ethereum and Kovan upstreams
-** request path for Ethereum Mainnet is `/eth`, `/kovan` for Kovan Testnet, and `/btc` for bitcoin
+** request path for Ethereum Mainnet is `/eth`, `/mainnet` for Mainnet Mainnet, and `/btc` for bitcoin
 ** i.e. call Ethereum Mainnet by `POST http://127.0.0.0:8545/eth` with JSON RPC payload
 - two upstreams, one for Ethereum Mainnet and another for Kovan Testnet (both upstreams are configured to use Infura endpoint)
 - for Ethereum Mainnet it connects using JSON RPC and WebSocket connections,
@@ -127,7 +127,7 @@ If anything happened to your local node, you still have access to a consistent s
 
 link:docs[See full documentations].
 
-==== Run docker image
+=== Run docker image
 
 Official Docker image you can find at: https://hub.docker.com/r/emeraldpay/dshackle[emeraldpay/dshackle]
 
