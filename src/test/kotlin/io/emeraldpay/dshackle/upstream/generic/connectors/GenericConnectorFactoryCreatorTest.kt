@@ -64,7 +64,7 @@ class GenericConnectorFactoryCreatorTest {
         fun data(): List<Arguments> = chainsConfigReader.read(null)
             .flatMap { cfg ->
                 cfg.shortNames.map {
-                    Arguments.of(cfg.expectedBlockTime, cfg)
+                    Arguments.of(cfg.expectedBlockTime.coerceAtLeast(Duration.ofSeconds(1)), cfg)
                 }
             }
     }
