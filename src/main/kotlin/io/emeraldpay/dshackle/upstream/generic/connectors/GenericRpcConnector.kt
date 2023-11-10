@@ -69,7 +69,7 @@ class GenericRpcConnector(
                     blockValidator,
                     headScheduler,
                     chainSpecific,
-                    expectedBlockTime.coerceAtLeast(Duration.ofSeconds(1))
+                    expectedBlockTime.coerceAtLeast(Duration.ofSeconds(1)),
                 )
             }
 
