@@ -337,7 +337,7 @@ open class WsConnectionImpl(
         val status = subscriptionResponses.tryEmitNext(subscription)
         if (status.isFailure) {
             if (status == Sinks.EmitResult.FAIL_ZERO_SUBSCRIBER) {
-                log.debug("No subscribers to WS response")
+                log.debug("No subscribers to WS response - ${msg.value?.let { String(it) }}")
             } else {
                 log.warn("Failed to proceed with a WS message: $status")
             }
