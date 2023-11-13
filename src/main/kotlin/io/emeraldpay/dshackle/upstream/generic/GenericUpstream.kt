@@ -186,9 +186,7 @@ open class GenericUpstream(
     }
 
     fun getIngressSubscription(): IngressSubscription {
-        val x = connector.getIngressSubscription()
-        println(x)
-        return x
+        return connector.getIngressSubscription()
     }
 
     override fun isRunning() = connector.isRunning() && validationSettingsSubscription == null

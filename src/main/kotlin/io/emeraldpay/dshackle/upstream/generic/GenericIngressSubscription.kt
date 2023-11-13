@@ -19,8 +19,7 @@ class GenericIngressSubscription(val conn: WsSubscriptions) : IngressSubscriptio
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(topic: String, params: Any?): SubscriptionConnect<T> {
-        val x = holders.computeIfAbsent(topic to params, { key -> GenericSubscriptionConnect(conn, key.first, key.second) }) as SubscriptionConnect<T>
-        return x
+        return holders.computeIfAbsent(topic to params, { key -> GenericSubscriptionConnect(conn, key.first, key.second) }) as SubscriptionConnect<T>
     }
 }
 

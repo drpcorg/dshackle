@@ -21,7 +21,6 @@ class GenericEgressSubscription(
             .shuffled()
             .first { matcher.matches(it) } as GenericUpstream
 
-        val x = up.getIngressSubscription().get<ByteArray>(topic, params)?.connect(matcher) ?: Flux.empty()
-        return x
+        return up.getIngressSubscription().get<ByteArray>(topic, params)?.connect(matcher) ?: Flux.empty()
     }
 }
