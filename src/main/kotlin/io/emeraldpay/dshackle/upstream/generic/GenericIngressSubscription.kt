@@ -31,9 +31,16 @@ class GenericSubscriptionConnect(
 
     @Suppress("UNCHECKED_CAST")
     override fun createConnection(): Flux<Any> {
-        return conn.subscribe(JsonRpcRequest(topic, params as List<Any?>))
+        return conn.subscribe(JsonRpcRequest(topic, getParams(params)))
             .data
             .timeout(Duration.ofSeconds(60), Mono.empty())
             .onErrorResume { Mono.empty() } as Flux<Any>
+    }
+
+    private fun getParams(params: Any?): List<Any?> {
+        if (params == null) {
+            return listOf()
+        }
+        return params as List<Any?>
     }
 }
