@@ -49,7 +49,7 @@ abstract class AbstractChainSpecific : ChainSpecific {
         return { _ -> EmptyEgressSubscription }
     }
 
-    override fun callSelector(caches: Caches): CallSelector? {
+    override fun callSelector(): CallSelector? {
         return null
     }
 }
