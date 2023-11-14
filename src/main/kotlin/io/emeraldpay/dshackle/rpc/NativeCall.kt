@@ -292,9 +292,7 @@ open class NativeCall(
             )
             .forMethod(method)
             .forLabels(Selector.convertToMatcher(request.selector))
-
-        println(matcher)
-
+        
         val callQuorum = availableMethods.createQuorumFor(method) // can be null in tests
         // for NotLaggingQuorum it makes sense to select compatible upstreams before the call
         if (callQuorum is NotLaggingQuorum) {

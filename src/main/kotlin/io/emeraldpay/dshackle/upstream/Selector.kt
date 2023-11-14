@@ -140,12 +140,6 @@ class Selector {
         fun build(): Matcher {
             return MultiMatcher(matchers)
         }
-
-        override fun toString(): String {
-            return "Builder(matchers=$matchers)"
-        }
-
-
     }
 
     abstract class Matcher {
