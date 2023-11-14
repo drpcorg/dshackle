@@ -40,6 +40,19 @@ class Selector {
         val anyLabel = AnyLabelMatcher()
 
         @JvmStatic
+        fun convertToMatcher(selectors: List<BlockchainOuterClass.Selector>): Matcher {
+            return selectors
+                .map {
+                    when {
+                        it.hasHeightSelector() -> HeightMatcher(it.heightSelector.height)
+                        else -> empty
+                    }
+                }.run {
+                    MultiMatcher(this)
+                }
+        }
+
+        @JvmStatic
         fun convertToMatcher(req: BlockchainOuterClass.Selector?): LabelSelectorMatcher {
             return when {
                 req == null -> anyLabel
@@ -127,6 +140,12 @@ class Selector {
         fun build(): Matcher {
             return MultiMatcher(matchers)
         }
+
+        override fun toString(): String {
+            return "Builder(matchers=$matchers)"
+        }
+
+
     }
 
     abstract class Matcher {

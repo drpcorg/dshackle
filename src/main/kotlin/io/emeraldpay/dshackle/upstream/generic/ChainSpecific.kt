@@ -59,7 +59,7 @@ interface ChainSpecific {
 
     fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription
 
-    fun callSelector(caches: Caches): CallSelector?
+    fun callSelector(): CallSelector?
 }
 
 object ChainSpecificRegistry {

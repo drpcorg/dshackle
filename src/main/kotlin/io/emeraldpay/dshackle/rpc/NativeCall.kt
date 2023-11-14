@@ -251,15 +251,13 @@ open class NativeCall(
         request: BlockchainOuterClass.NativeCallRequest,
         upstream: Multistream,
     ): Flux<CallContext> {
-        val chain = Chain.byId(request.chainValue)
         return Flux.fromIterable(request.itemsList)
             .flatMap {
-                prepareIndividualCall(chain, request, it, upstream)
+                prepareIndividualCall(request, it, upstream)
             }
     }
 
     fun prepareIndividualCall(
-        chain: Chain,
         request: BlockchainOuterClass.NativeCallRequest,
         requestItem: BlockchainOuterClass.NativeCallItem,
         upstream: Multistream,
@@ -285,29 +283,33 @@ open class NativeCall(
                 ),
             )
         }
-        // for ethereum the actual block needed for the call may be specified in the call parameters
-        val callSpecificMatcher: Mono<Selector.Matcher> =
-            upstream.callSelector?.getMatcher(method, params, upstream.getHead(), passthrough) ?: Mono.empty()
-        return callSpecificMatcher.defaultIfEmpty(Selector.empty).map { csm ->
-            val matcher = Selector.Builder()
-                .withMatcher(csm)
-                .forMethod(method)
-                .forLabels(Selector.convertToMatcher(request.selector))
+        val callSpecificMatcher: Selector.Matcher =
+            upstream.callSelector?.getMatcher(method, params, upstream.getHead(), passthrough) ?: Selector.empty
 
-            val callQuorum = availableMethods.createQuorumFor(method) // can be null in tests
-            // for NotLaggingQuorum it makes sense to select compatible upstreams before the call
-            if (callQuorum is NotLaggingQuorum) {
-                val lag = callQuorum.maxLag
-                val minHeight = ((upstream.getHead().getCurrentHeight() ?: 0) - lag).coerceAtLeast(0)
-                val heightMatcher = Selector.HeightMatcher(minHeight)
-                matcher.withMatcher(heightMatcher)
-            }
-            val nonce = requestItem.nonce.let { if (it == 0L) null else it }
-            val requestDecorator = getRequestDecorator(requestItem.method)
-            val resultDecorator = getResultDecorator(requestItem.method)
+        val matcher = Selector.Builder()
+            .withMatcher(
+                Selector.MultiMatcher(listOf(Selector.convertToMatcher(requestItem.selectorsList), callSpecificMatcher)),
+            )
+            .forMethod(method)
+            .forLabels(Selector.convertToMatcher(request.selector))
 
-            val selector = request.takeIf { it.hasSelector() }?.let { Selectors.keepForwarded(it.selector) }
+        println(matcher)
 
+        val callQuorum = availableMethods.createQuorumFor(method) // can be null in tests
+        // for NotLaggingQuorum it makes sense to select compatible upstreams before the call
+        if (callQuorum is NotLaggingQuorum) {
+            val lag = callQuorum.maxLag
+            val minHeight = ((upstream.getHead().getCurrentHeight() ?: 0) - lag).coerceAtLeast(0)
+            val heightMatcher = Selector.HeightMatcher(minHeight)
+            matcher.withMatcher(heightMatcher)
+        }
+        val nonce = requestItem.nonce.let { if (it == 0L) null else it }
+        val requestDecorator = getRequestDecorator(requestItem.method)
+        val resultDecorator = getResultDecorator(requestItem.method)
+
+        val selector = request.takeIf { it.hasSelector() }?.let { Selectors.keepForwarded(it.selector) }
+
+        return Mono.just(
             ValidCallContext(
                 requestItem.id,
                 nonce,
@@ -320,8 +322,8 @@ open class NativeCall(
                 selector,
                 requestId,
                 requestCount,
-            )
-        }
+            ),
+        )
     }
 
     private fun getRequestDecorator(method: String): RequestDecorator =

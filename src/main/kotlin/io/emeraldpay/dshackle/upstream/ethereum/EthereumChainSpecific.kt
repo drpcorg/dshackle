@@ -1,7 +1,6 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.Chain
-import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
@@ -96,7 +95,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         return EthereumWsIngressSubscription(ws)
     }
 
-    override fun callSelector(caches: Caches): CallSelector {
-        return EthereumCallSelector(caches)
+    override fun callSelector(): CallSelector {
+        return EthereumCallSelector()
     }
 }

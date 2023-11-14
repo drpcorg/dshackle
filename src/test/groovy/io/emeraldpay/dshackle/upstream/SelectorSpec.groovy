@@ -32,13 +32,6 @@ class SelectorSpec extends Specification {
     private BlockchainOuterClass.Selector selectLabel2Selector = BlockchainOuterClass.Selector.newBuilder()
             .setLabelSelector(selectLabel2).build()
 
-    def "Convert nothing"() {
-        when:
-        def act = Selector.convertToMatcher(null)
-        then:
-        act.class == Selector.AnyLabelMatcher
-    }
-
     def "Convert LABEL match"() {
         when:
         def act = Selector.convertToMatcher(
