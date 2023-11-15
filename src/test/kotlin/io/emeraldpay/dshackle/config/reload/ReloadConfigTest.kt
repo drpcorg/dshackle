@@ -178,7 +178,7 @@ class ReloadConfigTest {
             Schedulers.boundedElastic(),
             cs.makeCachingReaderBuilder(mock<Tracer>()),
             cs::localReaderBuilder,
-            cs.subscriptionBuilder(Schedulers.boundedElastic())
+            cs.subscriptionBuilder(Schedulers.boundedElastic()),
         )
     }
 
