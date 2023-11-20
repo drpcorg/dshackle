@@ -19,10 +19,9 @@ class ErrorProcessingTest {
 
         val fixedError = corrector.correctError(result)
 
-
         assertEquals(
             NativeCall.CallError(3, error.message, error.upstreamError, "0x0111", error.upstreamId),
-            fixedError
+            fixedError,
         )
     }
 
@@ -34,10 +33,9 @@ class ErrorProcessingTest {
 
         val fixedError = corrector.correctError(result)
 
-
         assertEquals(
             NativeCall.CallError(55, error.message, error.upstreamError, "Reverted 0x0111", error.upstreamId),
-            fixedError
+            fixedError,
         )
     }
 
@@ -67,7 +65,7 @@ class ErrorProcessingTest {
                 "reverted",
                 JsonRpcError(1, "errMessage", null),
                 "Reverted 0x0111",
-                "upId"
+                "upId",
             ),
             null,
             NativeCall.ValidCallContext(
@@ -78,7 +76,7 @@ class ErrorProcessingTest {
                 mock<CallQuorum>(),
                 NativeCall.ParsedCallDetails(method, emptyList()),
                 "req",
-                1
-            )
+                1,
+            ),
         )
 }

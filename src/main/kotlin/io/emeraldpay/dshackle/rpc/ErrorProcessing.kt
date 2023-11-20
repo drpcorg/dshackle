@@ -11,7 +11,7 @@ interface ErrorProcessor {
 
 @Component
 open class ErrorCorrector(
-    private val processors: List<ErrorProcessor>
+    private val processors: List<ErrorProcessor>,
 ) {
 
     fun correctError(result: NativeCall.CallResult): NativeCall.CallError {
@@ -23,7 +23,6 @@ open class ErrorCorrector(
             ?.errorProcess(result.error!!)
             ?: result.error!!
     }
-
 }
 
 @Component
@@ -38,8 +37,7 @@ class NethermindEthCallRevertedErrorProcessor : ErrorProcessor {
             error.message,
             error.upstreamError,
             error.data?.removePrefix("Reverted "),
-            error.upstreamId
+            error.upstreamId,
         )
     }
-
 }
