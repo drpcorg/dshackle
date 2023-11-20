@@ -28,7 +28,7 @@ open class ErrorCorrector(
 @Component
 class NethermindEthCallRevertedErrorProcessor : ErrorProcessor {
     override fun matches(result: NativeCall.CallResult): Boolean {
-        return result.ctx?.payload?.method == "eth_call" && result.error?.data?.startsWith("Reverted") ?: false
+        return result.ctx?.payload?.method == "eth_call" && (result.error?.data?.startsWith("Reverted") ?: false)
     }
 
     override fun errorProcess(error: NativeCall.CallError): NativeCall.CallError {
