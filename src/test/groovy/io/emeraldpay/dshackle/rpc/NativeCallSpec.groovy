@@ -384,7 +384,7 @@ class NativeCallSpec extends Specification {
                 .addItems(item)
                 .build()
         when:
-        def act = nativeCall.prepareIndividualCall(req, item, TestingCommons.emptyMultistream())
+        def act = nativeCall.prepareIndividualCall(Chain.ETHEREUM__MAINNET, req, item, TestingCommons.emptyMultistream())
                 .block(Duration.ofSeconds(1))
         then:
         act instanceof NativeCall.InvalidCallContext
