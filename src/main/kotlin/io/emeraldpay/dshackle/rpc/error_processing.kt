@@ -10,7 +10,7 @@ interface ErrorProcessor {
 }
 
 @Component
-class ErrorCorrector(
+open class ErrorCorrector(
     private val processors: List<ErrorProcessor>
 ) {
 
