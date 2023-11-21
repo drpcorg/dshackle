@@ -9,6 +9,7 @@ import io.emeraldpay.dshackle.upstream.LabelsDetector
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumArchiveBlockNumberReader
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
+import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
@@ -17,6 +18,10 @@ class EthereumLabelsDetector(
     private val chain: Chain,
 ) : LabelsDetector {
     private val blockNumberReader = EthereumArchiveBlockNumberReader(reader)
+
+    companion object {
+        private val log = LoggerFactory.getLogger(EthereumLabelsDetector::class.java)
+    }
 
     override fun detectLabels(): Flux<Pair<String, String>> {
         return Flux.merge(
@@ -43,7 +48,7 @@ class EthereumLabelsDetector(
 
                 Flux.fromIterable(labels)
             }
-            .onErrorResume { Mono.empty() }
+            .onErrorResume { Flux.empty() }
     }
 
     private fun detectArchiveNode(): Mono<Pair<String, String>> {
@@ -83,6 +88,7 @@ class EthereumLabelsDetector(
         } else if (client.contains("nethermind", true)) {
             "nethermind"
         } else {
+            log.debug("Unknown client type: {}", client)
             null
         }
     }
