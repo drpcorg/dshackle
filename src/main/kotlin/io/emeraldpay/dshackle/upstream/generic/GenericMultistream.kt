@@ -19,6 +19,7 @@ package io.emeraldpay.dshackle.upstream.generic
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.cache.Caches
+import io.emeraldpay.dshackle.config.IndexConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.reader.JsonRpcReader
@@ -31,6 +32,7 @@ import io.emeraldpay.dshackle.upstream.EmptyHead
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.HeadLagObserver
 import io.emeraldpay.dshackle.upstream.Lifecycle
+import io.emeraldpay.dshackle.upstream.LogsOracle
 import io.emeraldpay.dshackle.upstream.MergedHead
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Selector
@@ -58,9 +60,14 @@ open class GenericMultistream(
     cachingReaderBuilder: CachingReaderBuilder,
     private val localReaderBuilder: LocalReaderBuilder,
     private val subscriptionBuilder: SubscriptionBuilder,
+    logsOracleConfig: IndexConfig.Index? = null,
 ) : Multistream(chain, caches, callSelector, multistreamEventsScheduler) {
 
     private val cachingReader = cachingReaderBuilder(this, caches, getMethodsFactory())
+
+    private val logsOracle: LogsOracle? = logsOracleConfig?.let {
+        LogsOracle(logsOracleConfig)
+    }
 
     override fun getUpstreams(): MutableList<out Upstream> {
         return upstreams
@@ -181,7 +188,7 @@ open class GenericMultistream(
     }
 
     override fun getLocalReader(): Mono<JsonRpcReader> {
-        return localReaderBuilder(cachingReader, getMethods(), getHead())
+        return localReaderBuilder(cachingReader, getMethods(), getHead(), logsOracle)
     }
 
     override fun getEgressSubscription(): EgressSubscription {

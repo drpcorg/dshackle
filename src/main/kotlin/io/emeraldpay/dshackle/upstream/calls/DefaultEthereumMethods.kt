@@ -103,6 +103,7 @@ class DefaultEthereumMethods(
         "eth_blockNumber",
         "eth_getBalance",
         "eth_sendRawTransaction",
+        "eth_getLogsEstimate",
     )
 
     private val headVerifiedMethods = listOf(
