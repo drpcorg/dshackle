@@ -61,13 +61,10 @@ open class GenericMultistream(
     private val localReaderBuilder: LocalReaderBuilder,
     private val subscriptionBuilder: SubscriptionBuilder,
     logsOracleConfig: IndexConfig.Index? = null,
+    private val logsOracleScheduler: Scheduler,
 ) : Multistream(chain, caches, callSelector, multistreamEventsScheduler) {
 
     private val cachingReader = cachingReaderBuilder(this, caches, getMethodsFactory())
-
-    private val logsOracle: LogsOracle? = logsOracleConfig?.let {
-        LogsOracle(logsOracleConfig)
-    }
 
     override fun getUpstreams(): MutableList<out Upstream> {
         return upstreams
@@ -83,6 +80,10 @@ open class GenericMultistream(
         headScheduler,
     )
 
+    private val logsOracle: LogsOracle? = logsOracleConfig?.let {
+        LogsOracle(logsOracleConfig, this, logsOracleScheduler)
+    }
+
     private var subscription: EgressSubscription = subscriptionBuilder(this)
 
     private val filteredHeads: MutableMap<String, Head> =
@@ -93,12 +94,14 @@ open class GenericMultistream(
         head.start()
         onHeadUpdated(head)
         cachingReader.start()
+        logsOracle?.start()
     }
 
     override fun stop() {
         super.stop()
         cachingReader.stop()
         filteredHeads.clear()
+        logsOracle?.stop()
     }
 
     override fun addHead(upstream: Upstream) {

@@ -122,7 +122,7 @@ class EthereumLocalReader(
                     .read(hash)
                     .map { it.data to it.upstreamId }
             }
-            method == "eth_getLogsEstimate" -> {
+            method == "drpc_getLogsEstimate" -> {
                 getLogsEstimate(params)
             }
             else -> null

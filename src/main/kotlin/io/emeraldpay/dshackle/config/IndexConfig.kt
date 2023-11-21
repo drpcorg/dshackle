@@ -11,6 +11,10 @@ class IndexConfig {
         var ram_limit: Long?,
     )
 
+    fun isChainEnabled(chain: Chain): Boolean {
+        return items.containsKey(chain)
+    }
+
     fun getByChain(chain: Chain): Index? {
         return items.get(chain)
     }

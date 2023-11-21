@@ -28,6 +28,8 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         tracer: Tracer,
         multistreamEventsScheduler: Scheduler,
         indexConfig: IndexConfig,
+        @Qualifier("logsOracleScheduler")
+        logsOracleScheduler: Scheduler,
     ): List<Multistream> {
         return Chain.entries
             .filterNot { it == Chain.UNSPECIFIED }
@@ -35,7 +37,15 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
                 if (chain.type == BITCOIN) {
                     bitcoinMultistream(chain, cachesFactory, headScheduler, multistreamEventsScheduler)
                 } else {
-                    genericMultistream(chain, cachesFactory, headScheduler, tracer, multistreamEventsScheduler, indexConfig.getByChain(chain))
+                    genericMultistream(
+                        chain,
+                        cachesFactory,
+                        headScheduler,
+                        tracer,
+                        multistreamEventsScheduler,
+                        indexConfig.getByChain(chain),
+                        logsOracleScheduler,
+                    )
                 }
             }
     }
@@ -47,6 +57,7 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         tracer: Tracer,
         multistreamEventsScheduler: Scheduler,
         logsOracleConfig: IndexConfig.Index?,
+        logsOracleScheduler: Scheduler,
     ): Multistream {
         val name = "multi-$chain"
         val cs = ChainSpecificRegistry.resolve(chain)
@@ -62,6 +73,7 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
             cs::localReaderBuilder,
             cs.subscriptionBuilder(headScheduler),
             logsOracleConfig,
+            logsOracleScheduler,
         ).also { register(it, name) }
     }
 
