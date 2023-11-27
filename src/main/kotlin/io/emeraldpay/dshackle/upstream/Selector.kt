@@ -40,11 +40,18 @@ class Selector {
         val anyLabel = AnyLabelMatcher()
 
         @JvmStatic
-        fun convertToMatcher(selectors: List<BlockchainOuterClass.Selector>): Matcher {
+        fun convertToMatcher(selectors: List<BlockchainOuterClass.Selector>, head: Head): Matcher {
             return selectors
                 .map {
                     when {
-                        it.hasHeightSelector() -> HeightMatcher(it.heightSelector.height)
+                        it.hasHeightSelector() -> {
+                            val height = if (it.heightSelector.height == -1L) head.getCurrentHeight() else it.heightSelector.height
+                            if (height == null) {
+                                empty
+                            } else {
+                                HeightMatcher(height)
+                            }
+                        }
                         else -> empty
                     }
                 }.run {

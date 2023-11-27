@@ -32,6 +32,39 @@ class SelectorSpec extends Specification {
     private BlockchainOuterClass.Selector selectLabel2Selector = BlockchainOuterClass.Selector.newBuilder()
             .setLabelSelector(selectLabel2).build()
 
+    def "Convert height selector"() {
+        setup:
+        def heightSelector = BlockchainOuterClass.Selector.newBuilder()
+                .setHeightSelector(
+                        BlockchainOuterClass.HeightSelector.newBuilder()
+                                .setHeight(10000)
+                                .build()
+                )
+                .build()
+        when:
+        def act = Selector.convertToMatcher(List.of(heightSelector), Stub(Head))
+        then:
+        act == new Selector.MultiMatcher(List.of(new Selector.HeightMatcher(10000)))
+    }
+
+    def "Convert height selector with latest"() {
+        setup:
+        def head = Mock(Head) {
+            1 * getCurrentHeight() >> 15000
+        }
+        def heightSelector = BlockchainOuterClass.Selector.newBuilder()
+                .setHeightSelector(
+                        BlockchainOuterClass.HeightSelector.newBuilder()
+                                .setHeight(-1)
+                                .build()
+                )
+                .build()
+        when:
+        def act = Selector.convertToMatcher(List.of(heightSelector), head)
+        then:
+        act == new Selector.MultiMatcher(List.of(new Selector.HeightMatcher(15000)))
+    }
+
     def "Convert LABEL match"() {
         when:
         def act = Selector.convertToMatcher(

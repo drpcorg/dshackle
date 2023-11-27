@@ -287,7 +287,7 @@ open class NativeCall(
         }
         val requestMatcher = requestItem.selectorsList
             .takeIf { it.isNotEmpty() }
-            ?.run { Mono.just(Selector.convertToMatcher(this)) }
+            ?.run { Mono.just(Selector.convertToMatcher(this, upstream.getHead())) }
         // for ethereum the actual block needed for the call may be specified in the call parameters
         val callSpecificMatcher: Mono<Selector.Matcher> =
             requestMatcher ?: upstream.callSelector?.getMatcher(method, params, upstream.getHead(), passthrough) ?: Mono.empty()
