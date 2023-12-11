@@ -146,7 +146,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create(_) >> Mock(RpcReader) {
                 1 * read(new JsonRpcRequest("eth_getLogs", [Map.of("blockHash", hash1)])) >> Mono.just(
                         new RpcReader.Result(
-                                Global.objectMapper.writeValueAsBytes([json]), null, 1, resolver
+                                Global.objectMapper.writeValueAsBytes([json]), null, 1, resolver, null
                         )
                 )
             }

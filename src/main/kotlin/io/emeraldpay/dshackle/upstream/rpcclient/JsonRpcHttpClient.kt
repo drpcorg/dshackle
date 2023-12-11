@@ -31,7 +31,6 @@ import io.netty.handler.codec.http.HttpHeaders
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.resolver.DefaultAddressResolverGroup
 import org.apache.commons.lang3.time.StopWatch
-import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
 import reactor.netty.resources.ConnectionProvider
