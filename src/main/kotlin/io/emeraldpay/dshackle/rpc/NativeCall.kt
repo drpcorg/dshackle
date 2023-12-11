@@ -44,11 +44,13 @@ import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcError
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcException
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
+import io.emeraldpay.dshackle.upstream.rpcclient.stream.Chunk
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.etherjar.rpc.RpcException
 import io.emeraldpay.etherjar.rpc.RpcResponseError
 import io.micrometer.core.instrument.Metrics
 import org.apache.commons.lang3.StringUtils
+import org.reactivestreams.Publisher
 import org.slf4j.LoggerFactory
 import org.springframework.cloud.sleuth.Span
 import org.springframework.cloud.sleuth.Tracer
@@ -76,7 +78,8 @@ open class NativeCall(
 
     open fun nativeCall(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<BlockchainOuterClass.NativeCallReplyItem> {
         return nativeCallResult(requestMono)
-            .map(this::buildResponse)
+            .sort { o1, o2 -> o1.id - o2.id }
+            .flatMapSequential(this::processCallResult)
             .onErrorResume(this::processException)
     }
 
@@ -101,6 +104,27 @@ open class NativeCall(
                     }
                     .contextWrite { ctx -> createTracingReactorContext(ctx, requestCount, requestId, requestSpan) }
             }
+    }
+
+    private fun processCallResult(callResult: CallResult): Publisher<BlockchainOuterClass.NativeCallReplyItem> {
+        return if (callResult.stream == null) {
+            Mono.just(buildResponse(callResult))
+        } else {
+            val stream = callResult.stream.map { arr ->
+                val result = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
+                    .setSucceed(true)
+                    .setFinalChunk(arr.finalChunk)
+                    .setChunked(true)
+                    .setId(callResult.id)
+                if (callResult.nonce != null && callResult.signature != null) {
+                    result.signature = buildSignature(callResult.nonce, callResult.signature)
+                }
+                result.payload = ByteString.copyFrom(arr.chunkData)
+
+                result.build()
+            }
+            stream
+        }
     }
 
     private fun completeSpan(callResult: CallResult, requestCount: Int) {
@@ -311,6 +335,12 @@ open class NativeCall(
 
             val selector = request.takeIf { it.hasSelector() }?.let { Selectors.keepForwarded(it.selector) }
 
+            val isStreamRequest = if (request.chunkSize == 0) {
+                false
+            } else {
+                availableMethods.isStreamMethod(method)
+            }
+
             ValidCallContext(
                 requestItem.id,
                 nonce,
@@ -321,6 +351,7 @@ open class NativeCall(
                 requestDecorator,
                 resultDecorator,
                 selector,
+                isStreamRequest,
                 requestId,
                 requestCount,
             )
@@ -371,12 +402,16 @@ open class NativeCall(
         val counter = reader.attempts()
 
         return SpannedReader(reader, tracer, RPC_READER)
-            .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector))
+            .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector, ctx.streamRequest))
             .map {
-                val bytes = ctx.resultDecorator.processResult(it)
-                validateResult(bytes, "remote", ctx)
                 val upId = it.resolvedBy?.getId() ?: ctx.upstream.getId()
-                CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, upId, ctx)
+                if (it.stream == null) {
+                    val bytes = ctx.resultDecorator.processResult(it)
+                    validateResult(bytes, "remote", ctx)
+                    CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, upId, ctx)
+                } else {
+                    CallResult.ok(ctx.id, ctx.nonce, ByteArray(0), it.signature, upId, ctx, it.stream)
+                }
             }
             .onErrorResume { t ->
                 Mono.just(CallResult.fail(ctx.id, ctx.nonce, t, ctx))
@@ -500,6 +535,7 @@ open class NativeCall(
         val requestDecorator: RequestDecorator,
         val resultDecorator: ResultDecorator,
         val forwardedSelector: BlockchainOuterClass.Selector?,
+        val streamRequest: Boolean,
         requestId: String,
         requestCount: Int,
     ) : CallContext(requestId, requestCount) {
@@ -515,7 +551,7 @@ open class NativeCall(
             requestCount: Int,
         ) : this(
             id, nonce, upstream, matcher, callQuorum, payload,
-            NoneRequestDecorator(), NoneResultDecorator(), null, requestId, requestCount,
+            NoneRequestDecorator(), NoneResultDecorator(), null, false, requestId, requestCount,
         )
 
         override fun isValid(): Boolean {
@@ -535,7 +571,7 @@ open class NativeCall(
         fun <X> withPayload(payload: X): ValidCallContext<X> {
             return ValidCallContext(
                 id, nonce, upstream, matcher, callQuorum, payload,
-                requestDecorator, resultDecorator, forwardedSelector, requestId, requestCount,
+                requestDecorator, resultDecorator, forwardedSelector, streamRequest, requestId, requestCount,
             )
         }
 
@@ -617,6 +653,7 @@ open class NativeCall(
         val signature: ResponseSigner.Signature?,
         val upstreamId: String?,
         val ctx: ValidCallContext<ParsedCallDetails>?,
+        val stream: Flux<Chunk>? = null,
     ) {
 
         constructor(
@@ -631,6 +668,10 @@ open class NativeCall(
         companion object {
             fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamId: String?, ctx: ValidCallContext<ParsedCallDetails>?): CallResult {
                 return CallResult(id, nonce, result, null, signature, upstreamId, ctx)
+            }
+
+            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamId: String?, ctx: ValidCallContext<ParsedCallDetails>?, stream: Flux<Chunk>?): CallResult {
+                return CallResult(id, nonce, result, null, signature, upstreamId, ctx, stream)
             }
 
             fun fail(id: Int, nonce: Long?, error: CallError, ctx: ValidCallContext<ParsedCallDetails>?): CallResult {

@@ -65,4 +65,6 @@ interface CallMethods {
      * Returns list of methods conforming the methods group
      */
     fun getGroupMethods(groupName: String): Set<String>
+
+    fun isStreamMethod(method: String): Boolean
 }

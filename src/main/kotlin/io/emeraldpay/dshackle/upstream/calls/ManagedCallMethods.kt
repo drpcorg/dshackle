@@ -128,4 +128,6 @@ class ManagedCallMethods(
 
     override fun getGroupMethods(groupName: String): Set<String> =
         delegate.getGroupMethods(groupName)
+
+    override fun isStreamMethod(method: String) = delegate.isStreamMethod(method)
 }
