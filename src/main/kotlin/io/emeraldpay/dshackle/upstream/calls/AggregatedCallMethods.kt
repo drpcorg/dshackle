@@ -75,6 +75,4 @@ class AggregatedCallMethods(
 
     override fun getGroupMethods(groupName: String): Set<String> =
         delegates.map { it.getGroupMethods(groupName) }.firstOrNull() ?: emptySet()
-
-    override fun isStreamMethod(method: String): Boolean = delegates.any { it.isStreamMethod(method) }
 }

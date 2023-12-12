@@ -110,16 +110,13 @@ open class NativeCall(
         return if (callResult.stream == null) {
             Mono.just(buildResponse(callResult))
         } else {
-            val stream = callResult.stream.map { arr ->
+            val stream = callResult.stream.map { stream ->
                 val result = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
                     .setSucceed(true)
-                    .setFinalChunk(arr.finalChunk)
+                    .setFinalChunk(stream.finalChunk)
                     .setChunked(true)
                     .setId(callResult.id)
-                if (callResult.nonce != null && callResult.signature != null) {
-                    result.signature = buildSignature(callResult.nonce, callResult.signature)
-                }
-                result.payload = ByteString.copyFrom(arr.chunkData)
+                result.payload = ByteString.copyFrom(stream.chunkData)
 
                 result.build()
             }
@@ -335,11 +332,7 @@ open class NativeCall(
 
             val selector = request.takeIf { it.hasSelector() }?.let { Selectors.keepForwarded(it.selector) }
 
-            val isStreamRequest = if (request.chunkSize == 0) {
-                false
-            } else {
-                availableMethods.isStreamMethod(method)
-            }
+            val isStreamRequest = request.chunkSize != 0
 
             ValidCallContext(
                 requestItem.id,

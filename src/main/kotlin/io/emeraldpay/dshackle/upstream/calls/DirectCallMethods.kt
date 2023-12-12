@@ -49,5 +49,4 @@ open class DirectCallMethods(private val methods: Set<String>) : CallMethods {
     }
 
     override fun getGroupMethods(groupName: String): Set<String> = emptySet()
-    override fun isStreamMethod(method: String) = false
 }

@@ -130,8 +130,6 @@ class DefaultEthereumMethods(
         "eth_chainId",
     )
 
-    private val streamMethods = setOf("eth_call", "eth_getLogs")
-
     private val allowedMethods: List<String>
 
     init {
@@ -314,8 +312,6 @@ class DefaultEthereumMethods(
             "default" -> getSupportedMethods()
             else -> emptyList()
         }.toSet()
-
-    override fun isStreamMethod(method: String): Boolean = streamMethods.contains(method)
 
     override fun getSupportedMethods(): Set<String> {
         return allowedMethods.plus(hardcodedMethods).toSortedSet()

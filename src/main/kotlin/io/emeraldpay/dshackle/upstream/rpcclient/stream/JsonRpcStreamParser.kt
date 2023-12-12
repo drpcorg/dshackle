@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.rpcclient.stream
 
 import com.fasterxml.jackson.core.JsonFactory
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcError
 import io.emeraldpay.dshackle.upstream.rpcclient.ResponseRpcParser
@@ -18,11 +19,12 @@ class JsonRpcStreamParser {
         private val jsonFactory = JsonFactory()
         private val responseRpcParser = ResponseRpcParser()
 
-        private const val ARRAY_OPEN_BRACKET: Byte = 91
-        private const val ARRAY_CLOSE_BRACKET: Byte = 93
-        private const val OBJECT_OPEN_BRACKET: Byte = 123
-        private const val OBJECT_CLOSE_BRACKET: Byte = 125
-        private const val QUOTE: Byte = 34
+        private const val ARRAY_OPEN_BRACKET: Byte = '['.code.toByte()
+        private const val ARRAY_CLOSE_BRACKET: Byte = ']'.code.toByte()
+        private const val OBJECT_OPEN_BRACKET: Byte = '{'.code.toByte()
+        private const val OBJECT_CLOSE_BRACKET: Byte = '}'.code.toByte()
+        private const val BACKSLASH: Byte = '\\'.code.toByte()
+        private const val QUOTE: Byte = '"'.code.toByte()
     }
 
     fun streamParse(statusCode: Int, response: Flux<ByteArray>): Mono<out Response> {
@@ -112,7 +114,7 @@ class JsonRpcStreamParser {
                         } else if (whatCountValue is Count.CountArrayBrackets) {
                             countBrackets(bytes[i], count, ARRAY_OPEN_BRACKET, ARRAY_CLOSE_BRACKET)
                         } else if (whatCountValue is Count.CountQuotes) {
-                            if (bytes[i] == QUOTE) {
+                            if (bytes[i] == QUOTE && bytes[i-1] != BACKSLASH) {
                                 count.decrementAndGet()
                             }
                         }
@@ -152,7 +154,7 @@ class JsonRpcStreamParser {
                         val tokenStart = parser.tokenLocation.byteOffset.toInt()
                         return if (token.isScalarValue) {
                             whatCount.set(Count.CountQuotes)
-                            SingleResponse(processScalarValue(token, tokenStart, firstBytes, endStream), null)
+                            SingleResponse(processScalarValue(parser, tokenStart, firstBytes, endStream), null)
                         } else {
                             when (token) {
                                 JsonToken.START_OBJECT -> {
@@ -215,24 +217,30 @@ class JsonRpcStreamParser {
     }
 
     private fun processScalarValue(
-        token: JsonToken,
+        parser: JsonParser,
         tokenStart: Int,
         bytes: ByteArray,
         endStream: AtomicBoolean,
-    ): ByteArray? {
-        if (token == JsonToken.VALUE_NULL) {
-            endStream.set(true)
-            return "null".toByteArray()
-        } else if (token == JsonToken.VALUE_STRING) {
-            for (i in tokenStart + 1 until bytes.size) {
-                if (bytes[i] == QUOTE) {
-                    endStream.set(true)
-                    return Arrays.copyOfRange(bytes, tokenStart, i + 1)
-                }
+    ): ByteArray {
+        when (parser.currentToken) {
+            JsonToken.VALUE_NULL -> {
+                endStream.set(true)
+                return "null".toByteArray()
             }
-            return Arrays.copyOfRange(bytes, tokenStart, bytes.size)
+            JsonToken.VALUE_STRING -> {
+                for (i in tokenStart + 1 until bytes.size) {
+                    if (bytes[i] == QUOTE) {
+                        endStream.set(true)
+                        return Arrays.copyOfRange(bytes, tokenStart, i + 1)
+                    }
+                }
+                return Arrays.copyOfRange(bytes, tokenStart, bytes.size)
+            }
+            else -> {
+                endStream.set(true)
+                return parser.text.toByteArray()
+            }
         }
-        return null
     }
 
     private sealed class Count {

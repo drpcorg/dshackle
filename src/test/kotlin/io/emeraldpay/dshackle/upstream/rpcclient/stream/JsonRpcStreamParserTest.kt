@@ -53,7 +53,7 @@ class JsonRpcStreamParserTest {
         assertTrue(result is StreamResponse)
         assertNotNull(result)
 
-        StepVerifier.create((result as StreamResponse).stream)
+        StepVerifier.create((result as StreamResponse).stream.doOnNext { println(String(it.chunkData)) })
             .expectNextSequence(chunks)
             .expectComplete()
             .verify(Duration.ofSeconds(5))
@@ -63,6 +63,8 @@ class JsonRpcStreamParserTest {
         @JvmStatic
         fun data(): List<Arguments> = listOf(
             Arguments.of("{\"id\": 2,\"result\": \"0x12\"}".toByteArray(), "\"0x12\"".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": 11}".toByteArray(), "11".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": false}".toByteArray(), "false".toByteArray()),
             Arguments.of("{\"id\": 2,\"result\": null}".toByteArray(), "null".toByteArray()),
             Arguments.of("{\"id\": 2,\"result\": {\"name\": \"value\"}".toByteArray(), "{\"name\": \"value\"}".toByteArray()),
             Arguments.of("{\"id\": 2,\"result\": [{\"name\": \"value\"}]".toByteArray(), "[{\"name\": \"value\"}]".toByteArray()),
@@ -78,6 +80,18 @@ class JsonRpcStreamParserTest {
                 ),
             ),
             Arguments.of(
+                listOf(
+                    "{\"id\": 2,\"result\": \"0x12".toByteArray(),
+                    "123\\\"".toByteArray(),
+                    "222\"}".toByteArray(),
+                ),
+                listOf(
+                    Chunk("\"0x12".toByteArray(), false),
+                    Chunk("123\\\"".toByteArray(), false),
+                    Chunk("222\"".toByteArray(), true),
+                ),
+            ),
+            Arguments.of(
                 listOf("{\"id\": 2,\"result\": {\"name\": ".toByteArray(), "\"bigName\"".toByteArray(), "}".toByteArray()),
                 listOf(
                     Chunk("{\"name\": ".toByteArray(), false),
@@ -86,7 +100,12 @@ class JsonRpcStreamParserTest {
                 ),
             ),
             Arguments.of(
-                listOf("{\"id\": 2,\"result\": [{\"name\": ".toByteArray(), "\"bigName\"".toByteArray(), "}]".toByteArray()),
+                listOf(
+                    "{\"id\": 2,\"result\": [{\"name\": ".toByteArray(),
+                    "\"bigName\"".toByteArray(),
+                    "}],".toByteArray(),
+                    "\"field\": \"value\"}".toByteArray(),
+                ),
                 listOf(
                     Chunk("[{\"name\": ".toByteArray(), false),
                     Chunk("\"bigName\"".toByteArray(), false),

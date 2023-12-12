@@ -104,8 +104,6 @@ class DefaultSolanaMethods : CallMethods {
             else -> emptyList()
         }.toSet()
 
-    override fun isStreamMethod(method: String): Boolean = false
-
     override fun getSupportedMethods(): Set<String> {
         return allowedMethods.toSortedSet()
     }

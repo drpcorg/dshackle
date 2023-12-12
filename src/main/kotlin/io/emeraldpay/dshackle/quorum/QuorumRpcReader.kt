@@ -160,7 +160,12 @@ class QuorumRpcReader(
     private fun withSignatureAndUpstream(api: Upstream, key: JsonRpcRequest, response: JsonRpcResponse): Function<Mono<ByteArray>, Mono<Tuple2<JsonRpcResponse, Optional<ResponseSigner.Signature>>>> {
         return Function { src ->
             src.map {
-                val signature = getSignature(key, response, api.getId())
+                // TODO: do streaming signature
+                val signature = if (response.hasStream()) {
+                    null
+                } else {
+                    getSignature(key, response, api.getId())
+                }
                 Tuples.of(response, Optional.ofNullable(signature))
             }
         }

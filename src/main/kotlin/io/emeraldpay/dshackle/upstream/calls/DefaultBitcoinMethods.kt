@@ -97,5 +97,4 @@ class DefaultBitcoinMethods : CallMethods {
     }
 
     override fun getGroupMethods(groupName: String): Set<String> = emptySet()
-    override fun isStreamMethod(method: String): Boolean = false
 }
