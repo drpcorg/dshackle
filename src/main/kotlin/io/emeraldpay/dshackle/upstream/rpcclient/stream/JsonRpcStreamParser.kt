@@ -114,7 +114,7 @@ class JsonRpcStreamParser {
                         } else if (whatCountValue is Count.CountArrayBrackets) {
                             countBrackets(bytes[i], count, ARRAY_OPEN_BRACKET, ARRAY_CLOSE_BRACKET)
                         } else if (whatCountValue is Count.CountQuotes) {
-                            if (bytes[i] == QUOTE && bytes[i-1] != BACKSLASH) {
+                            if (bytes[i] == QUOTE && bytes[i - 1] != BACKSLASH) {
                                 count.decrementAndGet()
                             }
                         }
