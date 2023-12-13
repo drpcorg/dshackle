@@ -95,12 +95,14 @@ class JsonRpcStreamParserTest {
                 listOf(
                     "{\"id\": 2,\"result\": \"0x12".toByteArray(),
                     "1\\n23\\\"".toByteArray(),
-                    "222\\\\\\\\\"}".toByteArray(),
+                    "456\\".toByteArray(),
+                    "\\222\\\\\\\\\"}".toByteArray(),
                 ),
                 listOf(
                     Chunk("\"0x12".toByteArray(), false),
                     Chunk("1\\n23\\\"".toByteArray(), false),
-                    Chunk("222\\\\\\\\\"".toByteArray(), true),
+                    Chunk("456\\".toByteArray(), false),
+                    Chunk("\\222\\\\\\\\\"".toByteArray(), true),
                 ),
             ),
             Arguments.of(
