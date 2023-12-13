@@ -32,18 +32,17 @@ class JsonRpcStreamParser {
             if (first.get() == null) {
                 aggregateResponse(responseStream, statusCode)
             } else {
-                val count = AtomicInteger(1)
                 val whatCount = AtomicReference<Count>()
                 val endStream = AtomicBoolean(false)
 
                 val firstBytes = first.get()!!
 
-                val firstPart: SingleResponse? = parseFirstPart(firstBytes, endStream, whatCount, count)
+                val firstPart: SingleResponse? = parseFirstPart(firstBytes, endStream, whatCount)
 
                 if (firstPart == null) {
                     aggregateResponse(responseStream, statusCode)
                 } else {
-                    processSingleResponse(firstPart, responseStream, endStream, whatCount, count)
+                    processSingleResponse(firstPart, responseStream, endStream, whatCount)
                 }
             }
         }, false,)
@@ -63,7 +62,6 @@ class JsonRpcStreamParser {
         responseStream: Flux<ByteArray>,
         endStream: AtomicBoolean,
         whatCount: AtomicReference<Count>,
-        count: AtomicInteger,
     ): Mono<out Response> {
         if (response.noResponse()) {
             throw IllegalStateException("Invalid JSON structure")
@@ -81,7 +79,6 @@ class JsonRpcStreamParser {
                                 responseStream,
                                 endStream,
                                 whatCount,
-                                count,
                             ),
                         ),
                     )
@@ -100,7 +97,6 @@ class JsonRpcStreamParser {
         responseStream: Flux<ByteArray>,
         endStream: AtomicBoolean,
         whatCount: AtomicReference<Count>,
-        count: AtomicInteger,
     ): Flux<Chunk> {
         return Flux.concat(
             Mono.just(Chunk(firstBytes, false)),
@@ -109,16 +105,20 @@ class JsonRpcStreamParser {
                 .map { bytes ->
                     val whatCountValue = whatCount.get()
                     for (i in bytes.indices) {
-                        if (whatCountValue is Count.CountObjectBrackets) {
-                            countBrackets(bytes[i], count, OBJECT_OPEN_BRACKET, OBJECT_CLOSE_BRACKET)
-                        } else if (whatCountValue is Count.CountArrayBrackets) {
-                            countBrackets(bytes[i], count, ARRAY_OPEN_BRACKET, ARRAY_CLOSE_BRACKET)
-                        } else if (whatCountValue is Count.CountQuotes) {
-                            if (bytes[i] == QUOTE && bytes[i - 1] != BACKSLASH) {
-                                count.decrementAndGet()
+                        when (whatCountValue) {
+                            is CountObjectBrackets -> {
+                                countBrackets(bytes[i], whatCountValue.count, OBJECT_OPEN_BRACKET, OBJECT_CLOSE_BRACKET)
+                            }
+
+                            is CountArrayBrackets -> {
+                                countBrackets(bytes[i], whatCountValue.count, ARRAY_OPEN_BRACKET, ARRAY_CLOSE_BRACKET)
+                            }
+
+                            is CountSlashes -> {
+                                countQuotesAndSlashes(bytes[i], whatCountValue)
                             }
                         }
-                        if (count.get() == 0) {
+                        if (whatCountValue.isFinished()) {
                             endStream.set(true)
                             return@map Chunk(Arrays.copyOfRange(bytes, 0, i + 1), true)
                         }
@@ -140,7 +140,6 @@ class JsonRpcStreamParser {
         firstBytes: ByteArray,
         endStream: AtomicBoolean,
         whatCount: AtomicReference<Count>,
-        count: AtomicInteger,
     ): SingleResponse? {
         jsonFactory.createParser(firstBytes).use { parser ->
             while (true) {
@@ -153,21 +152,24 @@ class JsonRpcStreamParser {
                         val token = parser.nextToken()
                         val tokenStart = parser.tokenLocation.byteOffset.toInt()
                         return if (token.isScalarValue) {
-                            whatCount.set(Count.CountQuotes)
-                            SingleResponse(processScalarValue(parser, tokenStart, firstBytes, endStream), null)
+                            val count = CountSlashes(AtomicInteger(1))
+                            whatCount.set(count)
+                            SingleResponse(processScalarValue(parser, tokenStart, firstBytes, count, endStream), null)
                         } else {
                             when (token) {
                                 JsonToken.START_OBJECT -> {
-                                    whatCount.set(Count.CountObjectBrackets)
+                                    val count = CountObjectBrackets(AtomicInteger(1))
+                                    whatCount.set(count)
                                     SingleResponse(
-                                        processAndCountBrackets(tokenStart, firstBytes, count, endStream, OBJECT_OPEN_BRACKET, OBJECT_CLOSE_BRACKET),
+                                        processAndCountBrackets(tokenStart, firstBytes, count.count, endStream, OBJECT_OPEN_BRACKET, OBJECT_CLOSE_BRACKET),
                                         null,
                                     )
                                 }
                                 JsonToken.START_ARRAY -> {
-                                    whatCount.set(Count.CountArrayBrackets)
+                                    val count = CountArrayBrackets(AtomicInteger(1))
+                                    whatCount.set(count)
                                     SingleResponse(
-                                        processAndCountBrackets(tokenStart, firstBytes, count, endStream, ARRAY_OPEN_BRACKET, ARRAY_CLOSE_BRACKET),
+                                        processAndCountBrackets(tokenStart, firstBytes, count.count, endStream, ARRAY_OPEN_BRACKET, ARRAY_CLOSE_BRACKET),
                                         null,
                                     )
                                 }
@@ -216,10 +218,24 @@ class JsonRpcStreamParser {
         }
     }
 
+    private fun countQuotesAndSlashes(
+        byte: Byte,
+        countSlashes: CountSlashes,
+    ) {
+        if (byte == BACKSLASH && !countSlashes.hasSlash()) {
+            countSlashes.count.incrementAndGet()
+        } else if (countSlashes.hasSlash()) {
+            countSlashes.count.decrementAndGet()
+        } else if (!countSlashes.hasSlash() && byte == QUOTE) {
+            countSlashes.count.set(0)
+        }
+    }
+
     private fun processScalarValue(
         parser: JsonParser,
         tokenStart: Int,
         bytes: ByteArray,
+        countSlashes: CountSlashes,
         endStream: AtomicBoolean,
     ): ByteArray {
         when (parser.currentToken) {
@@ -229,7 +245,8 @@ class JsonRpcStreamParser {
             }
             JsonToken.VALUE_STRING -> {
                 for (i in tokenStart + 1 until bytes.size) {
-                    if (bytes[i] == QUOTE) {
+                    countQuotesAndSlashes(bytes[i], countSlashes)
+                    if (countSlashes.isFinished()) {
                         endStream.set(true)
                         return Arrays.copyOfRange(bytes, tokenStart, i + 1)
                     }
@@ -243,9 +260,24 @@ class JsonRpcStreamParser {
         }
     }
 
-    private sealed class Count {
-        data object CountArrayBrackets : Count()
-        data object CountObjectBrackets : Count()
-        data object CountQuotes : Count()
+    private abstract class Count(
+        val count: AtomicInteger
+    ) {
+        open fun isFinished(): Boolean = count.get() == 0
+    }
+
+    private class CountArrayBrackets(
+        countBrackets: AtomicInteger
+    ) : Count(countBrackets)
+
+    private class CountObjectBrackets(
+        countBrackets: AtomicInteger
+    ) : Count(countBrackets)
+
+    private class CountSlashes(
+        countSlashes: AtomicInteger
+    ) : Count(countSlashes) {
+
+        fun hasSlash() = count.get() == 2
     }
 }

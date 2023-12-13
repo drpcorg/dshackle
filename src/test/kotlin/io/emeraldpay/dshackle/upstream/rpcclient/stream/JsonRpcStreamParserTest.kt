@@ -53,7 +53,7 @@ class JsonRpcStreamParserTest {
         assertTrue(result is StreamResponse)
         assertNotNull(result)
 
-        StepVerifier.create((result as StreamResponse).stream.doOnNext { println(String(it.chunkData)) })
+        StepVerifier.create((result as StreamResponse).stream)
             .expectNextSequence(chunks)
             .expectComplete()
             .verify(Duration.ofSeconds(5))
@@ -89,6 +89,18 @@ class JsonRpcStreamParserTest {
                     Chunk("\"0x12".toByteArray(), false),
                     Chunk("123\\\"".toByteArray(), false),
                     Chunk("222\"".toByteArray(), true),
+                ),
+            ),
+            Arguments.of(
+                listOf(
+                    "{\"id\": 2,\"result\": \"0x12".toByteArray(),
+                    "1\\n23\\\"".toByteArray(),
+                    "222\\\\\\\\\"}".toByteArray(),
+                ),
+                listOf(
+                    Chunk("\"0x12".toByteArray(), false),
+                    Chunk("1\\n23\\\"".toByteArray(), false),
+                    Chunk("222\\\\\\\\\"".toByteArray(), true),
                 ),
             ),
             Arguments.of(
