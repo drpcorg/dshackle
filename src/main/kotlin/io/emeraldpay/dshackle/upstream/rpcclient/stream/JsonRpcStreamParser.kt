@@ -261,21 +261,21 @@ class JsonRpcStreamParser {
     }
 
     private abstract class Count(
-        val count: AtomicInteger
+        val count: AtomicInteger,
     ) {
         open fun isFinished(): Boolean = count.get() == 0
     }
 
     private class CountArrayBrackets(
-        countBrackets: AtomicInteger
+        countBrackets: AtomicInteger,
     ) : Count(countBrackets)
 
     private class CountObjectBrackets(
-        countBrackets: AtomicInteger
+        countBrackets: AtomicInteger,
     ) : Count(countBrackets)
 
     private class CountSlashes(
-        countSlashes: AtomicInteger
+        countSlashes: AtomicInteger,
     ) : Count(countSlashes) {
 
         fun hasSlash() = count.get() == 2
