@@ -395,7 +395,7 @@ open class NativeCall(
         val counter = reader.attempts()
 
         return SpannedReader(reader, tracer, RPC_READER)
-            .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector, ctx.streamRequest))
+            .read(JsonRpcRequest(ctx.payload.method, ctx.payload.params, ctx.nonce, ctx.forwardedSelector, false))
             .map {
                 val upId = it.resolvedBy?.getId() ?: ctx.upstream.getId()
                 if (it.stream == null) {
