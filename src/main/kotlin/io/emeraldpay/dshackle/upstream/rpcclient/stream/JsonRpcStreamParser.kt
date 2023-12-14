@@ -160,7 +160,7 @@ class JsonRpcStreamParser {
                                 whatCount.set(count)
                                 SingleResponse(
                                     processScalarValue(parser, tokenStart, firstBytes, count, endStream),
-                                    null
+                                    null,
                                 )
                             } else {
                                 when (token) {
@@ -174,7 +174,7 @@ class JsonRpcStreamParser {
                                                 count.count,
                                                 endStream,
                                                 OBJECT_OPEN_BRACKET,
-                                                OBJECT_CLOSE_BRACKET
+                                                OBJECT_CLOSE_BRACKET,
                                             ),
                                             null,
                                         )
@@ -190,7 +190,7 @@ class JsonRpcStreamParser {
                                                 count.count,
                                                 endStream,
                                                 ARRAY_OPEN_BRACKET,
-                                                ARRAY_CLOSE_BRACKET
+                                                ARRAY_CLOSE_BRACKET,
                                             ),
                                             null,
                                         )
