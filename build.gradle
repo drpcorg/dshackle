@@ -169,7 +169,7 @@ application {
 
 jib {
     from {
-        image = 'openjdk:20'
+        image = 'docker://drpc-dshackle'
     }
     to {
         // by default publish as:
