@@ -143,7 +143,11 @@ class JsonRpcStreamParser(
                         Mono.empty()
                     }
                 },
-        )
+        ).doOnNext {
+            log.debug("Size chunk {}", it.chunkData.size)
+        }.doOnError {
+            log.error("Error chunks {}", it.message)
+        }
     }
 
     private fun parseFirstPart(
