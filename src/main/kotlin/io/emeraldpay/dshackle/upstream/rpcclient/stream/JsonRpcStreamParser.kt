@@ -33,7 +33,9 @@ class JsonRpcStreamParser(
     }
 
     fun streamParse(statusCode: Int, response: Flux<ByteArray>): Mono<out Response> {
+        log.debug("Start stream request")
         val hotResponse = response.publish().autoConnect()
+            .doFinally { log.info("Hot resp done") }
         val firstPartSize = AtomicInteger()
 
         val firstAccumulate = hotResponse.bufferUntil {
@@ -57,6 +59,9 @@ class JsonRpcStreamParser(
                 }
             }
         }
+            .doOnNext {
+                log.info("Resp type {}", it.javaClass)
+            }
             .onErrorResume {
                 Mono.just(
                     SingleResponse(
@@ -143,9 +148,7 @@ class JsonRpcStreamParser(
                         Mono.empty()
                     }
                 },
-        ).doOnNext {
-            log.debug("Size chunk {}", it.chunkData.size)
-        }.doOnError {
+        ).doOnError {
             log.error("Error chunks {}", it.message)
         }
     }
