@@ -45,7 +45,7 @@ class JsonRpcStreamParser(
             if (it.size == 1) {
                 it[0]
             } else {
-                it.reduce { acc, bytes -> acc.plus(bytes) }.also { i -> println(i.size) }
+                it.reduce { acc, bytes -> acc.plus(bytes) }
             }
         }.switchOnFirst({ first, responseStream ->
             if (first.get() == null || statusCode != 200) {
