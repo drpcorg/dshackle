@@ -44,7 +44,7 @@ class JsonRpcStreamParser(
         }.map {
             it.reduce { acc, bytes -> acc.plus(bytes) }
         }.switchOnFirst({ first, responseStream ->
-            if (first.get() == null || statusCode == 200) {
+            if (first.get() == null || statusCode != 200) {
                 aggregateResponse(responseStream, statusCode)
             } else {
                 val whatCount = AtomicReference<Count>()
