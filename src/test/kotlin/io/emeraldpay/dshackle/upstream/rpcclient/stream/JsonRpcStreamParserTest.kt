@@ -90,11 +90,11 @@ class JsonRpcStreamParserTest {
         @JvmStatic
         fun data(): List<Arguments> = listOf(
             Arguments.of("{\"id\": 2,\"result\": \"0x12\"}".toByteArray(), "\"0x12\"".toByteArray()),
-//            Arguments.of("{\"id\": 2,\"result\": 11}".toByteArray(), "11".toByteArray()),
-//            Arguments.of("{\"id\": 2,\"result\": false}".toByteArray(), "false".toByteArray()),
-//            Arguments.of("{\"id\": 2,\"result\": null}".toByteArray(), "null".toByteArray()),
-//            Arguments.of("{\"id\": 2,\"result\": {\"name\": \"value\"}".toByteArray(), "{\"name\": \"value\"}".toByteArray()),
-//            Arguments.of("{\"id\": 2,\"result\": [{\"name\": \"value\"}]".toByteArray(), "[{\"name\": \"value\"}]".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": 11}".toByteArray(), "11".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": false}".toByteArray(), "false".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": null}".toByteArray(), "null".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": {\"name\": \"value\"}".toByteArray(), "{\"name\": \"value\"}".toByteArray()),
+            Arguments.of("{\"id\": 2,\"result\": [{\"name\": \"value\"}]".toByteArray(), "[{\"name\": \"value\"}]".toByteArray()),
         )
 
         @JvmStatic
