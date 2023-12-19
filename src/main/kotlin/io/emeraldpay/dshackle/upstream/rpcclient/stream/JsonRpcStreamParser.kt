@@ -33,39 +33,30 @@ class JsonRpcStreamParser(
     }
 
     fun streamParse(statusCode: Int, response: Flux<ByteArray>): Mono<out Response> {
+        val hotResponse = response.publish().autoConnect()
         val firstPartSize = AtomicInteger()
-        return response.bufferUntil {
-            if (firstPartSize.get() > firstChunkMaxSize) {
-                true
-            } else {
-                firstPartSize.addAndGet(it.size)
-                firstPartSize.get() > firstChunkMaxSize // accumulate bytes until chunk is full
-            }
-        }.map {
-            if (it.size == 1) {
-                it[0]
-            } else {
-                it.reduce { acc, bytes -> acc.plus(bytes) }
-            }
-        }.switchOnFirst({ first, responseStream ->
-            if (first.get() == null || statusCode != 200) {
-                aggregateResponse(responseStream, statusCode)
+
+        val firstAccumulate = hotResponse.bufferUntil {
+            firstPartSize.addAndGet(it.size)
+            firstPartSize.get() > firstChunkMaxSize
+        }.next().map { it.reduce { acc, bytes -> acc.plus(bytes) } }
+
+        return firstAccumulate.flatMap { firstBytes ->
+            if (statusCode != 200) {
+                aggregateResponse(Flux.concat(Mono.just(firstBytes), hotResponse), statusCode)
             } else {
                 val whatCount = AtomicReference<Count>()
                 val endStream = AtomicBoolean(false)
 
-                val firstBytes = first.get()!!
-
                 val firstPart: SingleResponse? = parseFirstPart(firstBytes, endStream, whatCount)
 
                 if (firstPart == null) {
-                    aggregateResponse(responseStream, statusCode)
+                    aggregateResponse(Flux.concat(Mono.just(firstBytes), hotResponse), statusCode)
                 } else {
-                    processSingleResponse(firstPart, responseStream, endStream, whatCount)
+                    processSingleResponse(firstPart, hotResponse, endStream, whatCount)
                 }
             }
-        }, false,)
-            .single()
+        }
             .onErrorResume {
                 Mono.just(
                     SingleResponse(
@@ -119,7 +110,7 @@ class JsonRpcStreamParser(
     ): Flux<Chunk> {
         return Flux.concat(
             Mono.just(Chunk(firstBytes, false)),
-            responseStream.skip(1)
+            responseStream
                 .filter { !endStream.get() }
                 .map { bytes ->
                     val whatCountValue = whatCount.get()
