@@ -39,6 +39,7 @@ class JsonRpcStreamParser(
         val firstPartSize = AtomicInteger()
 
         val firstAccumulate = hotResponse.bufferUntil {
+            log.debug("Bytes size {}", it.size)
             firstPartSize.addAndGet(it.size)
             firstPartSize.get() > firstChunkMaxSize
         }.next().map { it.reduce { acc, bytes -> acc.plus(bytes) } }
@@ -59,16 +60,16 @@ class JsonRpcStreamParser(
                 }
             }
         }
-            .doOnNext {
-                log.info("Resp type {}", it.javaClass)
-            }
             .onErrorResume {
+                log.error(it.message)
                 Mono.just(
                     SingleResponse(
                         null,
                         JsonRpcError(RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE, it.message ?: "Internal error"),
                     ),
                 )
+            }.doOnNext {
+                log.info("Resp type {}", it.javaClass)
             }
     }
 
@@ -148,9 +149,7 @@ class JsonRpcStreamParser(
                         Mono.empty()
                     }
                 },
-        ).doOnError {
-            log.error("Error chunks {}", it.message)
-        }
+        )
     }
 
     private fun parseFirstPart(
