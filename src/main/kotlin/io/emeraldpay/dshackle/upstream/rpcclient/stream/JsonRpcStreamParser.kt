@@ -33,18 +33,19 @@ class JsonRpcStreamParser(
     }
 
     fun streamParse(statusCode: Int, response: Flux<ByteArray>): Mono<out Response> {
-        log.debug("Start stream request")
         val hotResponse = response.publish().autoConnect()
-            .doFinally { log.info("Hot resp done") }
         val firstPartSize = AtomicInteger()
 
         val firstAccumulate = hotResponse.bufferUntil {
-            log.debug("Bytes size {}", it.size)
+            log.info("Bytes size {}", it.size)
             firstPartSize.addAndGet(it.size)
             firstPartSize.get() > firstChunkMaxSize
         }.next().map { it.reduce { acc, bytes -> acc.plus(bytes) } }
 
         return firstAccumulate.flatMap { firstBytes ->
+            if (firstBytes.size == 97) {
+                log.info("97 bytes {}", String(firstBytes))
+            }
             if (statusCode != 200) {
                 aggregateResponse(Flux.concat(Mono.just(firstBytes), hotResponse), statusCode)
             } else {
