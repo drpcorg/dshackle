@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.polkadot.PolkadotLowerBoundBlockDetector
@@ -32,7 +33,7 @@ class RecursiveLowerBoundBlockDetectorTest {
             on { getIngressReader() } doReturn reader
         }
 
-        val detector = detectorClass.getConstructor(Upstream::class.java).newInstance(upstream)
+        val detector = detectorClass.getConstructor(Chain::class.java, Upstream::class.java).newInstance(Chain.UNSPECIFIED, upstream)
 
         StepVerifier.withVirtualTime { detector.lowerBlock() }
             .expectSubscription()
@@ -58,7 +59,7 @@ class RecursiveLowerBoundBlockDetectorTest {
             on { getIngressReader() } doReturn reader
         }
 
-        val detector = detectorClass.getConstructor(Upstream::class.java).newInstance(upstream)
+        val detector = detectorClass.getConstructor(Chain::class.java, Upstream::class.java).newInstance(Chain.UNSPECIFIED, upstream)
 
         StepVerifier.withVirtualTime { detector.lowerBlock() }
             .expectSubscription()

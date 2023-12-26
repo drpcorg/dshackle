@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.RecursiveLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
@@ -8,8 +9,9 @@ import io.emeraldpay.dshackle.upstream.toHex
 import reactor.core.publisher.Mono
 
 class EthereumLowerBoundBlockDetector(
+    chain: Chain,
     private val upstream: Upstream,
-) : RecursiveLowerBoundBlockDetector(upstream) {
+) : RecursiveLowerBoundBlockDetector(chain, upstream) {
 
     override fun hasState(blockNumber: Long): Mono<Boolean> {
         return upstream.getIngressReader().read(

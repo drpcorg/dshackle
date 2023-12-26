@@ -62,7 +62,7 @@ interface ChainSpecific {
 
     fun callSelector(caches: Caches): CallSelector?
 
-    fun lowerBoundBlockDetector(upstream: Upstream): LowerBoundBlockDetector
+    fun lowerBoundBlockDetector(chain: Chain, upstream: Upstream): LowerBoundBlockDetector
 }
 
 object ChainSpecificRegistry {

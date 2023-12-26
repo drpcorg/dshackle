@@ -1,10 +1,12 @@
 package io.emeraldpay.dshackle.upstream
 
+import io.emeraldpay.dshackle.Chain
 import reactor.core.publisher.Mono
 
 abstract class RecursiveLowerBoundBlockDetector(
+    chain: Chain,
     private val upstream: Upstream,
-) : LowerBoundBlockDetector() {
+) : LowerBoundBlockDetector(chain, upstream) {
 
     override fun lowerBlockDetect(): Mono<LowerBlockData> {
         return Mono.just(upstream.getHead())

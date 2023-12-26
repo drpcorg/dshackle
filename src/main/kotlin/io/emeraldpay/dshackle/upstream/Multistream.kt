@@ -414,9 +414,10 @@ abstract class Multistream(
         val weak = getUpstreams()
             .filter { it.getStatus() != UpstreamAvailability.OK }
             .joinToString(", ") { it.getId() }
+        val lowerBlockData = "[height=${lowerBlock.blockNumber}, slot=${lowerBlock.slot ?: "NA"}]"
 
         val instance = System.identityHashCode(this).toString(16)
-        log.info("State of ${chain.chainCode}: height=${height ?: '?'}, status=[$statuses], lag=[$lag], weak=[$weak] ($instance)")
+        log.info("State of ${chain.chainCode}: height=${height ?: '?'}, status=[$statuses], lag=[$lag], lower block=$lowerBlockData, weak=[$weak] ($instance)")
     }
 
     fun test(event: UpstreamChangeEvent): Boolean {

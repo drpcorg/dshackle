@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.solana
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.LowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.Upstream
@@ -8,8 +9,9 @@ import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import reactor.core.publisher.Mono
 
 class SolanaLowerBoundBlockDetector(
-    private val upstream: Upstream,
-) : LowerBoundBlockDetector() {
+    chain: Chain,
+    upstream: Upstream,
+) : LowerBoundBlockDetector(chain, upstream) {
     private val reader = upstream.getIngressReader()
 
     override fun lowerBlockDetect(): Mono<LowerBlockData> {

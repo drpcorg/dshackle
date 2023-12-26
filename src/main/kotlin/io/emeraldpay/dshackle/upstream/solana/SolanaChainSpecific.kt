@@ -137,8 +137,8 @@ object SolanaChainSpecific : AbstractChainSpecific() {
         )
     }
 
-    override fun lowerBoundBlockDetector(upstream: Upstream): LowerBoundBlockDetector {
-        return SolanaLowerBoundBlockDetector(upstream)
+    override fun lowerBoundBlockDetector(chain: Chain, upstream: Upstream): LowerBoundBlockDetector {
+        return SolanaLowerBoundBlockDetector(chain, upstream)
     }
 
     override fun labelDetector(chain: Chain, reader: JsonRpcReader): LabelsDetector? {

@@ -104,8 +104,8 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
         )
     }
 
-    override fun lowerBoundBlockDetector(upstream: Upstream): LowerBoundBlockDetector {
-        return PolkadotLowerBoundBlockDetector(upstream)
+    override fun lowerBoundBlockDetector(chain: Chain, upstream: Upstream): LowerBoundBlockDetector {
+        return PolkadotLowerBoundBlockDetector(chain, upstream)
     }
 
     fun validate(data: ByteArray, peers: Int, upstreamId: String): UpstreamAvailability {

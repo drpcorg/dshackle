@@ -89,8 +89,8 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         return EthereumUpstreamValidator(chain, upstream, options, config)
     }
 
-    override fun lowerBoundBlockDetector(upstream: Upstream): LowerBoundBlockDetector {
-        return EthereumLowerBoundBlockDetector(upstream)
+    override fun lowerBoundBlockDetector(chain: Chain, upstream: Upstream): LowerBoundBlockDetector {
+        return EthereumLowerBoundBlockDetector(chain, upstream)
     }
 
     override fun labelDetector(chain: Chain, reader: JsonRpcReader): LabelsDetector {

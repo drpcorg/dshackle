@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.solana
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.reader.JsonRpcReader
 import io.emeraldpay.dshackle.upstream.LowerBoundBlockDetector
@@ -55,7 +56,7 @@ class SolanaLowerBoundBlockDetectorTest {
             on { getIngressReader() } doReturn reader
         }
 
-        val detector = SolanaLowerBoundBlockDetector(upstream)
+        val detector = SolanaLowerBoundBlockDetector(Chain.UNSPECIFIED, upstream)
 
         StepVerifier.withVirtualTime { detector.lowerBlock() }
             .expectSubscription()

@@ -1,16 +1,23 @@
 package io.emeraldpay.dshackle.upstream
 
+import io.emeraldpay.dshackle.Chain
+import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
 
-typealias LowerBoundBlockDetectorBuilder = (Upstream) -> LowerBoundBlockDetector
+typealias LowerBoundBlockDetectorBuilder = (Chain, Upstream) -> LowerBoundBlockDetector
 
 fun Long.toHex() = "0x${this.toString(16)}"
 
-abstract class LowerBoundBlockDetector {
+abstract class LowerBoundBlockDetector(
+    private val chain: Chain,
+    private val upstream: Upstream,
+) {
     private val currentLowerBlock = AtomicReference(LowerBlockData.default())
+
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     fun lowerBlock(): Flux<LowerBlockData> {
         return Flux.interval(
@@ -20,6 +27,8 @@ abstract class LowerBoundBlockDetector {
             .flatMap { lowerBlockDetect() }
             .filter { it.blockNumber > currentLowerBlock.get().blockNumber }
             .map {
+                log.info("Lower block of ${upstream.getId()} $chain: block height - {}, slot - {}", it.blockNumber, it.slot ?: "NA")
+
                 currentLowerBlock.set(it)
                 it
             }

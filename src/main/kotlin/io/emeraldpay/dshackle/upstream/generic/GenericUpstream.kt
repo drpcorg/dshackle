@@ -54,7 +54,7 @@ open class GenericUpstream(
     private var livenessSubscription: Disposable? = null
     private val labelsDetector = labelsDetectorBuilder(chain, this.getIngressReader())
 
-    private val lowerBoundBlockDetector = lowerBoundBlockDetectorBuilder(this)
+    private val lowerBoundBlockDetector = lowerBoundBlockDetectorBuilder(chain, this)
 
     override fun getHead(): Head {
         return connector.getHead()

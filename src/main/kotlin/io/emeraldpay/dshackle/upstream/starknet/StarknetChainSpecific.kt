@@ -70,8 +70,8 @@ object StarknetChainSpecific : AbstractPollChainSpecific() {
         )
     }
 
-    override fun lowerBoundBlockDetector(upstream: Upstream): LowerBoundBlockDetector {
-        return StarknetLowerBoundBlockDetector()
+    override fun lowerBoundBlockDetector(chain: Chain, upstream: Upstream): LowerBoundBlockDetector {
+        return StarknetLowerBoundBlockDetector(chain, upstream)
     }
 
     fun validate(data: ByteArray, lagging: Int, upstreamId: String): UpstreamAvailability {
