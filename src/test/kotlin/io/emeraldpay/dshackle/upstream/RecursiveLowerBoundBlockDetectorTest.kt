@@ -5,7 +5,6 @@ import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.polkadot.PolkadotLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
-import io.emeraldpay.dshackle.upstream.starknet.StarknetLowerBoundBlockDetector
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -87,22 +86,6 @@ class RecursiveLowerBoundBlockDetectorTest {
                     blocks.forEach {
                         if (it == 17964844L) {
                             on {
-                                read(JsonRpcRequest("starknet_getStateUpdate", listOf(mapOf("block_number" to it))))
-                            } doReturn Mono.just(JsonRpcResponse(ByteArray(0), null))
-                        } else {
-                            on {
-                                read(JsonRpcRequest("starknet_getStateUpdate", listOf(mapOf("block_number" to it))))
-                            } doReturn Mono.error(RuntimeException())
-                        }
-                    }
-                },
-                StarknetLowerBoundBlockDetector::class.java,
-            ),
-            Arguments.of(
-                mock<JsonRpcReader> {
-                    blocks.forEach {
-                        if (it == 17964844L) {
-                            on {
                                 read(JsonRpcRequest("eth_getBalance", listOf("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0", it.toHex())))
                             } doReturn Mono.just(JsonRpcResponse(ByteArray(0), null))
                         } else {
@@ -156,12 +139,6 @@ class RecursiveLowerBoundBlockDetectorTest {
                     on { read(any()) } doReturn Mono.just(JsonRpcResponse(ByteArray(0), null))
                 },
                 EthereumLowerBoundBlockDetector::class.java,
-            ),
-            Arguments.of(
-                mock<JsonRpcReader> {
-                    on { read(any()) } doReturn Mono.just(JsonRpcResponse(ByteArray(0), null))
-                },
-                StarknetLowerBoundBlockDetector::class.java,
             ),
         )
     }
