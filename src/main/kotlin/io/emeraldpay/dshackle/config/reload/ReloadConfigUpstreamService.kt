@@ -26,8 +26,8 @@ open class ReloadConfigUpstreamService(
             .collect(
                 Collectors.groupingBy(
                     { chainById(it.chain) },
-                    Collectors.counting()
-                )
+                    Collectors.counting(),
+                ),
             )
 
         val usedChains = removeUpstreams(chainsToReload, upstreamsToRemove)
