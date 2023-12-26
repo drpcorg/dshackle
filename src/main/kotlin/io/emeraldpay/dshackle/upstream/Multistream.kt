@@ -79,6 +79,9 @@ abstract class Multistream(
     private var capabilities: Set<Capability> = emptySet()
 
     @Volatile
+    private var lowerBlock: LowerBoundBlockDetector.LowerBlockData = LowerBoundBlockDetector.LowerBlockData.default()
+
+    @Volatile
     private var quorumLabels: List<QuorumForLabels.QuorumItem>? = null
     private val meters: MutableMap<String, List<Meter.Id>> = HashMap()
     private val addedUpstreams = Sinks.many()
@@ -227,6 +230,10 @@ abstract class Multistream(
             }
         }
         quorumLabels = getQuorumLabels(availableUpstreams)
+        availableUpstreams
+            .filter { it.getLowerBlock() != LowerBoundBlockDetector.LowerBlockData.default() }
+            .minOfOrNull { it.getLowerBlock() }
+            ?.let { lowerBlock = it }
         when {
             upstreams.size == 1 -> {
                 lagObserver?.stop()
@@ -313,11 +320,11 @@ abstract class Multistream(
         started = true
     }
 
+    override fun getLowerBlock(): LowerBoundBlockDetector.LowerBlockData = lowerBlock
+
     private fun observeUpstreamsStatuses() {
         subscribeAddedUpstreams()
-            .distinctUntilChanged {
-                it.getId()
-            }.flatMap { upstream ->
+            .flatMap { upstream ->
                 val statusStream = upstream.observeStatus()
                     .map { UpstreamChangeEvent(this.chain, upstream, UpstreamChangeEvent.ChangeType.UPDATED) }
                 val stateStream = upstream.observeState()
