@@ -7,6 +7,8 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcRequest
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import reactor.core.publisher.Mono
+import reactor.util.retry.Retry
+import java.time.Duration
 
 class SolanaLowerBoundBlockDetector(
     chain: Chain,
@@ -65,8 +67,8 @@ class SolanaLowerBoundBlockDetector(
                         }
                 }
             }
-            .onErrorResume {
-                Mono.empty()
-            }
+            .retryWhen(
+                Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(3)),
+            )
     }
 }
