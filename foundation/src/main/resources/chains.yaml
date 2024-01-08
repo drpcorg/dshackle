@@ -264,7 +264,7 @@ chain-settings:
         - id: Sepolia
           priority: 1
           code: ZKS_SEPOLIA
-          grpcId: 10036
+          grpcId: 10046
           chain-id: 0x12c
           short-names: [zksync-sepolia]
     - id: base
