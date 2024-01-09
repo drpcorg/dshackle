@@ -190,9 +190,11 @@ open class GenericUpstream(
     }
 
     override fun stop() {
+        partialStop()
         validationSettingsSubscription?.dispose()
         validationSettingsSubscription = null
         connector.stop()
+        started.set(false)
     }
 
     private fun partialStop() {
