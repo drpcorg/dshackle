@@ -68,7 +68,7 @@ interface RpcReaderFactory {
             if (data.method == "eth_sendRawTransaction" || data.method == "eth_getTransactionCount") {
                 return BroadcastReader(data.multistream.getAll(), data.matcher, data.signer, data.quorum, data.tracer)
             }
-            val apis = data.multistream.getApiSource(data.matcher)
+            val apis = data.multistream.getApiSource(data.matcher, data.method)
             return QuorumRpcReader(apis, data.quorum, data.signer, data.tracer)
         }
     }

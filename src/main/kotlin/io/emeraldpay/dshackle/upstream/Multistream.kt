@@ -213,6 +213,14 @@ abstract class Multistream(
         return FilteredApis(chain, getUpstreams(), matcher, i)
     }
 
+    open fun getApiSource(matcher: Selector.Matcher, method: String): ApiSource {
+        val i = seq++
+        if (seq >= Int.MAX_VALUE / 2) {
+            seq = 0
+        }
+        return FilteredApis(chain, getUpstreams(), matcher, i, method)
+    }
+
     /**
      * Finds an API that leverages caches and other optimizations/transformations of the request.
      */
