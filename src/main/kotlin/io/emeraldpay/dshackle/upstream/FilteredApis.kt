@@ -159,7 +159,6 @@ class FilteredApis(
             .filter { up ->
                 val matchesResponse = internalMatcher.matchesWithCause(up)
                 processMatchesResponse(up.getId(), matchesResponse)
-                println("${up.getId()} - ${matchesResponse.getCause()}")
                 matchesResponse.matched()
                     .also {
                         if (!it) {
