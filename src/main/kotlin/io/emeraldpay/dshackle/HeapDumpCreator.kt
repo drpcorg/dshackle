@@ -45,7 +45,7 @@ class HeapDumpCreator {
 
         private fun configHeapDump(dumpsPath: String, appName: String) {
             val date = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
-            val fileName = "$dumpsPath/heap_${date}_${appName}.hprof"
+            val fileName = "$dumpsPath/heap_${date}_$appName.hprof"
 
             val bean = ManagementFactory.newPlatformMXBeanProxy(
                 ManagementFactory.getPlatformMBeanServer(),
