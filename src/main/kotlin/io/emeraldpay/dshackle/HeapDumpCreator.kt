@@ -35,7 +35,7 @@ class HeapDumpCreator {
             if (enableCreateDumps && dumpsPathExists) {
                 executorService.scheduleAtFixedRate({ dumpCheckTask(dumpsPath) }, 0, 30, TimeUnit.MINUTES)
 
-                val appName = envVars["DRPC_APP_NAME"] ?: "dshackle"
+                val appName = envVars["DSHACKLE_APP_NAME"] ?: "dshackle"
 
                 configHeapDump(dumpsPath, appName)
             } else {
