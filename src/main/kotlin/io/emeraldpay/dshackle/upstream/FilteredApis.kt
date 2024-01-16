@@ -38,7 +38,6 @@ class FilteredApis(
     matcher: Selector.Matcher,
     private val pos: Int,
     private val retries: Int,
-    private val method: String = "",
 ) : ApiSource {
     private val internalMatcher: Selector.Matcher
 
@@ -69,14 +68,6 @@ class FilteredApis(
         matcher: Selector.Matcher,
         pos: Int,
     ) : this(chain, allUpstreams, matcher, pos, DEFAULT_RETRY_LIMIT)
-
-    constructor(
-        chain: Chain,
-        allUpstreams: List<Upstream>,
-        matcher: Selector.Matcher,
-        pos: Int,
-        method: String,
-    ) : this(chain, allUpstreams, matcher, pos, DEFAULT_RETRY_LIMIT, method)
 
     constructor(
         chain: Chain,
@@ -170,12 +161,6 @@ class FilteredApis(
                 processMatchesResponse(up.getId(), matchesResponse)
                 matchesResponse.matched()
                     .also {
-                        if (method == "eth_blockNumber") {
-                            val cause = matchesResponse.getCause()
-                            if (cause != null) {
-                                log.info("${up.getId()} - $cause")
-                            }
-                        }
                         if (!it) {
                             this.request(1)
                         }

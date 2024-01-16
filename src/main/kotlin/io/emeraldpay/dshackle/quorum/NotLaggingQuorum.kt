@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference
  * NOTE: NativeCall checks the quorums and applies a HeightSelector if NotLaggingQuorum is enabled for a call
  */
 class NotLaggingQuorum(val maxLag: Long = 0) : CallQuorum {
+
     private val result: AtomicReference<JsonRpcResponse> = AtomicReference()
     private val failed = AtomicReference(false)
     private var rpcError: JsonRpcError? = null
