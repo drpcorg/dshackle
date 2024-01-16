@@ -21,7 +21,6 @@ import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcError
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcException
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcResponse
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
-import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -30,8 +29,6 @@ import java.util.concurrent.atomic.AtomicReference
  * NOTE: NativeCall checks the quorums and applies a HeightSelector if NotLaggingQuorum is enabled for a call
  */
 class NotLaggingQuorum(val maxLag: Long = 0) : CallQuorum {
-    private val log = LoggerFactory.getLogger(NotLaggingQuorum::class.java)
-
     private val result: AtomicReference<JsonRpcResponse> = AtomicReference()
     private val failed = AtomicReference(false)
     private var rpcError: JsonRpcError? = null
@@ -51,16 +48,7 @@ class NotLaggingQuorum(val maxLag: Long = 0) : CallQuorum {
         signature: ResponseSigner.Signature?,
         upstream: Upstream,
     ): Boolean {
-        val lagging = upstream.getLag()
-            ?.run {
-                (this > maxLag)
-                    .also {
-                        if (it) {
-                            log.info("${upstream.getId()} - $this")
-                        }
-                    }
-            }
-            ?: true
+        val lagging = upstream.getLag()?.run { this > maxLag } ?: true
         if (!lagging) {
             result.set(response)
             sig = signature

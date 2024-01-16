@@ -37,7 +37,7 @@ class HeadLagObserver(
     private val distanceExtractor: Extractor,
     private val lagObserverScheduler: Scheduler,
     private val forkDistance: Long,
-    private val throttling: Duration = Duration.ofSeconds(5),
+    private val throttling: Duration = Duration.ofMillis(500),
 ) : Lifecycle {
 
     private val log = LoggerFactory.getLogger(HeadLagObserver::class.java)
