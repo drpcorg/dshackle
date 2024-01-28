@@ -737,7 +737,7 @@ chain-settings:
       type: solana
       settings:
         currency: SOL
-        expected-block-time: 4000ms
+        expected-block-time: 1s
         options:
           validate-peers: false
         lags:
