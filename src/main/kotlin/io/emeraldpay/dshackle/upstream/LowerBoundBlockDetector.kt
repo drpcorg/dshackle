@@ -26,7 +26,7 @@ abstract class LowerBoundBlockDetector(
 
         return Flux.interval(
             Duration.ofSeconds(15),
-            Duration.ofMinutes(10),
+            Duration.ofMinutes(periodRequest()),
         )
             .filter { notProcessing.get() }
             .flatMap {
@@ -48,6 +48,8 @@ abstract class LowerBoundBlockDetector(
     fun getCurrentLowerBlock(): LowerBlockData = currentLowerBlock.get()
 
     protected abstract fun lowerBlockDetect(): Mono<LowerBlockData>
+
+    protected abstract fun periodRequest(): Long
 
     data class LowerBlockData(
         val blockNumber: Long,

@@ -71,5 +71,9 @@ abstract class RecursiveLowerBoundBlockDetector(
             }
     }
 
+    override fun periodRequest(): Long {
+        return 10
+    }
+
     protected abstract fun hasState(blockNumber: Long): Mono<Boolean>
 }
