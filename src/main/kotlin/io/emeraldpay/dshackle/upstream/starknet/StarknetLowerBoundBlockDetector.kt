@@ -16,6 +16,6 @@ class StarknetLowerBoundBlockDetector(
     }
 
     override fun periodRequest(): Long {
-        return Long.MAX_VALUE
+        return 120
     }
 }
