@@ -33,6 +33,7 @@ abstract class LowerBoundBlockDetector(
             .flatMap {
                 notProcessing.set(false)
                 lowerBlockDetect()
+                    .onErrorResume { Mono.just(LowerBlockData.default()) }
                     .switchIfEmpty { Mono.just(LowerBlockData.default()) } // just to trigger onNext event
             }
             .doOnNext {
