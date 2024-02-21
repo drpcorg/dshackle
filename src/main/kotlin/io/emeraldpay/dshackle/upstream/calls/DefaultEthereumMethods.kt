@@ -231,7 +231,6 @@ class DefaultEthereumMethods(
             firstValueMethods +
             possibleNotIndexedMethods +
             specialMethods +
-            hardcodedMethods +
             headVerifiedMethods -
             chainUnsupportedMethods(chain) +
             getDrpcVendorMethods(chain) +
@@ -408,16 +407,6 @@ class DefaultEthereumMethods(
         }.toSet()
 
     override fun getSupportedMethods(): Set<String> {
-        return allowedMethods.toSortedSet()
-    }
-
-    data class HardcodedData private constructor(
-        val netVersion: String,
-        val chainId: String,
-    ) {
-        companion object {
-            fun createHardcodedData(netVersion: String, chainId: String): HardcodedData =
-                HardcodedData(netVersion.lowercase(), chainId.lowercase())
-        }
+        return allowedMethods.plus(hardcodedMethods).toSortedSet()
     }
 }
