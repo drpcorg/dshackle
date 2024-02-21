@@ -115,7 +115,7 @@ class DefaultEthereumMethods(
         "hmyv2_getTransactionByBlockHashAndIndex",
         "hmyv2_getBlockByNumber",
         "hmyv2_getBlockByHash",
-        "hmyv2_getCXReceiptByHash"
+        "hmyv2_getCXReceiptByHash",
     )
 
     private val firstValueMethods = listOf(
@@ -138,7 +138,7 @@ class DefaultEthereumMethods(
     private val harmonySpecialMethods = listOf(
         "hmy_sendRawStakingTransaction",
         "hmy_sendRawTransaction",
-        "hmy_getTransactionCount"
+        "hmy_getTransactionCount",
     )
 
     private val headVerifiedMethods = listOf(
@@ -221,7 +221,7 @@ class DefaultEthereumMethods(
         "hmyv2_blockNumber",
         "hmyv2_gasPrice",
         "hmyv2_getEpoch",
-        "hmyv2_getValidators"
+        "hmyv2_getValidators",
     )
 
     private val allowedMethods: List<String>
@@ -242,8 +242,8 @@ class DefaultEthereumMethods(
             possibleNotIndexedMethods.contains(method) || harmonyPossibleNotIndexedMethods.contains(method) -> NotNullQuorum()
             specialMethods.contains(method) || harmonySpecialMethods.contains(method) -> {
                 when (method) {
-                    "eth_getTransactionCount" -> MaximumValueQuorum()
-                    "eth_sendRawTransaction", "hmy_sendRawStakingTransaction", "hmy_sendRawTransaction", "hmy_getTransactionCount" -> BroadcastQuorum()
+                    "eth_getTransactionCount", "hmy_getTransactionCount" -> MaximumValueQuorum()
+                    "eth_sendRawTransaction", "hmy_sendRawStakingTransaction", "hmy_sendRawTransaction" -> BroadcastQuorum()
                     else -> AlwaysQuorum()
                 }
             }
@@ -309,18 +309,20 @@ class DefaultEthereumMethods(
                 "zks_L1ChainId",
             )
 
-            Chain.HARMONY__MAINNET_SHARD_0 -> harmonyMethods
-                .plus(harmonySpecialMethods)
-                .plus(harmonyPossibleNotIndexedMethods)
-                .plus(
-                    listOf(
-                        "hmy_getCurrentUtilityMetrics",
+            Chain.HARMONY__MAINNET_SHARD_0 ->
+                harmonyMethods
+                    .plus(harmonySpecialMethods)
+                    .plus(harmonyPossibleNotIndexedMethods)
+                    .plus(
+                        listOf(
+                            "hmy_getCurrentUtilityMetrics",
+                        ),
                     )
-                )
 
-            Chain.HARMONY__MAINNET_SHARD_1 -> harmonyMethods
-                .plus(harmonySpecialMethods)
-                .plus(harmonyPossibleNotIndexedMethods)
+            Chain.HARMONY__MAINNET_SHARD_1 ->
+                harmonyMethods
+                    .plus(harmonySpecialMethods)
+                    .plus(harmonyPossibleNotIndexedMethods)
 
             else -> emptyList()
         }
