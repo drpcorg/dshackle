@@ -39,7 +39,7 @@ class RpcReaderFactoryTest {
                         MaximumValueQuorum(),
                         null,
                         tracer,
-                    )
+                    ),
                 ),
                 Arguments.of(
                     RpcReaderFactory.RpcReaderData(
@@ -49,7 +49,7 @@ class RpcReaderFactoryTest {
                         BroadcastQuorum(),
                         null,
                         tracer,
-                    )
+                    ),
                 ),
             )
         }
