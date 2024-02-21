@@ -231,6 +231,7 @@ class DefaultEthereumMethods(
             firstValueMethods +
             possibleNotIndexedMethods +
             specialMethods +
+            hardcodedMethods +
             headVerifiedMethods -
             chainUnsupportedMethods(chain) +
             getDrpcVendorMethods(chain) +
@@ -407,7 +408,7 @@ class DefaultEthereumMethods(
         }.toSet()
 
     override fun getSupportedMethods(): Set<String> {
-        return allowedMethods.plus(hardcodedMethods).toSortedSet()
+        return allowedMethods.toSortedSet()
     }
 
     data class HardcodedData private constructor(
