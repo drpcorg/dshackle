@@ -441,7 +441,7 @@ chain-settings:
         - id: Sepolia
           priority: 10
           code: MANTLE_SEPOLIA
-          grpcId: 10064
+          grpcId: 10066
           short-names: [mantle-sepolia]
           chain-id: 0x138b
     - id: klaytn
