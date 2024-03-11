@@ -1361,3 +1361,37 @@ chain-settings:
           grpcId: 1052
           short-names: [dymension]
           chain-id: 0x44c
+    - id: beacon-chain
+      label: Beacon Chain
+      type: beacon-chain
+      api-type: rest
+      settings:
+        expected-block-time: 12s
+        lags:
+          syncing: 6
+          lagging: 1
+      chains:
+        - id: Mainnet
+          chain-id: 0x0
+          short-names: [beacon-chain]
+          code: ETH_BEACON_CHAIN
+          grpcId: 1053
+          priority: 100
+        - id: Goerli
+          chain-id: 0x0
+          code: GOERLI_BEACON_CHAIN
+          grpcId: 10069
+          priority: 1
+          short-names: [beacon-chain-goerli]
+        - id: Sepolia
+          code: SEPOLIA_BEACON_CHAIN
+          grpcId: 10070
+          priority: 10
+          chain-id: 0x0
+          short-names: [beacon-chain-sepolia]
+        - id: Holesky
+          code: ETHEREUM_HOLESKY_BEACON_CHAIN
+          grpcId: 10071
+          priority: 5
+          chain-id: 0x0
+          short-names: [beacon-chain-holesky]
