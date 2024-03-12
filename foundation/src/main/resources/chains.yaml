@@ -1363,7 +1363,7 @@ chain-settings:
           chain-id: 0x44c
     - id: beacon-chain
       label: Beacon Chain
-      type: beacon-chain
+      type: eth-beacon-chain
       api-type: rest
       settings:
         expected-block-time: 12s

@@ -1,8 +1,8 @@
 package io.emeraldpay.dshackle.upstream.generic
 
-import io.emeraldpay.dshackle.BlockchainType.BEACON_CHAIN
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
+import io.emeraldpay.dshackle.BlockchainType.ETHEREUM_BEACON_CHAIN
 import io.emeraldpay.dshackle.BlockchainType.NEAR
 import io.emeraldpay.dshackle.BlockchainType.POLKADOT
 import io.emeraldpay.dshackle.BlockchainType.SOLANA
@@ -79,7 +79,7 @@ object ChainSpecificRegistry {
             POLKADOT -> PolkadotChainSpecific
             SOLANA -> SolanaChainSpecific
             NEAR -> NearChainSpecific
-            BEACON_CHAIN -> BeaconChainSpecific
+            ETHEREUM_BEACON_CHAIN -> BeaconChainSpecific
             BITCOIN -> throw IllegalArgumentException("bitcoin should use custom streams implementation")
             UNKNOWN -> throw IllegalArgumentException("unknown chain")
         }

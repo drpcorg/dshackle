@@ -1,8 +1,8 @@
 package io.emeraldpay.dshackle.upstream
 
-import io.emeraldpay.dshackle.BlockchainType.BEACON_CHAIN
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
+import io.emeraldpay.dshackle.BlockchainType.ETHEREUM_BEACON_CHAIN
 import io.emeraldpay.dshackle.BlockchainType.NEAR
 import io.emeraldpay.dshackle.BlockchainType.POLKADOT
 import io.emeraldpay.dshackle.BlockchainType.SOLANA
@@ -33,7 +33,7 @@ class CallTargetsHolder {
             POLKADOT -> DefaultPolkadotMethods()
             SOLANA -> DefaultSolanaMethods()
             NEAR -> DefaultNearMethods()
-            BEACON_CHAIN -> DefaultBeaconChainMethods()
+            ETHEREUM_BEACON_CHAIN -> DefaultBeaconChainMethods()
             UNKNOWN -> throw IllegalArgumentException("unknown chain")
         }
         callTargets[chain] = created

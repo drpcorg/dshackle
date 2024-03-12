@@ -133,7 +133,7 @@ open class CodeGen(private val config: ChainsConfig) {
             "polkadot" -> "BlockchainType.POLKADOT"
             "solana" -> "BlockchainType.SOLANA"
             "near" -> "BlockchainType.NEAR"
-            "beacon-chain" -> "BlockchainType.BEACON_CHAIN"
+            "eth-beacon-chain" -> "BlockchainType.ETHEREUM_BEACON_CHAIN"
             else -> throw IllegalArgumentException("unknown blockchain type $type")
         }
     }
