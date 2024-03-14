@@ -6,7 +6,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
-import io.emeraldpay.dshackle.ApiType
 import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.ChainsConfigReader
@@ -26,7 +25,7 @@ open class CodeGen(private val config: ChainsConfig) {
         builder.addEnumConstant(
             "UNSPECIFIED",
             TypeSpec.anonymousClassBuilder()
-                .addSuperclassConstructorParameter("%L, %S, %S, %S, %L, %L, %L, %L", 0, "UNSPECIFIED", "Unknown", "0x0", "BigInteger.ZERO", "emptyList()", "BlockchainType.UNKNOWN", "ApiType.JSON_RPC")
+                .addSuperclassConstructorParameter("%L, %S, %S, %S, %L, %L, %L", 0, "UNSPECIFIED", "Unknown", "0x0", "BigInteger.ZERO", "emptyList()", "BlockchainType.UNKNOWN")
                 .build(),
         )
         for (chain in config) {
@@ -35,15 +34,14 @@ open class CodeGen(private val config: ChainsConfig) {
                     .replace(' ', '_'),
                 TypeSpec.anonymousClassBuilder()
                     .addSuperclassConstructorParameter(
-                        "%L, %S, %S, %S, %L, %L, %L, %L",
+                        "%L, %S, %S, %S, %L, %L, %L",
                         chain.grpcId,
                         chain.code,
                         chain.blockchain.replaceFirstChar { it.uppercase() } + " " + chain.id.replaceFirstChar { it.uppercase() },
                         chain.chainId,
                         "BigInteger(\"" + chain.netVersion + "\")",
                         "listOf(" + chain.shortNames.map { "\"${it}\"" }.joinToString() + ")",
-                        type(chain.type),
-                        apiType(chain.apiType)
+                        type(chain.type)
                     )
                     .build(),
             )
@@ -76,7 +74,6 @@ open class CodeGen(private val config: ChainsConfig) {
                         .addParameter("netVersion", BigInteger::class)
                         .addParameter("shortNames", List::class.asClassName().parameterizedBy(String::class.asClassName()))
                         .addParameter("type", BlockchainType::class)
-                        .addParameter("apiType", ApiType::class)
                         .build(),
                 )
                 .addProperty(
@@ -114,11 +111,6 @@ open class CodeGen(private val config: ChainsConfig) {
                         .initializer("type")
                         .build(),
                 )
-                .addProperty(
-                    PropertySpec.builder("apiType", ApiType::class)
-                        .initializer("apiType")
-                        .build(),
-                )
         ).build()
         return FileSpec.builder("io.emeraldpay.dshackle", "Chain")
             .addType(chainType)
@@ -135,14 +127,6 @@ open class CodeGen(private val config: ChainsConfig) {
             "near" -> "BlockchainType.NEAR"
             "eth-beacon-chain" -> "BlockchainType.ETHEREUM_BEACON_CHAIN"
             else -> throw IllegalArgumentException("unknown blockchain type $type")
-        }
-    }
-
-    private fun apiType(apiType: String?): String {
-        return when (apiType) {
-            "" -> "ApiType.JSON_RPC"
-            "rest" -> "ApiType.REST"
-            else -> throw IllegalArgumentException("unknown api type $apiType")
         }
     }
 }

@@ -30,7 +30,7 @@ class ConnectorFactoryCreatorResolver(
     private val restConnectorFactoryCreator: RestConnectorFactoryCreator,
 ) {
     fun resolve(chain: Chain): ConnectorFactoryCreator {
-        if (chain.apiType == ApiType.REST) {
+        if (chain.type.apiType == ApiType.REST) {
             return restConnectorFactoryCreator
         }
         return genericConnectorFactoryCreator

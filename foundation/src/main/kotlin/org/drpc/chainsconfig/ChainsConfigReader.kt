@@ -25,7 +25,6 @@ class ChainsConfigReader(
                         ?: throw IllegalArgumentException("Blockchain id is not defined")
                     val type = getValueAsString(protocol, "type")
                         ?: throw IllegalArgumentException("undefined type for $blockchain")
-                    val apiType = getValueAsString(protocol, "api-type") ?: ""
                     val settings = mergeMappingNode(default, getMapping(protocol, "settings"))
                     acc.plus(
                         getList<MappingNode>(protocol, "chains")?.let { chains ->
@@ -44,10 +43,6 @@ class ChainsConfigReader(
                                             NodeTuple(
                                                 ScalarNode(Tag.STR, "type", null, null, DumperOptions.ScalarStyle.LITERAL),
                                                 ScalarNode(Tag.STR, type, null, null, DumperOptions.ScalarStyle.LITERAL),
-                                            ),
-                                            NodeTuple(
-                                                ScalarNode(Tag.STR, "api-type", null, null, DumperOptions.ScalarStyle.LITERAL),
-                                                ScalarNode(Tag.STR, apiType, null, null, DumperOptions.ScalarStyle.LITERAL),
                                             ),
                                         ),
                                         chain.flowStyle,
@@ -91,7 +86,6 @@ class ChainsConfigReader(
             ?: throw IllegalArgumentException("undefined shortnames for $blockchain")
         val type = getValueAsString(node, "type")
             ?: throw IllegalArgumentException("undefined type for $blockchain")
-        val apiType = getValueAsString(node, "api-type")
         return ChainsConfig.ChainConfig(
             expectedBlockTime = expectedBlockTime,
             syncingLagSize = lags.first,
@@ -105,8 +99,7 @@ class ChainsConfigReader(
             shortNames = shortNames,
             id = id,
             blockchain = blockchain,
-            type = type,
-            apiType = apiType,
+            type = type
         )
     }
 

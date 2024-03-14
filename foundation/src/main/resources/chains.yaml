@@ -1364,7 +1364,6 @@ chain-settings:
     - id: beacon-chain
       label: Beacon Chain
       type: eth-beacon-chain
-      api-type: rest
       settings:
         expected-block-time: 12s
         lags:

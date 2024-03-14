@@ -10,43 +10,57 @@ import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
+import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.LabelsDetector
 import io.emeraldpay.dshackle.upstream.LowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
-import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
+import io.emeraldpay.dshackle.upstream.generic.AbstractChainSpecific
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
+import reactor.core.publisher.Mono
 import java.math.BigInteger
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-object BeaconChainSpecific : AbstractPollChainSpecific() {
-    override fun latestBlockRequest(): ChainRequest {
-        return ChainRequest(
-            "GET#/eth/v2/beacon/blocks/head",
-            RestParams.emptyParams(),
-        )
-    }
-
-    override fun parseBlock(data: ByteArray, upstreamId: String): BlockContainer {
-        val block = Global.objectMapper.readValue(data, BeaconChainBlock::class.java).data.message
-
-        return BlockContainer(
-            height = block.slot.toLong(),
-            hash = BlockId.fromBase64(block.body.executionPayload.hash),
-            difficulty = BigInteger.ZERO,
-            timestamp = Instant.ofEpochMilli(TimeUnit.MILLISECONDS.convert(block.body.executionPayload.timestamp.toLong(), TimeUnit.NANOSECONDS)),
-            full = false,
-            json = data,
-            parsed = block,
-            transactions = emptyList(),
-            upstreamId = upstreamId,
-            parentHash = BlockId.fromBase64(block.body.executionPayload.parentHash),
-        )
-    }
-
+object BeaconChainSpecific : AbstractChainSpecific() {
     override fun parseHeader(data: ByteArray, upstreamId: String): BlockContainer {
         throw NotImplementedError()
+    }
+
+    override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
+        return api.read(
+            ChainRequest("GET#/eth/v2/beacon/blocks/head", RestParams.emptyParams()),
+        )
+            .flatMap(ChainResponse::requireResult)
+            .flatMap { beaconBlock ->
+                val parsedBeaconBlock = Global.objectMapper.readValue(beaconBlock, BeaconChainBlock::class.java).data.message
+
+                api.read(
+                    ChainRequest("GET#/eth/v1/beacon/blocks/${parsedBeaconBlock.slot}/root", RestParams.emptyParams()),
+                )
+                    .flatMap(ChainResponse::requireResult)
+                    .map { root ->
+                        val blockRoot = Global.objectMapper.readValue(root, BeaconChainBlockRoot::class.java).data.root
+
+                        BlockContainer(
+                            height = parsedBeaconBlock.slot.toLong(),
+                            hash = BlockId.from(blockRoot),
+                            difficulty = BigInteger.ZERO,
+                            timestamp = Instant.ofEpochMilli(
+                                TimeUnit.MILLISECONDS.convert(
+                                    parsedBeaconBlock.body.executionPayload.timestamp.toLong(),
+                                    TimeUnit.SECONDS,
+                                ),
+                            ),
+                            full = false,
+                            json = beaconBlock,
+                            parsed = parsedBeaconBlock,
+                            transactions = emptyList(),
+                            upstreamId = upstreamId,
+                            parentHash = BlockId.from(parsedBeaconBlock.parentRoot),
+                        )
+                    }
+            }
     }
 
     override fun listenNewHeadsRequest(): ChainRequest {
@@ -91,6 +105,8 @@ data class BeaconChainData(
 data class BeaconChainMessage(
     @JsonProperty("slot")
     var slot: String,
+    @JsonProperty("parent_root")
+    var parentRoot: String,
     @JsonProperty("body")
     var body: BeaconChainMessageBody,
 )
@@ -103,10 +119,17 @@ data class BeaconChainMessageBody(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class BeaconChainExecutionPayload(
-    @JsonProperty("parent_hash")
-    var parentHash: String,
     @JsonProperty("timestamp")
     var timestamp: String,
-    @JsonProperty("block_hash")
-    var hash: String,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class BeaconChainBlockRoot(
+    @JsonProperty("data")
+    var data: BeaconChainBlockRootData,
+)
+
+data class BeaconChainBlockRootData(
+    @JsonProperty("root")
+    var root: String,
 )

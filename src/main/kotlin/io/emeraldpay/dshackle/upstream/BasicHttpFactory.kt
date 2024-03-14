@@ -34,7 +34,7 @@ class BasicHttpFactory(
                 .register(Metrics.globalRegistry),
         )
 
-        if (chain.apiType == ApiType.REST) {
+        if (chain.type.apiType == ApiType.REST) {
             return RestHttpReader(url, metrics, basicAuth, tls)
         }
         return JsonRpcHttpReader(url, metrics, basicAuth, tls)
