@@ -45,7 +45,6 @@ class BeaconChainSpecificTest {
         )
 
         val block = BeaconChainSpecific.parseBlock(header, "upId")
-        
         assertEquals(expected, block)
     }
 }
