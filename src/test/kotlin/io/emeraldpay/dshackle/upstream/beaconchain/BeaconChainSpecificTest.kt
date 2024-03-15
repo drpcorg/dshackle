@@ -41,12 +41,11 @@ class BeaconChainSpecificTest {
             transactions = emptyList(),
             upstreamId = "upId",
             parentHash = BlockId.from("0x3306b3f2d5f4de709a9b13c51ca7bbeab41ee93f44c6873baf6a59495620dbbf"),
-            parsed = null
+            parsed = null,
         )
 
         val block = BeaconChainSpecific.parseBlock(header, "upId")
-
-
+        
         assertEquals(expected, block)
     }
 }
