@@ -23,6 +23,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
+import io.emeraldpay.dshackle.upstream.beaconchain.BeaconChainBlockHeader
+import io.emeraldpay.dshackle.upstream.beaconchain.BeaconChainBlockHeaderDeserializer
 import io.emeraldpay.dshackle.upstream.bitcoin.data.EsploraUnspent
 import io.emeraldpay.dshackle.upstream.bitcoin.data.EsploraUnspentDeserializer
 import io.emeraldpay.dshackle.upstream.bitcoin.data.RpcUnspent
@@ -73,6 +75,7 @@ class Global {
             module.addDeserializer(EsploraUnspent::class.java, EsploraUnspentDeserializer())
             module.addDeserializer(RpcUnspent::class.java, RpcUnspentDeserializer())
             module.addDeserializer(ChainRequest::class.java, ChainRequest.Deserializer())
+            module.addDeserializer(BeaconChainBlockHeader::class.java, BeaconChainBlockHeaderDeserializer())
 
             val objectMapper = ObjectMapper()
             objectMapper.registerModule(module)

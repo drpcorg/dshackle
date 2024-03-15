@@ -1361,8 +1361,8 @@ chain-settings:
           grpcId: 1052
           short-names: [dymension]
           chain-id: 0x44c
-    - id: beacon-chain
-      label: Beacon Chain
+    - id: eth-beacon-chain
+      label: Ethereum Beacon Chain
       type: eth-beacon-chain
       settings:
         expected-block-time: 12s
@@ -1372,7 +1372,7 @@ chain-settings:
       chains:
         - id: Mainnet
           chain-id: 0x0
-          short-names: [beacon-chain]
+          short-names: [eth-beacon-chain]
           code: ETH_BEACON_CHAIN
           grpcId: 1053
           priority: 100
@@ -1381,16 +1381,16 @@ chain-settings:
           code: GOERLI_BEACON_CHAIN
           grpcId: 10069
           priority: 1
-          short-names: [beacon-chain-goerli]
+          short-names: [eth-beacon-chain-goerli]
         - id: Sepolia
           code: SEPOLIA_BEACON_CHAIN
           grpcId: 10070
           priority: 10
           chain-id: 0x0
-          short-names: [beacon-chain-sepolia]
+          short-names: [eth-beacon-chain-sepolia]
         - id: Holesky
-          code: ETHEREUM_HOLESKY_BEACON_CHAIN
+          code: HOLESKY_BEACON_CHAIN
           grpcId: 10071
           priority: 5
           chain-id: 0x0
-          short-names: [beacon-chain-holesky]
+          short-names: [eth-beacon-chain-holesky]
