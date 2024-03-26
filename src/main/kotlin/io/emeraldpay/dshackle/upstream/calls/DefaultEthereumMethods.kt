@@ -325,7 +325,7 @@ class DefaultEthereumMethods(
                     .plus(harmonyPossibleNotIndexedMethods)
 
             Chain.LINEA__MAINNET, Chain.LINEA__GOERLI -> listOf(
-                "linea_estimateGas"
+                "linea_estimateGas",
             )
 
             else -> emptyList()
