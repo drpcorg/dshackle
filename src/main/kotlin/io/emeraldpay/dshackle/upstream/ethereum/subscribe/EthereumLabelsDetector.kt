@@ -10,6 +10,8 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
+const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+
 class EthereumLabelsDetector(
     private val reader: ChainReader,
     private val chain: Chain,
@@ -36,7 +38,7 @@ class EthereumLabelsDetector(
         return reader.read(
             ChainRequest(
                 "eth_getBalance",
-                ListParams("0x756F45E3FA69347A9A973A725E3C98bC4db0b5a0", blockNumber),
+                ListParams(ZERO_ADDRESS, blockNumber),
             ),
         ).flatMap(ChainResponse::requireResult)
     }
