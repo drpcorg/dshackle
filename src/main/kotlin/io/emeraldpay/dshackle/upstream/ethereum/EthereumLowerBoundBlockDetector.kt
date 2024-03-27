@@ -5,7 +5,6 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.RecursiveLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.Upstream
-import io.emeraldpay.dshackle.upstream.ethereum.subscribe.ZERO_ADDRESS
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.toHex
 import reactor.core.publisher.Mono

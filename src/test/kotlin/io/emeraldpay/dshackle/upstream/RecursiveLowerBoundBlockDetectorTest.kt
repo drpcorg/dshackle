@@ -3,7 +3,7 @@ package io.emeraldpay.dshackle.upstream
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundBlockDetector
-import io.emeraldpay.dshackle.upstream.ethereum.subscribe.ZERO_ADDRESS
+import io.emeraldpay.dshackle.upstream.ethereum.ZERO_ADDRESS
 import io.emeraldpay.dshackle.upstream.polkadot.PolkadotLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.junit.jupiter.api.Assertions.assertEquals

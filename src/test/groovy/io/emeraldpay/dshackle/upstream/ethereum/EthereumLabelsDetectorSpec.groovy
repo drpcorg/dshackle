@@ -5,7 +5,6 @@ import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.test.ApiReaderMock
 import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
-import io.emeraldpay.dshackle.upstream.ethereum.subscribe.EthereumLabelsDetector
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams

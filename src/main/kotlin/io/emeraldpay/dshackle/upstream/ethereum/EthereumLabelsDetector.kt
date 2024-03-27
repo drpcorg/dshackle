@@ -1,11 +1,10 @@
-package io.emeraldpay.dshackle.upstream.ethereum.subscribe
+package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.BasicEthLabelsDetector
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
-import io.emeraldpay.dshackle.upstream.ethereum.EthereumArchiveBlockNumberReader
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
