@@ -1,18 +1,17 @@
 package io.emeraldpay.dshackle.upstream.polkadot
 
-import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
-import io.emeraldpay.dshackle.upstream.RecursiveLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.emeraldpay.dshackle.upstream.lowerbound.detector.RecursiveLowerBoundDetector
+import io.emeraldpay.dshackle.upstream.lowerbound.toHex
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import io.emeraldpay.dshackle.upstream.toHex
 import reactor.core.publisher.Mono
 
-class PolkadotLowerBoundBlockDetector(
-    chain: Chain,
+class PolkadotLowerBoundStateDetector(
     private val upstream: Upstream,
-) : RecursiveLowerBoundBlockDetector(chain, upstream) {
+) : RecursiveLowerBoundDetector(upstream) {
 
     companion object {
         private val nonRetryableErrors = setOf(
@@ -20,11 +19,11 @@ class PolkadotLowerBoundBlockDetector(
         )
     }
 
-    override fun hasState(blockNumber: Long): Mono<Boolean> {
+    override fun hasData(block: Long): Mono<Boolean> {
         return upstream.getIngressReader().read(
             ChainRequest(
                 "chain_getBlockHash",
-                ListParams(blockNumber.toHex()), // in polkadot state methods work only with hash
+                ListParams(block.toHex()), // in polkadot state methods work only with hash
             ),
         )
             .flatMap(ChainResponse::requireResult)
@@ -43,5 +42,9 @@ class PolkadotLowerBoundBlockDetector(
             .flatMap(ChainResponse::requireResult)
             .map { true }
             .onErrorReturn(false)
+    }
+
+    override fun type(): LowerBoundType {
+        return LowerBoundType.STATE
     }
 }

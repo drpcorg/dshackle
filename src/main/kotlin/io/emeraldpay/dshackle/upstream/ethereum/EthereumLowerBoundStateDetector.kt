@@ -1,18 +1,17 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
-import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
-import io.emeraldpay.dshackle.upstream.RecursiveLowerBoundBlockDetector
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.emeraldpay.dshackle.upstream.lowerbound.detector.RecursiveLowerBoundDetector
+import io.emeraldpay.dshackle.upstream.lowerbound.toHex
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import io.emeraldpay.dshackle.upstream.toHex
 import reactor.core.publisher.Mono
 
-class EthereumLowerBoundBlockDetector(
-    chain: Chain,
+class EthereumLowerBoundStateDetector(
     private val upstream: Upstream,
-) : RecursiveLowerBoundBlockDetector(chain, upstream) {
+) : RecursiveLowerBoundDetector(upstream) {
 
     companion object {
         private val nonRetryableErrors = setOf(
@@ -41,19 +40,23 @@ class EthereumLowerBoundBlockDetector(
         )
     }
 
-    override fun hasState(blockNumber: Long): Mono<Boolean> {
-        if (blockNumber == 0L) {
+    override fun hasData(block: Long): Mono<Boolean> {
+        if (block == 0L) {
             return Mono.just(true)
         }
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_getBalance",
-                ListParams(ZERO_ADDRESS, blockNumber.toHex()),
+                ListParams(ZERO_ADDRESS, block.toHex()),
             ),
         )
             .retryWhen(retrySpec(nonRetryableErrors))
             .flatMap(ChainResponse::requireResult)
             .map { true }
             .onErrorReturn(false)
+    }
+
+    override fun type(): LowerBoundType {
+        return LowerBoundType.STATE
     }
 }
