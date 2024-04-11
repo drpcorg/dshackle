@@ -1,9 +1,10 @@
 package io.emeraldpay.dshackle.upstream.lowerbound.detector
 
+import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
-import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundDetector
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
@@ -11,15 +12,14 @@ import reactor.util.retry.Retry
 import reactor.util.retry.RetryBackoffSpec
 import java.time.Duration
 
-abstract class RecursiveLowerBoundDetector(
+class RecursiveLowerBound(
     private val upstream: Upstream,
-) : LowerBoundDetector() {
+    private val type: LowerBoundType,
+    private val nonRetryableErrors: Set<String>,
+) {
+    private val log = LoggerFactory.getLogger(this::class.java)
 
-    override fun period(): Long {
-        return 5
-    }
-
-    override fun internalDetectLowerBound(): Flux<LowerBoundData> {
+    fun recursiveDetectLowerBound(hasData: (Long) -> Mono<ChainResponse>): Flux<LowerBoundData> {
         return Mono.just(upstream.getHead())
             .flatMap {
                 val currentHeight = it.getCurrentHeight()
@@ -30,6 +30,7 @@ abstract class RecursiveLowerBoundDetector(
                 }
             }
             .expand { data ->
+                println(data)
                 if (data.found) {
                     Mono.empty()
                 } else {
@@ -40,6 +41,10 @@ abstract class RecursiveLowerBoundDetector(
                         Mono.just(LowerBoundBinarySearch(current, true))
                     } else {
                         hasData(middle)
+                            .retryWhen(retrySpec(nonRetryableErrors))
+                            .flatMap(ChainResponse::requireResult)
+                            .map { true }
+                            .onErrorReturn(false)
                             .map {
                                 if (it) {
                                     LowerBoundBinarySearch(data.left, middle - 1, middle)
@@ -57,14 +62,11 @@ abstract class RecursiveLowerBoundDetector(
             .filter { it.found }
             .next()
             .map {
-                LowerBoundData(it.current, type())
+                LowerBoundData(it.current, type)
             }.toFlux()
     }
 
-    private fun middleBlock(lowerBoundBinarySearch: LowerBoundBinarySearch): Long =
-        lowerBoundBinarySearch.left + (lowerBoundBinarySearch.right - lowerBoundBinarySearch.left) / 2
-
-    protected fun retrySpec(nonRetryableErrors: Set<String>): RetryBackoffSpec {
+    private fun retrySpec(nonRetryableErrors: Set<String>): RetryBackoffSpec {
         return Retry.backoff(
             Long.MAX_VALUE,
             Duration.ofSeconds(1),
@@ -74,7 +76,7 @@ abstract class RecursiveLowerBoundDetector(
                 !nonRetryableErrors.any { err -> it.message?.contains(err, true) ?: false }
             }
             .doAfterRetry {
-                log.debug(
+                log.info(
                     "Error in calculation of lower block of upstream {}, retry attempt - {}, message - {}",
                     upstream.getId(),
                     it.totalRetries(),
@@ -83,9 +85,8 @@ abstract class RecursiveLowerBoundDetector(
             }
     }
 
-    protected abstract fun hasData(block: Long): Mono<Boolean>
-
-    protected abstract fun type(): LowerBoundType
+    private fun middleBlock(lowerBoundBinarySearch: LowerBoundBinarySearch): Long =
+        lowerBoundBinarySearch.left + (lowerBoundBinarySearch.right - lowerBoundBinarySearch.left) / 2
 
     private data class LowerBoundBinarySearch(
         val left: Long,
