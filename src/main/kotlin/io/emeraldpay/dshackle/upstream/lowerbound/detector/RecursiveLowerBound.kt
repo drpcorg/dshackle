@@ -76,7 +76,7 @@ class RecursiveLowerBound(
                 !nonRetryableErrors.any { err -> it.message?.contains(err, true) ?: false }
             }
             .doAfterRetry {
-                log.info(
+                log.debug(
                     "Error in calculation of lower block of upstream {}, retry attempt - {}, message - {}",
                     upstream.getId(),
                     it.totalRetries(),
