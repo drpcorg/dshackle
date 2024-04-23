@@ -144,7 +144,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                 if (it.message != null && it.message!!.contains("rpc.returndata.limit")) {
                     log.warn(
                         "Error: ${it.message}. Node ${upstream.getId()} is probably incorrectly configured. " +
-                            "You need to set up your return limit to at least 1_100_000. " +
+                            "You need to set up your return limit to at least ${options.callLimitSize}. " +
                             "Erigon config example: https://github.com/ledgerwatch/erigon/blob/d014da4dc039ea97caf04ed29feb2af92b7b129d/cmd/utils/flags.go#L369",
                     )
                     Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
