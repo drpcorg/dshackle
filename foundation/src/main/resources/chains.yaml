@@ -291,16 +291,12 @@ chain-settings:
           grpcId: 10012
           chain-id: 0x118
           short-names: [zksync-testnet]
-          options:
-            disable-validation: true
         - id: Sepolia
           priority: 1
           code: ZKS_SEPOLIA
           grpcId: 10046
           chain-id: 0x12c
           short-names: [zksync-sepolia]
-          options:
-            disable-validation: true
     - id: base
       label: Base
       type: eth
