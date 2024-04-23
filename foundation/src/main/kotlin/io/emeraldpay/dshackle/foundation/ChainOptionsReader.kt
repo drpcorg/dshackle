@@ -43,6 +43,9 @@ class ChainOptionsReader : YamlConfigReader<ChainOptions.PartialOptions>() {
         getValueAsBool(values, "balance")?.let {
             options.providesBalance = it
         }
+        getValueAsInt(values, "call-limit-size")?.let {
+            options.callLimitSize = it
+        }
         return options
     }
 }
