@@ -130,9 +130,9 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                     ListParams(
                         TransactionCallJson(
                             Address.from(config.callLimitContract),
-                            // calling contract with param 200_000, meaning it will generate 200k symbols or response
-                            // f4240 + metadata — ~1 million
-                            HexData.from("0xd8a26e3a00000000000000000000000000000000000000000000000000000000000f4240"),
+                            // contract like https://github.com/p2p-org/dshackle/pull/246
+                            // meta + size in hex
+                            HexData.from("0xd8a26e3a" + options.callLimitSize.toString(16).padStart(64, '0')),
                         ),
                         "latest",
                     ),

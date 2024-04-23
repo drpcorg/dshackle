@@ -23,7 +23,7 @@ class ChainOptionsReader : YamlConfigReader<ChainOptions.PartialOptions>() {
             options.validateSyncing = it
         }
         getValueAsBool(values, "validate-call-limit")?.let {
-            options.validateCalllimit = it
+            options.validateCallLimit = it
         }
         getValueAsBool(values, "validate-chain")?.let {
             options.validateChain = it
