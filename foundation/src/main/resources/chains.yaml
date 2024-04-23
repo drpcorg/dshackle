@@ -273,8 +273,6 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 5s
-        options:
-          disable-validation: true
         lags:
           syncing: 40
           lagging: 20
@@ -286,18 +284,23 @@ chain-settings:
           grpcId: 1009
           chain-id: 0x144
           short-names: [zksync]
+          call-validate-contract: 0x210b5D4281D315E007Ab5059E89A1Cb7ECd7Dc93
         - id: Testnet
           priority: 1
           code: ZKS_TESTNET
           grpcId: 10012
           chain-id: 0x118
           short-names: [zksync-testnet]
+          options:
+            disable-validation: true
         - id: Sepolia
           priority: 1
           code: ZKS_SEPOLIA
           grpcId: 10046
           chain-id: 0x12c
           short-names: [zksync-sepolia]
+          options:
+            disable-validation: true
     - id: base
       label: Base
       type: eth
