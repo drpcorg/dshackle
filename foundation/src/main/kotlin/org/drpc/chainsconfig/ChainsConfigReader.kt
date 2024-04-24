@@ -74,7 +74,6 @@ class ChainsConfigReader(
         val expectedBlockTime = getValueAsDuration(settings, "expected-block-time")
             ?: throw IllegalArgumentException("undefined expected block time")
         val validateContract = getValueAsString(node, "call-validate-contract")
-        val validateBlockNumber = getValueAsString(node, "call-validate-block-number")
         val options = chainsOptionsReader.read(settings) ?: ChainOptions.PartialOptions()
         val chainId = getValueAsString(node, "chain-id")
             ?: throw IllegalArgumentException("undefined chain id for $blockchain")
@@ -93,7 +92,6 @@ class ChainsConfigReader(
             laggingLagSize = lags.second,
             options = options,
             callLimitContract = validateContract,
-            callLimitBlockNumber = validateBlockNumber,
             chainId = chainId,
             code = code,
             grpcId = grpcId,

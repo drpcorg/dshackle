@@ -15,11 +15,12 @@ class ChainOptions {
         val validateCallLimit: Boolean,
         val validateChain: Boolean,
         val callLimitSize: Int,
+        val callLimitBlockNumber: String,
     )
 
     data class DefaultOptions(
         var chains: List<String>? = null,
-        var options: PartialOptions? = null
+        var options: PartialOptions? = null,
     )
 
     data class PartialOptions(
@@ -34,6 +35,7 @@ class ChainOptions {
         var validateSyncing: Boolean? = null,
         var validateChain: Boolean? = null,
         var callLimitSize: Int? = null,
+        var callLimitBlockNumber: String? = null,
     ) {
         companion object {
             @JvmStatic
@@ -61,6 +63,7 @@ class ChainOptions {
             copy.disableUpstreamValidation =
                 overwrites.disableUpstreamValidation ?: this.disableUpstreamValidation
             copy.callLimitSize = overwrites.callLimitSize ?: this.callLimitSize
+            copy.callLimitBlockNumber = overwrites.callLimitBlockNumber ?: this.callLimitBlockNumber
             return copy
         }
 
@@ -76,7 +79,8 @@ class ChainOptions {
                 this.validateSyncing ?: true,
                 this.validateCallLimit ?: true,
                 this.validateChain ?: true,
-                this.callLimitSize ?: 1_000_000
+                this.callLimitSize ?: 1_000_000,
+                this.callLimitBlockNumber ?: "",
             )
     }
 }
