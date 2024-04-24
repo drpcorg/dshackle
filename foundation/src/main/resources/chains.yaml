@@ -284,7 +284,7 @@ chain-settings:
           grpcId: 1009
           chain-id: 0x144
           short-names: [zksync]
-          call-validate-contract: 0x210b5D4281D315E007Ab5059E89A1Cb7ECd7Dc93
+          call-validate-block-number: 0x1b73b2b
         - id: Testnet
           priority: 1
           code: ZKS_TESTNET

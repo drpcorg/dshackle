@@ -28,6 +28,7 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
         val code: String,
         val shortNames: List<String>,
         val callLimitContract: String?,
+        val callLimitBlockNumber:String?,
         val id: String,
         val blockchain: String,
         val type: String
@@ -48,6 +49,7 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
                 "UNKNOWN",
                 emptyList(),
                 callLimitContract,
+                null,
                 "undefined",
                 "undefined",
                 "unknown"

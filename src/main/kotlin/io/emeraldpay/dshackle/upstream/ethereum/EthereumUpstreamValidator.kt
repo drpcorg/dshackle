@@ -33,7 +33,6 @@ import io.emeraldpay.dshackle.upstream.ethereum.hex.HexData
 import io.emeraldpay.dshackle.upstream.ethereum.json.SyncingJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionCallJson
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import io.emeraldpay.dshackle.upstream.rpcclient.ObjectParams
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
@@ -121,7 +120,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
     }
 
     private fun validateCallLimit(): Mono<ValidateUpstreamSettingsResult> {
-        if (!options.validateCallLimit || config.callLimitContract == null) {
+        if (!options.validateCallLimit || (config.callLimitContract == null && config.callLimitBlockNumber == null)) {
             return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
         }
         val validator = callLimitValidatorFactory(options, config, chain)
@@ -211,12 +210,10 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
     }
 }
 
-
 interface CallLimitValidator {
     fun createRequest(): ChainRequest
     fun isLimitError(err: Throwable): Boolean
 }
-
 
 class EthCallLimitValidator(
     private val options: ChainOptions.Options,
@@ -240,12 +237,11 @@ class EthCallLimitValidator(
 }
 
 class ZkSyncCallLimitValidator(
-    private val options: ChainOptions.Options,
     private val config: ChainConfig,
 ) : CallLimitValidator {
     override fun createRequest() = ChainRequest(
         "debug_traceBlockByNumber",
-        ListParams("0x1b73b2b", mapOf("tracer" to "callTracer")),
+        ListParams(config.callLimitBlockNumber!!, mapOf("tracer" to "callTracer")),
     )
 
     override fun isLimitError(err: Throwable): Boolean =
@@ -254,7 +250,7 @@ class ZkSyncCallLimitValidator(
 
 fun callLimitValidatorFactory(options: ChainOptions.Options, config: ChainConfig, chain: Chain): CallLimitValidator {
     return if (listOf(Chain.ZKSYNC__MAINNET, Chain.ZKSYNC__SEPOLIA, Chain.ZKSYNC__TESTNET).contains(chain)) {
-        ZkSyncCallLimitValidator(options, config)
+        ZkSyncCallLimitValidator(config)
     } else {
         EthCallLimitValidator(options, config)
     }
