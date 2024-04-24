@@ -33,6 +33,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.hex.HexData
 import io.emeraldpay.dshackle.upstream.ethereum.json.SyncingJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionCallJson
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import io.emeraldpay.dshackle.upstream.rpcclient.ObjectParams
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
@@ -123,25 +124,13 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
         if (!options.validateCallLimit || config.callLimitContract == null) {
             return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
         }
+        val validator = callLimitValidatorFactory(options, config, chain)
         return upstream.getIngressReader()
-            .read(
-                ChainRequest(
-                    "eth_call",
-                    ListParams(
-                        TransactionCallJson(
-                            Address.from(config.callLimitContract),
-                            // contract like https://github.com/p2p-org/dshackle/pull/246
-                            // meta + size in hex
-                            HexData.from("0xd8a26e3a" + options.callLimitSize.toString(16).padStart(64, '0')),
-                        ),
-                        "latest",
-                    ),
-                ),
-            )
+            .read(validator.createRequest())
             .flatMap(ChainResponse::requireResult)
             .map { ValidateUpstreamSettingsResult.UPSTREAM_VALID }
             .onErrorResume {
-                if (it.message != null && it.message!!.contains("rpc.returndata.limit")) {
+                if (validator.isLimitError(it)) {
                     log.warn(
                         "Error: ${it.message}. Node ${upstream.getId()} is probably incorrectly configured. " +
                             "You need to set up your return limit to at least ${options.callLimitSize}. " +
@@ -219,5 +208,54 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
             }
             .doOnError { log.error("Error during execution 'net_version' - ${it.message} for ${upstream.getId()}") }
             .flatMap(ChainResponse::requireStringResult)
+    }
+}
+
+
+interface CallLimitValidator {
+    fun createRequest(): ChainRequest
+    fun isLimitError(err: Throwable): Boolean
+}
+
+
+class EthCallLimitValidator(
+    private val options: ChainOptions.Options,
+    private val config: ChainConfig,
+) : CallLimitValidator {
+    override fun createRequest() = ChainRequest(
+        "eth_call",
+        ListParams(
+            TransactionCallJson(
+                Address.from(config.callLimitContract),
+                // contract like https://github.com/p2p-org/dshackle/pull/246
+                // meta + size in hex
+                HexData.from("0xd8a26e3a" + options.callLimitSize.toString(16).padStart(64, '0')),
+            ),
+            "latest",
+        ),
+    )
+
+    override fun isLimitError(err: Throwable): Boolean =
+        err.message != null && err.message!!.contains("rpc.returndata.limit")
+}
+
+class ZkSyncCallLimitValidator(
+    private val options: ChainOptions.Options,
+    private val config: ChainConfig,
+) : CallLimitValidator {
+    override fun createRequest() = ChainRequest(
+        "debug_traceBlockByNumber",
+        ListParams("0x1b73b2b", mapOf("tracer" to "callTracer")),
+    )
+
+    override fun isLimitError(err: Throwable): Boolean =
+        err.message != null && err.message!!.contains("response size should not greater than")
+}
+
+fun callLimitValidatorFactory(options: ChainOptions.Options, config: ChainConfig, chain: Chain): CallLimitValidator {
+    return if (listOf(Chain.ZKSYNC__MAINNET, Chain.ZKSYNC__SEPOLIA, Chain.ZKSYNC__TESTNET).contains(chain)) {
+        ZkSyncCallLimitValidator(options, config)
+    } else {
+        EthCallLimitValidator(options, config)
     }
 }
