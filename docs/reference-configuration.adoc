@@ -783,11 +783,6 @@ If it's enabled configuration parameter for chain `call-limit-contract` is requi
 | `1000000`
 | For all eth-like chains (except zkSync). The maximum size of the call limit. If the upstream exceeds this limit, it will be considered as failed.
 
-| `call-limit-block-number`
-| string
-| ""
-| For zkSync only. Block number for debug_traceBlockByNumber method to check the call limit. Example 0x1b73b2b ~13mb
-
 | `timeout`
 | number
 | `60`

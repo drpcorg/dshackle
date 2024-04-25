@@ -120,8 +120,8 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
     }
 
     private fun validateCallLimit(): Mono<ValidateUpstreamSettingsResult> {
-        val validator = callLimitValidatorFactory(options, config, chain)
-        if (!(options.validateCallLimit && validator.isEnabled())) {
+        val validator = callLimitValidatorFactory(upstream, options, config, chain)
+        if (!validator.isEnabled()) {
             return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
         }
         return upstream.getIngressReader()
@@ -220,7 +220,7 @@ class EthCallLimitValidator(
     private val options: ChainOptions.Options,
     private val config: ChainConfig,
 ) : CallLimitValidator {
-    override fun isEnabled() = config.callLimitContract != null
+    override fun isEnabled() = options.validateCallLimit && config.callLimitContract != null
 
     override fun createRequest() = ChainRequest(
         "eth_call",
@@ -240,22 +240,31 @@ class EthCallLimitValidator(
 }
 
 class ZkSyncCallLimitValidator(
+    private val upstream: Upstream,
     private val options: ChainOptions.Options,
 ) : CallLimitValidator {
-    override fun isEnabled() = options.callLimitBlockNumber.isNotEmpty()
+    private val method = "debug_traceBlockByNumber"
+
+    override fun isEnabled() =
+        options.validateCallLimit && upstream.getMethods().getSupportedMethods().contains(method)
 
     override fun createRequest() = ChainRequest(
-        "debug_traceBlockByNumber",
-        ListParams(options.callLimitBlockNumber, mapOf("tracer" to "callTracer")),
+        method,
+        ListParams("0x1b73b2b", mapOf("tracer" to "callTracer")),
     )
 
     override fun isLimitError(err: Throwable): Boolean =
         err.message != null && err.message!!.contains("response size should not greater than")
 }
 
-fun callLimitValidatorFactory(options: ChainOptions.Options, config: ChainConfig, chain: Chain): CallLimitValidator {
+fun callLimitValidatorFactory(
+    upstream: Upstream,
+    options: ChainOptions.Options,
+    config: ChainConfig,
+    chain: Chain,
+): CallLimitValidator {
     return if (listOf(Chain.ZKSYNC__MAINNET, Chain.ZKSYNC__SEPOLIA, Chain.ZKSYNC__TESTNET).contains(chain)) {
-        ZkSyncCallLimitValidator(options)
+        ZkSyncCallLimitValidator(upstream, options)
     } else {
         EthCallLimitValidator(options, config)
     }
