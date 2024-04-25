@@ -263,7 +263,7 @@ fun callLimitValidatorFactory(
     config: ChainConfig,
     chain: Chain,
 ): CallLimitValidator {
-    return if (listOf(Chain.ZKSYNC__MAINNET, Chain.ZKSYNC__SEPOLIA, Chain.ZKSYNC__TESTNET).contains(chain)) {
+    return if (listOf(Chain.ZKSYNC__MAINNET).contains(chain)) {
         ZkSyncCallLimitValidator(upstream, options)
     } else {
         EthCallLimitValidator(options, config)
