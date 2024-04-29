@@ -263,7 +263,7 @@ class DefaultEthereumMethods(
 
     private fun getChainSpecificMethods(chain: Chain): List<String> {
         return when (chain) {
-            Chain.OPTIMISM__MAINNET, Chain.OPTIMISM__GOERLI, Chain.MANTLE__MAINNET, Chain.MANTLE__TESTNET ->
+            Chain.OPTIMISM__MAINNET, Chain.MANTLE__MAINNET, Chain.MANTLE__TESTNET ->
                 listOf(
                     "rollup_gasPrices",
                 )
@@ -324,7 +324,7 @@ class DefaultEthereumMethods(
                     .plus(harmonySpecialMethods)
                     .plus(harmonyPossibleNotIndexedMethods)
 
-            Chain.LINEA__MAINNET, Chain.LINEA__GOERLI -> listOf(
+            Chain.LINEA__MAINNET -> listOf(
                 "linea_estimateGas",
             )
 
