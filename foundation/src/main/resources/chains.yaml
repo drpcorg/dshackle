@@ -302,11 +302,11 @@ chain-settings:
           short-names: [linea]
           chain-id: 0xe708
         - id: Sepolia
-          priority: 100
-          code: LINEA
-          grpcId: 1011
-          short-names: [ linea ]
-          chain-id: 0xe708
+          priority: 2
+          code: LINEA_SEPOLIA
+          grpcId: 10074
+          short-names: [ linea-sepolia ]
+          chain-id: 0xe705
     - id: gnosis
       label: Gnosis
       type: eth
@@ -629,6 +629,12 @@ chain-settings:
           short-names: [starknet]
           chain-id: 0x534e5f4d41494e
           grpcId: 1014
+        - id: Sepolia
+          priority: 2
+          code: STARKNET_SEPOLIA
+          short-names: [starknet-sepolia]
+          chain-id: 0x534e5f5345504f4c4941
+          grpcId: 10075
     - id: immutable-zkevm
       label: Immutable zkEVM
       type: eth
@@ -825,6 +831,12 @@ chain-settings:
           short-names: [manta-pacific]
           chain-id: 0xa9
           grpcId: 1033
+        - id: Manta Pacific Sepolia
+          priority: 2
+          code: MANTA_PACIFIC_SEPOLIA
+          short-names: [manta-pacific-sepolia]
+          chain-id: 0x34816e
+          grpcId: 10076
     - id: harmony
       label: Harmony
       type: eth
