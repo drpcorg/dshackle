@@ -108,18 +108,25 @@ class BlockchainRpc(
 
     override fun nativeSubscribe(request: Mono<BlockchainOuterClass.NativeSubscribeRequest>): Flux<BlockchainOuterClass.NativeSubscribeReplyItem> {
         var metrics: RequestMetrics? = null
-        return nativeSubscribe.nativeSubscribe(
-            request
-                .doOnNext {
-                    log.info("Starting subscription " + it.subscriptionId)
-                    metrics = chainMetrics.get(it.chain)
-                    metrics!!.nativeSubscribeMetric.increment()
-                },
-        ).doOnNext {
-            metrics?.nativeSubscribeRespMetric?.increment()
-        }.doOnError {
-            failMetric.increment()
-        }
+        return request
+            .doOnNext {
+                log.info("Starting subscription " + it.subscriptionId)
+                metrics = chainMetrics.get(it.chain)
+                metrics!!.nativeSubscribeMetric.increment()
+            }.flatMapMany {
+                    req ->
+                nativeSubscribe.nativeSubscribe(
+                    Mono.just(req),
+                ).doOnNext {
+                    metrics?.nativeSubscribeRespMetric?.increment()
+                }.doOnComplete {
+                    log.info("Subscription ${req.subscriptionId} completed")
+                }.doOnError {
+                        t ->
+                    log.info("Error ${t.message} in subscription ${req.subscriptionId}")
+                    failMetric.increment()
+                }
+            }
     }
 
     override fun subscribeHead(request: Mono<Common.Chain>): Flux<BlockchainOuterClass.ChainHead> {
