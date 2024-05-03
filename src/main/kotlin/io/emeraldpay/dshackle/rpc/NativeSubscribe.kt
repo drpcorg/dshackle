@@ -46,9 +46,14 @@ open class NativeSubscribe(
     }
 
     private val objectMapper = Global.objectMapper
-
+    private var subscriptionId = ""
     fun nativeSubscribe(request: Mono<BlockchainOuterClass.NativeSubscribeRequest>): Flux<NativeSubscribeReplyItem> {
         return request
+            .flatMap {
+                    it ->
+                subscriptionId = it.subscriptionId
+                Mono.just(it)
+            }
             .flatMapMany(this@NativeSubscribe::start)
             .map(this@NativeSubscribe::convertToProto)
             .onErrorMap(this@NativeSubscribe::convertToStatus)
@@ -60,6 +65,7 @@ open class NativeSubscribe(
         val multistream = getUpstream(chain)
 
         if (!multistream.getSubscriptionTopics().contains(request.method)) {
+            log.error("sub_id:" + subscriptionId + "subscribe ${request.method} is not supported for ${chain.chainCode}")
             return Mono.error(UnsupportedOperationException("subscribe ${request.method} is not supported for ${chain.chainCode}"))
         }
 
@@ -87,16 +93,18 @@ open class NativeSubscribe(
     }
 
     fun convertToStatus(t: Throwable) = when (t) {
-        is SilentException.UnsupportedBlockchain -> StatusException(
-            Status.UNAVAILABLE.withDescription("BLOCKCHAIN UNAVAILABLE: ${t.blockchainId}"),
-        )
+        is SilentException.UnsupportedBlockchain -> {
+            log.error("sub_id:$subscriptionId BLOCKCHAIN UNAVAILABLE: ${t.blockchainId}")
+            StatusException(Status.UNAVAILABLE.withDescription("BLOCKCHAIN UNAVAILABLE: ${t.blockchainId}"))
+        }
 
-        is UnsupportedOperationException -> StatusException(
-            Status.UNIMPLEMENTED.withDescription(t.message),
-        )
+        is UnsupportedOperationException -> {
+            log.error("sub_id:$subscriptionId unimplemented error ${t.message}")
+            StatusException(Status.UNIMPLEMENTED.withDescription(t.message))
+        }
 
         else -> {
-            log.warn("Unhandled error", t)
+            log.warn("sub_id:$subscriptionId Unhandled error", t)
             StatusException(
                 Status.INTERNAL.withDescription(t.message),
             )
@@ -107,7 +115,7 @@ open class NativeSubscribe(
         getUpstream(chain).getEgressSubscription()
             .subscribe(method, params, matcher)
             .doOnError {
-                log.error("Error during subscription to $method, chain $chain, params $params", it)
+                log.error("sub_id:$subscriptionId Error during subscription to $method, chain $chain, params $params", it)
             }
 
     private fun getUpstream(chain: Chain): Multistream =

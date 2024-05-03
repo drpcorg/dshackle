@@ -110,13 +110,20 @@ class BlockchainRpc(
         var metrics: RequestMetrics? = null
         return nativeSubscribe.nativeSubscribe(
             request
+                .flatMap {
+                        it ->
+                    log.info("Starting subscription " + it.subscriptionId)
+                    Mono.just(it)
+                }
                 .doOnNext {
                     metrics = chainMetrics.get(it.chain)
                     metrics!!.nativeSubscribeMetric.increment()
                 },
         ).doOnNext {
             metrics?.nativeSubscribeRespMetric?.increment()
-        }.doOnError { failMetric.increment() }
+        }.doOnError {
+            failMetric.increment()
+        }
     }
 
     override fun subscribeHead(request: Mono<Common.Chain>): Flux<BlockchainOuterClass.ChainHead> {
