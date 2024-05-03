@@ -46,20 +46,25 @@ open class NativeSubscribe(
     }
 
     private val objectMapper = Global.objectMapper
-    private var subscriptionId = ""
     fun nativeSubscribe(request: Mono<BlockchainOuterClass.NativeSubscribeRequest>): Flux<NativeSubscribeReplyItem> {
         return request
-            .flatMap {
+            .flatMapMany {
                     it ->
-                subscriptionId = it.subscriptionId
+                val subscriptionId = it.subscriptionId
                 Mono.just(it)
+                    .flatMapMany {
+                        start(it, subscriptionId)
+                    }
+                    .map(this@NativeSubscribe::convertToProto)
+                    .onErrorMap {
+                        convertToStatus(it, subscriptionId)
+                    }
             }
-            .flatMapMany(this@NativeSubscribe::start)
-            .map(this@NativeSubscribe::convertToProto)
-            .onErrorMap(this@NativeSubscribe::convertToStatus)
     }
 
-    fun start(request: BlockchainOuterClass.NativeSubscribeRequest): Publisher<ResponseHolder> {
+    fun start(request: BlockchainOuterClass.NativeSubscribeRequest): Publisher<ResponseHolder> = start(request, "")
+
+    fun start(request: BlockchainOuterClass.NativeSubscribeRequest, subscriptionId: String): Publisher<ResponseHolder> {
         val chain = Chain.byId(request.chainValue)
 
         val multistream = getUpstream(chain)
@@ -87,12 +92,13 @@ open class NativeSubscribe(
                     objectMapper.readValue(it.newInput(), List::class.java)
                 }
             }
-            subscribe(chain, method, params, matcher)
+            subscribe(chain, method, params, matcher, subscriptionId)
         }
         return publisher.map { ResponseHolder(it, nonce) }
     }
 
-    fun convertToStatus(t: Throwable) = when (t) {
+    fun convertToStatus(t: Throwable) = convertToStatus(t, "")
+    fun convertToStatus(t: Throwable, subscriptionId: String = "") = when (t) {
         is SilentException.UnsupportedBlockchain -> {
             log.error("sub_id:$subscriptionId BLOCKCHAIN UNAVAILABLE: ${t.blockchainId}")
             StatusException(Status.UNAVAILABLE.withDescription("BLOCKCHAIN UNAVAILABLE: ${t.blockchainId}"))
@@ -110,8 +116,10 @@ open class NativeSubscribe(
             )
         }
     }
-
     open fun subscribe(chain: Chain, method: String, params: Any?, matcher: Selector.Matcher): Flux<out Any> =
+        subscribe(chain, method, params, matcher)
+
+    open fun subscribe(chain: Chain, method: String, params: Any?, matcher: Selector.Matcher, subscriptionId: String): Flux<out Any> =
         getUpstream(chain).getEgressSubscription()
             .subscribe(method, params, matcher)
             .doOnError {

@@ -110,12 +110,8 @@ class BlockchainRpc(
         var metrics: RequestMetrics? = null
         return nativeSubscribe.nativeSubscribe(
             request
-                .flatMap {
-                        it ->
-                    log.info("Starting subscription " + it.subscriptionId)
-                    Mono.just(it)
-                }
                 .doOnNext {
+                    log.info("Starting subscription " + it.subscriptionId)
                     metrics = chainMetrics.get(it.chain)
                     metrics!!.nativeSubscribeMetric.increment()
                 },
