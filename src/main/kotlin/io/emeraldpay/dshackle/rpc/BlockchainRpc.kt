@@ -121,6 +121,8 @@ class BlockchainRpc(
                     metrics?.nativeSubscribeRespMetric?.increment()
                 }.doOnComplete {
                     log.info("Subscription ${req.subscriptionId} completed")
+                }.doOnCancel {
+                    log.info("Subscription ${req.subscriptionId} canceled")
                 }.doOnError {
                         t ->
                     log.info("Error ${t.message} in subscription ${req.subscriptionId}")
