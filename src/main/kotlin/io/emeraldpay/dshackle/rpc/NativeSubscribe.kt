@@ -57,7 +57,7 @@ open class NativeSubscribe(
                     }
                     .map(this@NativeSubscribe::convertToProto)
                     .doOnCancel {
-                        log.warn("Subscription ${subscriptionId} cancelled")
+                        log.warn("Subscription $subscriptionId cancelled")
                     }.onErrorMap {
                         convertToStatus(it, subscriptionId)
                     }
