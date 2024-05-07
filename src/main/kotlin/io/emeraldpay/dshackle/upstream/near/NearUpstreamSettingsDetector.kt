@@ -44,7 +44,7 @@ class NearUpstreamSettingsDetector(
 
     override fun nodeTypeRequest(): NodeTypeRequest = NodeTypeRequest(clientVersionRequest())
 
-    override fun clientType(node: JsonNode): String? = "Unknown NEAR client"
+    override fun clientType(node: JsonNode): String? = null
 
     override fun clientVersion(node: JsonNode): String? =
         node.get("version")?.get("version")?.asText() ?: UNKNOWN_CLIENT_VERSION
