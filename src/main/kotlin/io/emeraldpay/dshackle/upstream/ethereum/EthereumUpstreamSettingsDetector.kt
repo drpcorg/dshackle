@@ -48,7 +48,7 @@ class EthereumUpstreamSettingsDetector(
             blockNumberReader.readArchiveBlock().flatMap { haveBalance(it) },
         )
             .map { "archive" to "true" }
-            .onErrorResume { Mono.empty() }
+            .onErrorResume { Mono.just("archive" to "false") }
     }
 
     private fun haveBalance(blockNumber: String): Mono<ByteArray> {
