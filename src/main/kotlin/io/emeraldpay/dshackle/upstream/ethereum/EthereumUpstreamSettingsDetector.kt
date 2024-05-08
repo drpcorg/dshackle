@@ -43,6 +43,9 @@ class EthereumUpstreamSettingsDetector(
     }
 
     private fun detectArchiveNode(): Mono<Pair<String, String>> {
+        if (upstream.getLabels().firstOrNull { it.getOrDefault("archive", "") == "false" } != null) {
+            return Mono.empty()
+        }
         return Mono.zip(
             blockNumberReader.readEarliestBlock(chain).flatMap { haveBalance(it) },
             blockNumberReader.readArchiveBlock().flatMap { haveBalance(it) },
