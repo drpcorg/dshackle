@@ -843,7 +843,7 @@ chain-settings:
       label: Aleph Zero Network
       type: eth
       settings:
-        expected-block-time: 1s
+        expected-block-time: 60s
         lags:
           syncing: 10
           lagging: 5
