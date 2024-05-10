@@ -851,7 +851,7 @@ chain-settings:
           validate-peers: false
         fork-choice: quorum
       chains:
-        - id: Aleph Zero Sepolia
+        - id: Sepolia
           priority: 2
           code: ALEPHZERO_SEPOLIA
           short-names: [alephzero-sepolia]
@@ -869,7 +869,7 @@ chain-settings:
           validate-peers: false
         fork-choice: quorum
       chains:
-        - id: Connext Sepolia
+        - id: Sepolia
           priority: 2
           code: CONNEXT_SEPOLIA
           short-names: [connext-sepolia]
