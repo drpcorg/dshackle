@@ -947,7 +947,7 @@ chain-settings:
           lagging: 20
       chains:
         - id: Mainnet
-          priority: 1
+          priority: 100
           code: LISK_MAINNET
           grpcId: 1056
           short-names: [lisk, lisk-mainnet]
