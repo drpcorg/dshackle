@@ -34,7 +34,9 @@ abstract class UpstreamValidator(
 
     abstract fun validateUpstreamSettings(): Mono<ValidateUpstreamSettingsResult>
 
-    abstract fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult
+    open fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult {
+        return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+    }
 
     companion object {
         @JvmStatic
