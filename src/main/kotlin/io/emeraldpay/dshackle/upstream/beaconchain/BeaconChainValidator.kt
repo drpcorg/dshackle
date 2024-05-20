@@ -33,6 +33,10 @@ class BeaconChainValidator(
         return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
     }
 
+    override fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult {
+        return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+    }
+
     private fun validateHealth(): Mono<UpstreamAvailability> {
         return upstream.getIngressReader()
             .read(ChainRequest("GET#/eth/v1/node/health", RestParams.emptyParams()))

@@ -34,9 +34,7 @@ abstract class UpstreamValidator(
 
     abstract fun validateUpstreamSettings(): Mono<ValidateUpstreamSettingsResult>
 
-    fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult {
-        return validateUpstreamSettings().block() ?: ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
-    }
+    abstract fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult
 
     companion object {
         @JvmStatic

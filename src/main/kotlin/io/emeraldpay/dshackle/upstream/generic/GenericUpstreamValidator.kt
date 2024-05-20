@@ -35,4 +35,8 @@ class GenericUpstreamValidator(
     override fun validateUpstreamSettings(): Mono<ValidateUpstreamSettingsResult> {
         return Mono.just(UPSTREAM_VALID)
     }
+
+    override fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult {
+        return UPSTREAM_VALID
+    }
 }
