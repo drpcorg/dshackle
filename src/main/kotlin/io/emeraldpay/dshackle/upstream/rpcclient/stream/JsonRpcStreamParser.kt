@@ -37,10 +37,7 @@ class JsonRpcStreamParser(
         private const val QUOTE: Byte = '"'.code.toByte()
     }
 
-    fun streamParse(
-        statusCode: Int,
-        response: Flux<ByteArray>,
-    ): Mono<out Response> {
+    fun streamParse(statusCode: Int, response: Flux<ByteArray>): Mono<out Response> {
         val firstPartSize = AtomicInteger()
         return response.bufferUntil {
             if (firstPartSize.get() > firstChunkMaxSize) {
@@ -110,10 +107,7 @@ class JsonRpcStreamParser(
         }
     }
 
-    private fun aggregateResponse(
-        response: Flux<ByteArray>,
-        statusCode: Int,
-    ): Mono<AggregateResponse> {
+    private fun aggregateResponse(response: Flux<ByteArray>, statusCode: Int): Mono<AggregateResponse> {
         return ByteBufFlux.fromInbound(response).aggregate().asByteArray()
             .map { AggregateResponse(it, statusCode) }
     }
@@ -170,7 +164,8 @@ class JsonRpcStreamParser(
         var response: SingleResponse? = null
         try {
             jsonFactory.createParser(firstBytes).use { parser ->
-                while (parser.nextToken() != null) {
+                while (true) {
+                    parser.nextToken()
                     if (firstBytes.size == parser.currentLocation.byteOffset.toInt()) {
                         break
                     }
@@ -178,56 +173,51 @@ class JsonRpcStreamParser(
                         if (parser.currentName == "result") {
                             val token = parser.nextToken()
                             val tokenStart = parser.tokenLocation.byteOffset.toInt()
-                            if (token.isScalarValue) {
+                            response = if (token.isScalarValue) {
                                 val count = CountQuotesAndSlashes(AtomicInteger(1))
                                 whatCount.set(count)
-                                response =
-                                    SingleResponse(
-                                        processScalarValue(parser, tokenStart, firstBytes, count, endStream),
-                                        null,
-                                    ).merge(response)
+                                SingleResponse(
+                                    processScalarValue(parser, tokenStart, firstBytes, count, endStream),
+                                    null,
+                                )
                             } else {
                                 when (token) {
                                     JsonToken.START_OBJECT -> {
-                                        val count =
-                                            CountObjectBrackets(
-                                                AtomicInteger(1),
-                                                CountQuotesAndSlashes(AtomicInteger(0)),
-                                            )
+                                        val count = CountObjectBrackets(
+                                            AtomicInteger(1),
+                                            CountQuotesAndSlashes(AtomicInteger(0)),
+                                        )
                                         whatCount.set(count)
-                                        response =
-                                            SingleResponse(
-                                                processAndCountBrackets(
-                                                    tokenStart,
-                                                    firstBytes,
-                                                    count,
-                                                    endStream,
-                                                    OBJECT_OPEN_BRACKET,
-                                                    OBJECT_CLOSE_BRACKET,
-                                                ),
-                                                null,
-                                            ).merge(response)
+                                        SingleResponse(
+                                            processAndCountBrackets(
+                                                tokenStart,
+                                                firstBytes,
+                                                count,
+                                                endStream,
+                                                OBJECT_OPEN_BRACKET,
+                                                OBJECT_CLOSE_BRACKET,
+                                            ),
+                                            null,
+                                        )
                                     }
 
                                     JsonToken.START_ARRAY -> {
-                                        val count =
-                                            CountArrayBrackets(
-                                                AtomicInteger(1),
-                                                CountQuotesAndSlashes(AtomicInteger(0)),
-                                            )
+                                        val count = CountArrayBrackets(
+                                            AtomicInteger(1),
+                                            CountQuotesAndSlashes(AtomicInteger(0)),
+                                        )
                                         whatCount.set(count)
-                                        response =
-                                            SingleResponse(
-                                                processAndCountBrackets(
-                                                    tokenStart,
-                                                    firstBytes,
-                                                    count,
-                                                    endStream,
-                                                    ARRAY_OPEN_BRACKET,
-                                                    ARRAY_CLOSE_BRACKET,
-                                                ),
-                                                null,
-                                            ).merge(response)
+                                        SingleResponse(
+                                            processAndCountBrackets(
+                                                tokenStart,
+                                                firstBytes,
+                                                count,
+                                                endStream,
+                                                ARRAY_OPEN_BRACKET,
+                                                ARRAY_CLOSE_BRACKET,
+                                            ),
+                                            null,
+                                        )
                                     }
 
                                     else -> {
@@ -235,15 +225,24 @@ class JsonRpcStreamParser(
                                     }
                                 }
                             }
+                            if (endStream.get()) {
+                                // we parsed the whole result field, and we can go parse further
+                                parser.skipChildren()
+                            } else {
+                                // otherwise return response assuming there is no error field
+                                return response
+                            }
                         } else if (parser.currentName == "error") {
-                            return SingleResponse(null, responseRpcParser.readError(parser)).merge(response)
+                            return SingleResponse(response?.result, responseRpcParser.readError(parser))
                         }
                     }
                 }
                 return response
             }
         } catch (e: Exception) {
-            log.warn("Streaming parsing exception: {}", e.message)
+            // probably the first chunk is not the finished json, and we wanted to parse it till the end
+            // in general it doesn't have to happen
+            log.warn("Streaming parsing exception: {}. Response is null - {}", e.message, response == null)
             return response
         }
     }
