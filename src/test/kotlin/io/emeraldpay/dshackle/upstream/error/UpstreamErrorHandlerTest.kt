@@ -18,6 +18,8 @@ class UpstreamErrorHandlerTest {
 
         handler.handle(upstream, request, "missing trie node d5648cc9aef48154159d53800f2f")
 
+        Thread.sleep(100)
+
         verify(upstream).updateLowerBound(213229736, LowerBoundType.STATE)
     }
 }
