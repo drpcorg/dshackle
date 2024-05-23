@@ -240,9 +240,13 @@ class JsonRpcStreamParser(
                 return response
             }
         } catch (e: Exception) {
-            // probably the first chunk is not the finished json, and we wanted to parse it till the end
-            // in general it doesn't have to happen
-            log.warn("Streaming parsing exception: {}. Response is null - {}", e.message, response == null)
+            if (response == null) {
+                // something terrible happened when we even don't have a response that means we haven't parsed the first chunk
+                log.warn("Streaming parsing exception: {}", e.message)
+            }
+            //there may be other parsing exceptions that means we have parsed the first chunk, and we have a response
+            //but when we want to parse further we can get an error if the first chunk is not a finished json
+            //it doesn't matter, we have the result from the response and can return it
             return response
         }
     }
