@@ -37,7 +37,6 @@ class SelectorTest {
             BlockchainOuterClass.Selector.newBuilder()
                 .setLowerHeightSelector(
                     BlockchainOuterClass.LowerHeightSelector.newBuilder()
-                        .setHeight(0L)
                         .setLowerBoundType(protoLowerBoundType)
                         .build(),
                 )
@@ -73,7 +72,6 @@ class SelectorTest {
             BlockchainOuterClass.Selector.newBuilder()
                 .setLowerHeightSelector(
                     BlockchainOuterClass.LowerHeightSelector.newBuilder()
-                        .setHeight(0L)
                         .build(),
                 )
                 .build(),

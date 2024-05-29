@@ -73,7 +73,7 @@ class Selector {
             selectors.forEach { selector ->
                 if (selector.hasHeightSelector() && selector.heightSelector.height == -1L) {
                     return Sort(compareByDescending { it.getHead().getCurrentHeight() })
-                } else if (selector.hasLowerHeightSelector() && selector.lowerHeightSelector.height == 0L) {
+                } else if (selector.hasLowerHeightSelector()) {
                     return Sort(
                         compareBy(nullsLast()) {
                             it.getLowerBound(fromProtoType(selector.lowerHeightSelector.lowerBoundType))?.lowerBound
