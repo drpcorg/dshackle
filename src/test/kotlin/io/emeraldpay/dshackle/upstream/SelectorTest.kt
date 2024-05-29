@@ -87,6 +87,38 @@ class SelectorTest {
         )
     }
 
+    @Test
+    fun `ignore upstream with no needed lower bound`() {
+        val up1 = mock<Upstream> {
+            on { getLowerBound(LowerBoundType.STATE) } doReturn LowerBoundData(1, LowerBoundType.STATE)
+        }
+        val up2 = mock<Upstream> {
+            on { getLowerBound(LowerBoundType.BLOCK) } doReturn LowerBoundData(1000, LowerBoundType.BLOCK)
+        }
+        val up3 = mock<Upstream> {
+            on { getLowerBound(LowerBoundType.BLOCK) } doReturn LowerBoundData(100000, LowerBoundType.BLOCK)
+        }
+        val ups = listOf(up1, up3, up2)
+        val requestSelectors = listOf(
+            BlockchainOuterClass.Selector.newBuilder()
+                .setLowerHeightSelector(
+                    BlockchainOuterClass.LowerHeightSelector.newBuilder()
+                        .setLowerBoundType(BlockchainOuterClass.LowerBoundType.LOWER_BOUND_BLOCK)
+                        .build(),
+                )
+                .build(),
+        )
+
+        val upstreamFilter = Selector.convertToUpstreamFilter(requestSelectors)
+
+        val actual = ups.sortedWith(upstreamFilter.sort.comparator)
+
+        assertEquals(
+            listOf(up2, up3, up1),
+            actual,
+        )
+    }
+
     companion object {
         @JvmStatic
         fun data(): List<Arguments> =
