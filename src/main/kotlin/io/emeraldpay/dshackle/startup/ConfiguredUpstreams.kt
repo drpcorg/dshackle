@@ -74,7 +74,7 @@ open class ConfiguredUpstreams(
                         )
                 }
             } else {
-                upstreamFactory.creatGrpcUpstream(
+                upstreamFactory.createGrpcUpstream(
                     up as UpstreamsConfig.Upstream<UpstreamsConfig.GrpcConnection>,
                     chainsConfig,
                 )

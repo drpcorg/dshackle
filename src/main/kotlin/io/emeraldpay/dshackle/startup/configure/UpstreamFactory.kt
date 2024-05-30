@@ -39,7 +39,7 @@ class UpstreamFactory(
         }
     }
 
-    fun creatGrpcUpstream(
+    fun createGrpcUpstream(
         config: UpstreamsConfig.Upstream<UpstreamsConfig.GrpcConnection>,
         chainsConfig: ChainsConfig,
     ): GrpcUpstreams {
