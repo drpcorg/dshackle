@@ -13,8 +13,8 @@ class ChainOptions {
         val minPeers: Int,
         val validateSyncing: Boolean,
         val validateCallLimit: Boolean,
-        val validateChain: Boolean,
         val validateGasPrice: Boolean,
+        val validateChain: Boolean,
         val callLimitSize: Int,
     )
 

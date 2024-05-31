@@ -38,6 +38,24 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
             fun default() = defaultWithContract(null)
 
             @JvmStatic
+            fun defaultWithGasPrice(gasPrice: Long) = ChainConfig(
+                Duration.ofSeconds(12),
+                6,
+                1,
+                ChainOptions.PartialOptions(),
+                "0x0",
+                BigInteger.ZERO,
+                0,
+                "UNKNOWN",
+                emptyList(),
+                null,
+                "undefined",
+                "undefined",
+                "unknown",
+                gasPrice,
+            )
+
+            @JvmStatic
             fun defaultWithContract(callLimitContract: String?) = ChainConfig(
                 Duration.ofSeconds(12),
                 6,
