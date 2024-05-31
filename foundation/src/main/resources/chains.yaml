@@ -191,7 +191,7 @@ chain-settings:
           grpcId: 1006
           chain-id: 0x38
           short-names: [bsc, binance, bnb-smart-chain]
-          gas-price: 1000000000
+          gas-price: 1000000000L
         - id: Testnet
           priority: 1
           code: BSC_TESTNET
