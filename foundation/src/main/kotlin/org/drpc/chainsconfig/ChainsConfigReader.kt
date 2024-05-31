@@ -86,7 +86,7 @@ class ChainsConfigReader(
             ?: throw IllegalArgumentException("undefined shortnames for $blockchain")
         val type = getValueAsString(node, "type")
             ?: throw IllegalArgumentException("undefined type for $blockchain")
-        val gasPrice = getValueAsLong(node, "gas-price") ?: 0
+        val gasPriceCondition = getValueAsString(node, "gas-price-condition")
         return ChainsConfig.ChainConfig(
             expectedBlockTime = expectedBlockTime,
             syncingLagSize = lags.first,
@@ -101,7 +101,7 @@ class ChainsConfigReader(
             id = id,
             blockchain = blockchain,
             type = type,
-            gasPrice = gasPrice,
+            gasPriceCondition = gasPriceCondition?.let { ChainsConfig.GasPriceCondition(gasPriceCondition) },
         )
     }
 

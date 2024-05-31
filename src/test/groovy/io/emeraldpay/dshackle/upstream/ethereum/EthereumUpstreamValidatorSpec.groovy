@@ -351,7 +351,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
             it.validateChain = false
             it.validateCallLimit = false
         }.buildOptions()
-        def conf = ChainConfig.defaultWithGasPrice(1000000000)
+        def conf = ChainConfig.defaultWithGasPriceCondition("ne 3000000000")
         def up = Mock(Upstream) {
             3 * getIngressReader() >>
                     Mock(Reader) {
@@ -374,7 +374,7 @@ class EthereumUpstreamValidatorSpec extends Specification {
             it.validateChain = false
             it.validateCallLimit = false
         }.buildOptions()
-        def conf = ChainConfig.defaultWithGasPrice(1000000000)
+        def conf = ChainConfig.defaultWithGasPriceCondition("eq 1000000000")
         def up = Mock(Upstream) {
             3 * getIngressReader() >>
                     Mock(Reader) {
