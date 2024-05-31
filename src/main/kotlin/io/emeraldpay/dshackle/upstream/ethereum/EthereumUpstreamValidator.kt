@@ -197,7 +197,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
     }
 
     private fun validateGasPrice(): Mono<ValidateUpstreamSettingsResult> {
-        if (!options.validateGasPrice && options.gasPrice <= 0) {
+        if (!options.validateGasPrice || config.gasPrice <= 0) {
             return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
         }
         TODO()

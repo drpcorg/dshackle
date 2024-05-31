@@ -49,9 +49,6 @@ class ChainOptionsReader : YamlConfigReader<ChainOptions.PartialOptions>() {
         getValueAsInt(values, "call-limit-size")?.let {
             options.callLimitSize = it
         }
-        getValueAsLong(values, "gas-price")?.let {
-            options.gasPrice = it
-        }
         return options
     }
 }
