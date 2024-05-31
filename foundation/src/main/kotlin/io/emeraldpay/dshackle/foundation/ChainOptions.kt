@@ -14,7 +14,9 @@ class ChainOptions {
         val validateSyncing: Boolean,
         val validateCallLimit: Boolean,
         val validateChain: Boolean,
+        val validateGasPrice: Boolean,
         val callLimitSize: Int,
+        val gasPrice: Long,
     )
 
     data class DefaultOptions(
@@ -30,10 +32,12 @@ class ChainOptions {
         var providesBalance: Boolean? = null,
         var validatePeers: Boolean? = null,
         var validateCallLimit: Boolean? = null,
+        var validateGasPrice: Boolean? = null,
         var minPeers: Int? = null,
         var validateSyncing: Boolean? = null,
         var validateChain: Boolean? = null,
         var callLimitSize: Int? = null,
+        var gasPrice: Long? = null,
     ) {
         companion object {
             @JvmStatic
@@ -56,11 +60,13 @@ class ChainOptions {
             copy.providesBalance = overwrites.providesBalance ?: this.providesBalance
             copy.validateSyncing = overwrites.validateSyncing ?: this.validateSyncing
             copy.validateCallLimit = overwrites.validateCallLimit ?: this.validateCallLimit
+            copy.validateGasPrice = overwrites.validateGasPrice ?: this.validateGasPrice
             copy.timeout = overwrites.timeout ?: this.timeout
             copy.validateChain = overwrites.validateChain ?: this.validateChain
             copy.disableUpstreamValidation =
                 overwrites.disableUpstreamValidation ?: this.disableUpstreamValidation
             copy.callLimitSize = overwrites.callLimitSize ?: this.callLimitSize
+            copy.gasPrice = overwrites.gasPrice ?: this.gasPrice
             return copy
         }
 
@@ -75,8 +81,10 @@ class ChainOptions {
                 this.minPeers ?: 1,
                 this.validateSyncing ?: true,
                 this.validateCallLimit ?: true,
+                this.validateGasPrice ?: true,
                 this.validateChain ?: true,
                 this.callLimitSize ?: 1_000_000,
+                this.gasPrice ?: 0L,
             )
     }
 }

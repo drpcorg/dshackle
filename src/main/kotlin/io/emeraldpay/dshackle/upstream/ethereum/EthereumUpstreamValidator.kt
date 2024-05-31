@@ -94,6 +94,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
             validateChain(),
             validateOldBlocks(),
             validateCallLimit(),
+            validateGasPrice(),
         ).map {
             listOf(it.t1, it.t2, it.t3).maxOf { it }
         }.block() ?: ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
@@ -193,6 +194,13 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                 log.warn("Error during old blocks validation", it)
                 Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
             }
+    }
+
+    private fun validateGasPrice(): Mono<ValidateUpstreamSettingsResult> {
+        if (!options.validateGasPrice && options.gasPrice <= 0) {
+            return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+        }
+        TODO()
     }
 
     private fun chainId(): Mono<String> {
