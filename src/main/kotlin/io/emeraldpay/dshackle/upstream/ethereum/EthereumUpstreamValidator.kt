@@ -208,7 +208,7 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
                 if (actualGasPrice != config.gasPrice) {
                     log.warn(
                         "Node ${upstream.getId()} has gasPrice $actualGasPrice, " +
-                            "but it is less than required ${config.gasPrice}",
+                            "but it is not equal to the required ${config.gasPrice}",
                     )
                     ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
                 } else {
