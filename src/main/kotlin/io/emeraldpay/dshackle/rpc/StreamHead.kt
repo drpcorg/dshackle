@@ -23,6 +23,7 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.MultistreamHolder
+import io.emeraldpay.dshackle.upstream.finalization.toProtoLowerBoundType
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import org.slf4j.LoggerFactory
@@ -35,7 +36,6 @@ import reactor.core.publisher.Mono
 class StreamHead(
     @Autowired private val multistreamHolder: MultistreamHolder,
 ) {
-
     private val log = LoggerFactory.getLogger(StreamHead::class.java)
 
     fun add(requestMono: Mono<Common.Chain>): Flux<BlockchainOuterClass.ChainHead> {
@@ -54,12 +54,20 @@ class StreamHead(
 
     fun asProto(ms: Multistream, chain: Chain, block: BlockContainer): BlockchainOuterClass.ChainHead {
         val msLowerBounds = ms.getLowerBounds()
-        val lowerBoundsProto = msLowerBounds
-            .map {
-                BlockchainOuterClass.LowerBound.newBuilder()
-                    .setLowerBoundTimestamp(it.timestamp)
-                    .setLowerBoundType(toProtoLowerBoundType(it.type))
-                    .setLowerBoundValue(it.lowerBound)
+        val lowerBoundsProto =
+            msLowerBounds
+                .map {
+                    BlockchainOuterClass.LowerBound.newBuilder()
+                        .setLowerBoundTimestamp(it.timestamp)
+                        .setLowerBoundType(toProtoLowerBoundType(it.type))
+                        .setLowerBoundValue(it.lowerBound)
+                        .build()
+                }
+        val finalizationData =
+            ms.getFinalizations().map {
+                BlockchainOuterClass.FinalizationData.newBuilder()
+                    .setHeight(it.height)
+                    .setType(it.type.toProtoFinalizationType())
                     .build()
             }
         val toOldApi = toOldApi(msLowerBounds)
@@ -72,6 +80,7 @@ class StreamHead(
             .setCurrentLowerSlot(toOldApi.slot)
             .setCurrentLowerDataTimestamp(toOldApi.timestamp)
             .addAllLowerBounds(lowerBoundsProto)
+            .addAllFinalizationData(finalizationData)
             .setTimestamp(block.timestamp.toEpochMilli())
             .setWeight(ByteString.copyFrom(block.difficulty.toByteArray()))
             .setBlockId(block.hash.toHex())

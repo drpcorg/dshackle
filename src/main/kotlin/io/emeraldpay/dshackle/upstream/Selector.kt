@@ -27,6 +27,8 @@ import io.emeraldpay.dshackle.upstream.MatchesResponse.NotMatchedResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SameNodeResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SlotHeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.Success
+import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
+import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.lowerbound.fromProtoType
 import org.apache.commons.lang3.StringUtils
 import java.util.Collections
@@ -41,6 +43,36 @@ class Selector {
         @JvmStatic
         val anyLabel = AnyLabelMatcher()
 
+        sealed class HeightNumberOrTag {
+
+            companion object {
+                fun fromHeightSelector(selector: BlockchainOuterClass.HeightSelector): HeightNumberOrTag? {
+                    return when (selector.heightOrNumberCase) {
+                        BlockchainOuterClass.HeightSelector.HeightOrNumberCase.HEIGHTORNUMBER_NOT_SET ->
+                            return if (selector.height == -1L) {
+                                Latest
+                            } else {
+                                Number(selector.height)
+                            }
+                        BlockchainOuterClass.HeightSelector.HeightOrNumberCase.NUMBER -> Number(selector.number)
+                        BlockchainOuterClass.HeightSelector.HeightOrNumberCase.TAG -> when (selector.tag) {
+                            BlockchainOuterClass.BlockTag.SAFE -> Safe
+                            BlockchainOuterClass.BlockTag.LATEST -> Latest
+                            BlockchainOuterClass.BlockTag.PENDING -> Pending
+                            BlockchainOuterClass.BlockTag.FINALIZED -> Finalized
+                            else -> null
+                        }
+                        else -> null
+                    }
+                }
+            }
+            class Number(val num: Long): HeightNumberOrTag()
+            object Pending: HeightNumberOrTag()
+            object Latest: HeightNumberOrTag()
+            object Safe: HeightNumberOrTag()
+            object Finalized: HeightNumberOrTag()
+        }
+
         @JvmStatic
         fun convertToUpstreamFilter(selectors: List<BlockchainOuterClass.Selector>): UpstreamFilter {
             val matcher = selectors
@@ -50,16 +82,11 @@ class Selector {
                             SlotMatcher(it.slotHeightSelector.slotHeight)
                         }
                         it.hasHeightSelector() -> {
-                            val height = if (it.heightSelector.height == -1L) {
-                                null
-                            } else {
-                                it.heightSelector.height
+                            when (val selector = HeightNumberOrTag.fromHeightSelector(it.heightSelector)) {
+                                is HeightNumberOrTag.Number -> HeightMatcher(selector.num)
+                                else -> empty
                             }
-                            if (height == null) {
-                                empty
-                            } else {
-                                HeightMatcher(height)
-                            }
+
                         }
                         else -> empty
                     }
@@ -71,8 +98,19 @@ class Selector {
 
         private fun getSort(selectors: List<BlockchainOuterClass.Selector>): Sort {
             selectors.forEach { selector ->
-                if (selector.hasHeightSelector() && selector.heightSelector.height == -1L) {
-                    return Sort(compareByDescending { it.getHead().getCurrentHeight() })
+                if (selector.hasHeightSelector()) {
+                    return when (HeightNumberOrTag.fromHeightSelector(selector.heightSelector)) {
+                        is HeightNumberOrTag.Latest -> Sort(compareByDescending {
+                            it.getHead().getCurrentHeight()
+                        })
+                        is HeightNumberOrTag.Safe -> Sort(compareByDescending { up ->
+                            up.getFinalizations().find { it.type == FinalizationType.SAFE_BLOCK }?.height ?: 0L
+                        })
+                        is HeightNumberOrTag.Finalized -> Sort(compareByDescending {up ->
+                            up.getFinalizations().find { it.type == FinalizationType.FINALIZED_BLOCK }?.height ?: 0L
+                        })
+                        else -> Sort.default
+                    }
                 } else if (selector.hasLowerHeightSelector()) {
                     return Sort(
                         compareBy(nullsLast()) {
