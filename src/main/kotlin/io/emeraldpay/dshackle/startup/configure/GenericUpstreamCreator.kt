@@ -71,19 +71,20 @@ open class GenericUpstreamCreator(
             if (it.connectorMode == GenericConnectorFactory.ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD.name) it.rpc?.url ?: it.ws?.url else it.ws?.url ?: it.rpc?.url
         }
         val hash = getHash(nodeId, hashUrl!!, hashes)
+        val buildMethodsFun = { a: UpstreamsConfig.Upstream<*>, b: Chain -> this.buildMethods(a, b) }
 
         val upstream = GenericUpstream(
-            config.id!!,
+            config,
             chain,
             hash,
             options,
-            config.role,
-            methods,
             QuorumForLabels.QuorumItem(1, UpstreamsConfig.Labels.fromMap(config.labels)),
             chainConfig,
             connectorFactory,
             cs::validator,
             cs::upstreamSettingsDetector,
+            cs::upstreamRpcModulesDetector,
+            buildMethodsFun,
             cs::lowerBoundService,
         )
 
