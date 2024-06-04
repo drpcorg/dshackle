@@ -720,7 +720,7 @@ open class NativeCall(
         val upstreamSettingsData: Upstream.UpstreamSettingsData?,
         val ctx: ValidCallContext<ParsedCallDetails>?,
         val stream: Flux<Chunk>? = null,
-        val finalization: FinalizationData? = null
+        val finalization: FinalizationData? = null,
     ) {
 
         constructor(

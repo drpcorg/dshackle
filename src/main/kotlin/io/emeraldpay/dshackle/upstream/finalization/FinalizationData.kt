@@ -31,7 +31,7 @@ enum class FinalizationType {
         }
     }
 
-    fun toBlockRef(): String{
+    fun toBlockRef(): String {
         return when (this) {
             FINALIZED_BLOCK -> "finalized"
             SAFE_BLOCK -> "safe"

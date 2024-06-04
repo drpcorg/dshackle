@@ -111,7 +111,7 @@ class EthereumDirectReader(
         blockByFinalizationReader = object : Reader<FinalizationType, Result<BlockContainer>> {
             override fun read(key: FinalizationType): Mono<Result<BlockContainer>> {
                 val request = ChainRequest("eth_getBlockByNumber", ListParams(key.toBlockRef(), false))
-                val tag = when(key) {
+                val tag = when (key) {
                     FinalizationType.FINALIZED_BLOCK -> Selector.Companion.HeightNumberOrTag.Finalized
                     FinalizationType.SAFE_BLOCK -> Selector.Companion.HeightNumberOrTag.Safe
                     else -> null
@@ -120,7 +120,7 @@ class EthereumDirectReader(
                     request,
                     key.toString(),
                     Selector.empty,
-                    tag?.getSort() ?: Selector.Sort.default
+                    tag?.getSort() ?: Selector.Sort.default,
                 )
             }
         }
@@ -214,7 +214,7 @@ class EthereumDirectReader(
         request: ChainRequest,
         id: String,
         matcher: Selector.Matcher = Selector.empty,
-        sort: Selector.Sort = Selector.Sort.default
+        sort: Selector.Sort = Selector.Sort.default,
     ): Mono<Result<BlockContainer>> {
         return readWithQuorum(request, matcher, sort)
             .timeout(Duration.ofSeconds(5), Mono.error(TimeoutException("Block not read $id")))
@@ -248,7 +248,7 @@ class EthereumDirectReader(
     private fun readWithQuorum(
         request: ChainRequest,
         matcher: Selector.Matcher = Selector.empty,
-        sort: Selector.Sort = Selector.Sort.default
+        sort: Selector.Sort = Selector.Sort.default,
     ): Mono<Result<ByteArray>> {
         return Mono.just(requestReaderFactory)
             .map {

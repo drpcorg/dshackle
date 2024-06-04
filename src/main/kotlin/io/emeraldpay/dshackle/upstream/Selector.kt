@@ -65,30 +65,30 @@ class Selector {
                     }
                 }
             }
-            class Number(val num: Long): HeightNumberOrTag()
-            object Pending: HeightNumberOrTag()
-            object Latest: HeightNumberOrTag()
-            object Safe: HeightNumberOrTag()
-            object Finalized: HeightNumberOrTag()
+            class Number(val num: Long) : HeightNumberOrTag()
+            object Pending : HeightNumberOrTag()
+            object Latest : HeightNumberOrTag()
+            object Safe : HeightNumberOrTag()
+            object Finalized : HeightNumberOrTag()
 
             fun getSort(): Sort {
                 return when (this) {
                     is Latest -> Sort(
                         compareByDescending {
                             it.getHead().getCurrentHeight()
-                        }
+                        },
                     )
 
                     is Safe -> Sort(
                         compareByDescending { up ->
                             up.getFinalizations().find { it.type == FinalizationType.SAFE_BLOCK }?.height ?: 0L
-                        }
+                        },
                     )
 
                     is Finalized -> Sort(
                         compareByDescending { up ->
                             up.getFinalizations().find { it.type == FinalizationType.FINALIZED_BLOCK }?.height ?: 0L
-                        }
+                        },
                     )
 
                     else -> Sort.default
@@ -109,7 +109,6 @@ class Selector {
                                 is HeightNumberOrTag.Number -> HeightMatcher(selector.num)
                                 else -> empty
                             }
-
                         }
                         else -> empty
                     }

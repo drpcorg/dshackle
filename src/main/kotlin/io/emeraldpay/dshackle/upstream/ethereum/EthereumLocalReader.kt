@@ -15,7 +15,6 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
-import io.emeraldpay.dshackle.Global.Companion.nullValue
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.data.TxId
 import io.emeraldpay.dshackle.reader.ChainReader
@@ -23,7 +22,6 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.LogsOracle
-import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.ethereum.hex.HexQuantity
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
@@ -32,7 +30,6 @@ import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.switchIfEmpty
 import java.math.BigInteger
 
 /**
@@ -170,7 +167,7 @@ class EthereumLocalReader(
                 blockRef == "pending" -> {
                     return null
                 }
-                blockRef == "finalized" || blockRef == "safe" ->  {
+                blockRef == "finalized" || blockRef == "safe" -> {
                     val type = FinalizationType.fromBlockRef(blockRef)
                     return reader.directReader
                         .blockByFinalizationReader.read(type)

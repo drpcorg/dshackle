@@ -28,6 +28,5 @@ class NoopFinalizationDetector : FinalizationDetector {
     }
 
     override fun addFinalization(finalization: FinalizationData) {
-
     }
 }

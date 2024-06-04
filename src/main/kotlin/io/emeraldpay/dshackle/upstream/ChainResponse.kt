@@ -34,7 +34,7 @@ class ChainResponse @JvmOverloads constructor(
      */
     val providedSignature: ResponseSigner.Signature? = null,
     val resolvedUpstreamData: Upstream.UpstreamSettingsData? = null,
-    val finalization: FinalizationData? = null
+    val finalization: FinalizationData? = null,
 ) {
 
     constructor(stream: Flux<Chunk>, id: Int) :
