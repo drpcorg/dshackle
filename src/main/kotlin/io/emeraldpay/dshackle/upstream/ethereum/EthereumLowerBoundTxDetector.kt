@@ -10,6 +10,8 @@ import io.emeraldpay.dshackle.upstream.lowerbound.toHex
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 
+const val MAX_OFFSET = 20
+
 class EthereumLowerBoundTxDetector(
     private val upstream: Upstream,
 ) : LowerBoundDetector() {
@@ -20,7 +22,7 @@ class EthereumLowerBoundTxDetector(
     }
 
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
-        return recursiveLowerBound.recursiveDetectLowerBoundWithOffset(20) { block ->
+        return recursiveLowerBound.recursiveDetectLowerBoundWithOffset(MAX_OFFSET) { block ->
             upstream.getIngressReader()
                 .read(
                     ChainRequest(

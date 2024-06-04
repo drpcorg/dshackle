@@ -108,54 +108,40 @@ class RecursiveLowerBound(
         val count = AtomicInteger(0)
         return Mono.just(LowerBoundBinarySearchData(currentMiddle - 1, false))
             .expand { currentBlock ->
-                if (visitedBlocks.contains(currentBlock.current)) {
-                    // if this block has been already seen there is no need to check it again
-                    count.set(-1)
-                    Mono.just(LowerBoundBinarySearchData(currentMiddle + 1, currentData.right, currentData.current))
+                if (currentBlock.found) {
+                    // to avoid extra handling
+                    Mono.empty()
                 } else {
-                    if (currentBlock.current < 0) {
-                        // to avoid negative numbers
-                        count.set(-1)
-                        Mono.just(LowerBoundBinarySearchData(currentMiddle + 1, currentData.right, currentData.current))
+                    if (visitedBlocks.contains(currentBlock.current) || currentBlock.current < 0) {
+                        // if this block has been already seen there is no need to check it again
+                        Mono.just(LowerBoundBinarySearchData(currentMiddle + 1, currentData.right, currentData.current, true))
                     } else {
                         hasData(currentBlock.current)
                             .retryWhen(retrySpec(currentBlock.current, nonRetryableErrors))
                             .flatMap(ChainResponse::requireResult)
                             .map {
                                 // we found data at once and return it
-                                count.set(-1)
-                                LowerBoundBinarySearchData(
-                                    currentData.left,
-                                    currentBlock.current - 1,
-                                    currentBlock.current,
-                                )
+                                LowerBoundBinarySearchData(currentData.left, currentBlock.current - 1, currentBlock.current, true)
                             }
                             .onErrorResume {
                                 // otherwise we go the left until we reach the specified limit
                                 count.incrementAndGet()
                                 if (count.get() in 1..maxLimit) {
                                     visitedBlocks.add(currentBlock.current)
-                                    Mono.just(
-                                        LowerBoundBinarySearchData(
-                                            currentBlock.current - 1,
-                                            false,
-                                        ),
-                                    )
+                                    Mono.just(LowerBoundBinarySearchData(currentBlock.current - 1, false))
                                 } else {
-                                    Mono.just(
-                                        LowerBoundBinarySearchData(
-                                            currentMiddle + 1,
-                                            currentData.right,
-                                            currentData.current,
-                                        ),
-                                    )
+                                    Mono.just(LowerBoundBinarySearchData(currentMiddle + 1, currentData.right, currentData.current, true))
                                 }
                             }
                     }
                 }
             }
-            .filter { count.get() > maxLimit || count.get() == -1 }
+            .filter { it.found }
             .next()
+            .map {
+                // in terms of the whole calculation we haven't found the bound
+                LowerBoundBinarySearchData(it.left, it.right, it.current)
+            }
     }
 
     private fun initialRange(): Mono<LowerBoundBinarySearchData> {
