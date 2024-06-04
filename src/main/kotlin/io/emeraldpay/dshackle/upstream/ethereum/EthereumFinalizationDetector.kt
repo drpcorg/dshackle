@@ -64,12 +64,18 @@ class EthereumFinalizationDetector : FinalizationDetector {
                         }
                     }
             }.doOnNext {
-                data[it.type] = it
+                addFinalization(it)
             }.onErrorResume {
                 log.error("Error during retrieving — $it")
                 Flux.empty()
             }
         }
+    }
+
+    override fun addFinalization(finalization: FinalizationData) {
+        data[finalization.type] = maxOf(data[finalization.type], finalization) { a, b ->
+            ((a?.height ?: 0) - (b?.height ?: 0)).toInt()
+        } ?: finalization
     }
 
     override fun getFinalizations(): Collection<FinalizationData> {

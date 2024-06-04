@@ -294,6 +294,12 @@ open class GenericUpstream(
         return finalizationDetector.getFinalizations()
     }
 
+    override fun addFinalization(finalization: FinalizationData, upstreamId: String) {
+        if (getId() == upstreamId) {
+            finalizationDetector.addFinalization(finalization)
+        }
+    }
+
     private fun detectFinalization() {
         finalizationDetectorSubscription =
             finalizationDetector.detectFinalization(this, chainConfig.expectedBlockTime).subscribe {

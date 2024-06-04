@@ -160,6 +160,9 @@ class BitcoinGrpcUpstream(
         return emptyList()
     }
 
+    override fun addFinalization(finalization: FinalizationData, upstreamId: String) {
+    }
+
     override fun getLowerBound(lowerBoundType: LowerBoundType): LowerBoundData? {
         return null
     }

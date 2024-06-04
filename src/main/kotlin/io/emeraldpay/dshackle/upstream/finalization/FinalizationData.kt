@@ -11,13 +11,32 @@ enum class FinalizationType {
     UNKNOWN,
     SAFE_BLOCK,
     FINALIZED_BLOCK,
-}
+    ;
 
-fun FinalizationType.toProtoFinalizationType(): BlockchainOuterClass.FinalizationType {
-    return when (this) {
-        FinalizationType.FINALIZED_BLOCK -> BlockchainOuterClass.FinalizationType.FINALIZATION_FINALIZED_BLOCK
-        FinalizationType.UNKNOWN -> BlockchainOuterClass.FinalizationType.UNRECOGNIZED
-        FinalizationType.SAFE_BLOCK -> BlockchainOuterClass.FinalizationType.FINALIZATION_SAFE_BLOCK
+    companion object {
+        fun fromBlockRef(v: String): FinalizationType {
+            return when (v) {
+                "safe" -> SAFE_BLOCK
+                "finalized" -> FINALIZED_BLOCK
+                else -> UNKNOWN
+            }
+        }
+    }
+
+    fun toProtoFinalizationType(): BlockchainOuterClass.FinalizationType {
+        return when (this) {
+            FINALIZED_BLOCK -> BlockchainOuterClass.FinalizationType.FINALIZATION_FINALIZED_BLOCK
+            UNKNOWN -> BlockchainOuterClass.FinalizationType.UNRECOGNIZED
+            SAFE_BLOCK -> BlockchainOuterClass.FinalizationType.FINALIZATION_SAFE_BLOCK
+        }
+    }
+
+    fun toBlockRef(): String{
+        return when (this) {
+            FINALIZED_BLOCK -> "finalized"
+            SAFE_BLOCK -> "safe"
+            UNKNOWN -> "unknown"
+        }
     }
 }
 

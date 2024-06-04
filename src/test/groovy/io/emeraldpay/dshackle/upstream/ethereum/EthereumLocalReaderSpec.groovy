@@ -84,8 +84,8 @@ class EthereumLocalReaderSpec extends Specification {
         then:
         act != null
         with(act.block()) {
-            it.first.length > 0
-            with(Global.objectMapper.readValue(it.first, BlockJson)) {
+            it.result.length > 0
+            with(Global.objectMapper.readValue(it.result, BlockJson)) {
                 number == 101
             }
         }
@@ -112,8 +112,8 @@ class EthereumLocalReaderSpec extends Specification {
         then:
         act != null
         with(act.block()) {
-            it.first.length > 0
-            with(Global.objectMapper.readValue(it.first, BlockJson)) {
+            it.result.length > 0
+            with(Global.objectMapper.readValue(it.result, BlockJson)) {
                 number == 0
             }
         }
@@ -140,8 +140,8 @@ class EthereumLocalReaderSpec extends Specification {
         then:
         act != null
         with(act.block()) {
-            it.first.length > 0
-            with(Global.objectMapper.readValue(it.first, BlockJson)) {
+            it.result.length > 0
+            with(Global.objectMapper.readValue(it.result, BlockJson)) {
                 number == 74735
             }
         }

@@ -50,9 +50,8 @@ interface Upstream : Lifecycle {
     fun isGrpc(): Boolean
     fun getLowerBounds(): Collection<LowerBoundData>
     fun getLowerBound(lowerBoundType: LowerBoundType): LowerBoundData?
-
     fun getFinalizations(): Collection<FinalizationData>
-
+    fun addFinalization(finalization: FinalizationData, upstreamId: String)
     fun getUpstreamSettingsData(): UpstreamSettingsData?
     fun updateLowerBound(lowerBound: Long, type: LowerBoundType)
 

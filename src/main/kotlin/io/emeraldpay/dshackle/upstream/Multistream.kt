@@ -366,6 +366,10 @@ abstract class Multistream(
             }.toList().map { FinalizationData(it.second, it.first) }
     }
 
+    override fun addFinalization(finalization: FinalizationData, upstreamId: String) {
+        getAll().find { it.getId() == upstreamId }?.addFinalization(finalization, upstreamId)
+    }
+
     override fun getLowerBounds(): Collection<LowerBoundData> {
         return lowerBounds.values
     }

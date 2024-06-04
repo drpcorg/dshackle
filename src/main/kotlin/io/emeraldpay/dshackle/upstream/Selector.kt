@@ -27,7 +27,6 @@ import io.emeraldpay.dshackle.upstream.MatchesResponse.NotMatchedResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SameNodeResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SlotHeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.Success
-import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.lowerbound.fromProtoType
 import org.apache.commons.lang3.StringUtils
@@ -71,6 +70,30 @@ class Selector {
             object Latest: HeightNumberOrTag()
             object Safe: HeightNumberOrTag()
             object Finalized: HeightNumberOrTag()
+
+            fun getSort(): Sort {
+                return when (this) {
+                    is Latest -> Sort(
+                        compareByDescending {
+                            it.getHead().getCurrentHeight()
+                        }
+                    )
+
+                    is Safe -> Sort(
+                        compareByDescending { up ->
+                            up.getFinalizations().find { it.type == FinalizationType.SAFE_BLOCK }?.height ?: 0L
+                        }
+                    )
+
+                    is Finalized -> Sort(
+                        compareByDescending { up ->
+                            up.getFinalizations().find { it.type == FinalizationType.FINALIZED_BLOCK }?.height ?: 0L
+                        }
+                    )
+
+                    else -> Sort.default
+                }
+            }
         }
 
         @JvmStatic
@@ -99,18 +122,7 @@ class Selector {
         private fun getSort(selectors: List<BlockchainOuterClass.Selector>): Sort {
             selectors.forEach { selector ->
                 if (selector.hasHeightSelector()) {
-                    return when (HeightNumberOrTag.fromHeightSelector(selector.heightSelector)) {
-                        is HeightNumberOrTag.Latest -> Sort(compareByDescending {
-                            it.getHead().getCurrentHeight()
-                        })
-                        is HeightNumberOrTag.Safe -> Sort(compareByDescending { up ->
-                            up.getFinalizations().find { it.type == FinalizationType.SAFE_BLOCK }?.height ?: 0L
-                        })
-                        is HeightNumberOrTag.Finalized -> Sort(compareByDescending {up ->
-                            up.getFinalizations().find { it.type == FinalizationType.FINALIZED_BLOCK }?.height ?: 0L
-                        })
-                        else -> Sort.default
-                    }
+                    return HeightNumberOrTag.fromHeightSelector(selector.heightSelector)?.getSort() ?: Sort.default
                 } else if (selector.hasLowerHeightSelector()) {
                     return Sort(
                         compareBy(nullsLast()) {

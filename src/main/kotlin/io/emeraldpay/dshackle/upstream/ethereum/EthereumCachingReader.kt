@@ -45,6 +45,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionJsonSnapshot
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionLogJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionRefJson
+import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import org.apache.commons.collections4.Factory
 import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
@@ -62,7 +63,7 @@ open class EthereumCachingReader(
 
     private val objectMapper: ObjectMapper = Global.objectMapper
     private val balanceCache = CurrentBlockCache<Address, Wei>()
-    private val directReader = EthereumDirectReader(up, caches, balanceCache, callMethodsFactory, tracer)
+    val directReader = EthereumDirectReader(up, caches, balanceCache, callMethodsFactory, tracer)
 
     private val extractBlock = Function<Result<BlockContainer>, BlockJson<TransactionRefJson>> { result ->
         val block = result.data
@@ -114,23 +115,6 @@ open class EthereumCachingReader(
         return CompoundReader(
             SpannedReader(CacheWithUpstreamIdReader(caches.getBlocksByHeight()), tracer, CACHE_BLOCK_BY_HEIGHT_READER),
             SpannedReader(directReader.blockByHeightReader, tracer, DIRECT_QUORUM_RPC_READER),
-        )
-    }
-
-    open fun blocksByHeightParsed(): Reader<Long, BlockJson<TransactionRefJson>> {
-        return TransformingReader(
-            blocksByHeightAsCont(),
-            extractBlock,
-        )
-    }
-
-    open fun txByHash(): Reader<TransactionId, TransactionJsonSnapshot> {
-        return TransformingReader(
-            CompoundReader(
-                CacheWithUpstreamIdReader(RekeyingReader(txHashToId, caches.getTxByHash())),
-                directReader.txReader,
-            ),
-            extractTx,
         )
     }
 

@@ -86,6 +86,9 @@ open class BitcoinRpcUpstream(
         return emptyList()
     }
 
+    override fun addFinalization(finalization: FinalizationData, upstreamId: String) {
+    }
+
     override fun getUpstreamSettingsData(): Upstream.UpstreamSettingsData? {
         return null
     }

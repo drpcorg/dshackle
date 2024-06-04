@@ -225,6 +225,10 @@ open class GenericGrpcUpstream(
         return finalizationData.values
     }
 
+    override fun addFinalization(finalization: FinalizationData, upstreamId: String) {
+        finalizationData[finalization.type] = finalization
+    }
+
     override fun getUpstreamSettingsData(): Upstream.UpstreamSettingsData? {
         return Upstream.UpstreamSettingsData(
             nodeId(),

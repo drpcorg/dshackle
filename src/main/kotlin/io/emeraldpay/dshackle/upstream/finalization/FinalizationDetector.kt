@@ -11,6 +11,8 @@ interface FinalizationDetector {
     ): Flux<FinalizationData>
 
     fun getFinalizations(): Collection<FinalizationData>
+
+    fun addFinalization(finalization: FinalizationData)
 }
 
 class NoopFinalizationDetector : FinalizationDetector {
@@ -23,5 +25,9 @@ class NoopFinalizationDetector : FinalizationDetector {
 
     override fun getFinalizations(): Collection<FinalizationData> {
         return emptyList()
+    }
+
+    override fun addFinalization(finalization: FinalizationData) {
+
     }
 }
