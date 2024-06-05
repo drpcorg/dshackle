@@ -15,6 +15,8 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.api.proto.Common.Chain
+import io.emeraldpay.dshackle.Global.Companion.nullValue
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.data.TxId
 import io.emeraldpay.dshackle.reader.ChainReader
@@ -30,6 +32,7 @@ import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.switchIfEmpty
 import java.math.BigInteger
 
 /**
@@ -58,7 +61,11 @@ class EthereumLocalReader(
             // we do not want to serve any requests (except hardcoded) that have nonces from cache
             return Mono.empty()
         }
-        return commonRequests(key) ?: Mono.empty()
+        return commonRequests(key)?.switchIfEmpty {
+            // we need to explicitly return null to prevent executeOnRemote
+            // for example
+            Mono.just(ChainResponse(nullValue, null,null))
+        } ?: Mono.empty()
     }
 
     /**
