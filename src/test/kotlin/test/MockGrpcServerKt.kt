@@ -32,7 +32,7 @@ class MockGrpcServerKt {
         val serverName = InProcessServerBuilder.generateName()
         grpcCleanup.register(
             InProcessServerBuilder
-                .forName(serverName).directExecutor().addService(impl).build().start()
+                .forName(serverName).directExecutor().addService(impl).build().start(),
         )
         val channel = grpcCleanup.register(InProcessChannelBuilder.forName(serverName).directExecutor().build())
         return ReactorBlockchainGrpc.newReactorStub(channel)

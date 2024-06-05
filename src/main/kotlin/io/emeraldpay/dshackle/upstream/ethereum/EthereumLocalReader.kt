@@ -15,7 +15,6 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
-import io.emeraldpay.api.proto.Common.Chain
 import io.emeraldpay.dshackle.Global.Companion.nullValue
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.data.TxId
@@ -64,7 +63,7 @@ class EthereumLocalReader(
         return commonRequests(key)?.switchIfEmpty {
             // we need to explicitly return null to prevent executeOnRemote
             // for example
-            Mono.just(ChainResponse(nullValue, null,null))
+            Mono.just(ChainResponse(nullValue, null, null))
         } ?: Mono.empty()
     }
 

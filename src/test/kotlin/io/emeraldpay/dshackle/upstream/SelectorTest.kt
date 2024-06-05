@@ -61,7 +61,7 @@ class SelectorTest {
     @MethodSource("finalData")
     fun `sort with finalization`(
         finalizationType: FinalizationType,
-        finalizationProto: BlockchainOuterClass.BlockTag
+        finalizationProto: BlockchainOuterClass.BlockTag,
     ) {
         val up1 = mock<Upstream> {
             on { getFinalizations() } doReturn listOf(FinalizationData(1L, finalizationType))
@@ -80,7 +80,7 @@ class SelectorTest {
             BlockchainOuterClass.Selector.newBuilder()
                 .setHeightSelector(
                     HeightSelector.newBuilder()
-                        .setTag(finalizationProto)
+                        .setTag(finalizationProto),
                 )
                 .build(),
         )
@@ -130,7 +130,7 @@ class SelectorTest {
             BlockchainOuterClass.Selector.newBuilder()
                 .setHeightSelector(
                     HeightSelector.newBuilder()
-                        .setTag(BlockTag.LATEST)
+                        .setTag(BlockTag.LATEST),
                 )
                 .build(),
         )
@@ -219,6 +219,7 @@ class SelectorTest {
                 of(LowerBoundType.BLOCK, BlockchainOuterClass.LowerBoundType.LOWER_BOUND_BLOCK),
                 of(LowerBoundType.SLOT, BlockchainOuterClass.LowerBoundType.LOWER_BOUND_SLOT),
             )
+
         @JvmStatic
         fun finalData(): List<Arguments> =
             listOf(

@@ -32,7 +32,6 @@ import io.emeraldpay.dshackle.reader.CompoundReader
 import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.reader.RekeyingReader
 import io.emeraldpay.dshackle.reader.SpannedReader
-import io.emeraldpay.dshackle.reader.TransformingReader
 import io.emeraldpay.dshackle.upstream.CachingReader
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.calls.CallMethods

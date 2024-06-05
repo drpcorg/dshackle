@@ -220,12 +220,16 @@ class Selector {
         companion object {
             @JvmStatic
             val default = Sort(compareBy { null })
-            val safe = Sort(compareByDescending { up ->
-                up.getFinalizations().find { it.type == FinalizationType.SAFE_BLOCK }?.height ?: 0L
-            })
-            val finalized = Sort(compareByDescending { up ->
-                up.getFinalizations().find { it.type == FinalizationType.FINALIZED_BLOCK }?.height ?: 0L
-            })
+            val safe = Sort(
+                compareByDescending { up ->
+                    up.getFinalizations().find { it.type == FinalizationType.SAFE_BLOCK }?.height ?: 0L
+                },
+            )
+            val finalized = Sort(
+                compareByDescending { up ->
+                    up.getFinalizations().find { it.type == FinalizationType.FINALIZED_BLOCK }?.height ?: 0L
+                },
+            )
         }
     }
 

@@ -98,10 +98,14 @@ class GenericGrpcUpstreamTest {
         }
         Thread.sleep(100)
         Assertions.assertEquals(1, up.getFinalizations().size)
-        Assertions.assertTrue(up.getFinalizations()
-            .contains(FinalizationData(8L, FinalizationType.FINALIZED_BLOCK)))
-        Assertions.assertTrue(up.getLowerBounds()
-            .contains(LowerBoundData(1L, 0L, LowerBoundType.TX)))
+        Assertions.assertTrue(
+            up.getFinalizations()
+                .contains(FinalizationData(8L, FinalizationType.FINALIZED_BLOCK)),
+        )
+        Assertions.assertTrue(
+            up.getLowerBounds()
+                .contains(LowerBoundData(1L, 0L, LowerBoundType.TX)),
+        )
     }
 
     @Test
