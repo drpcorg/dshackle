@@ -43,7 +43,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
                         ChainRequest(
                             "eth_getBlockByNumber",
                             ListParams("finalized", false),
-                            1,
+                            2,
                         ),
                     ),
                 ),

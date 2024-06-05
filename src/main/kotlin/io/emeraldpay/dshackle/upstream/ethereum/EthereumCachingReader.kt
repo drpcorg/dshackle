@@ -45,6 +45,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionJsonSnapshot
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionLogJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionRefJson
+import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import org.apache.commons.collections4.Factory
 import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
@@ -62,7 +63,7 @@ open class EthereumCachingReader(
 
     private val objectMapper: ObjectMapper = Global.objectMapper
     private val balanceCache = CurrentBlockCache<Address, Wei>()
-    val directReader = EthereumDirectReader(up, caches, balanceCache, callMethodsFactory, tracer)
+    private val directReader = EthereumDirectReader(up, caches, balanceCache, callMethodsFactory, tracer)
 
     private val extractBlock = Function<Result<BlockContainer>, BlockJson<TransactionRefJson>> { result ->
         val block = result.data
@@ -92,18 +93,8 @@ open class EthereumCachingReader(
         SpannedReader(RekeyingReader(idToBlockHash, directReader.blockReader), tracer, DIRECT_QUORUM_RPC_READER),
     )
 
-    fun blocksByHashAsCont(): Reader<BlockHash, Result<BlockContainer>> {
-        return CompoundReader(
-            SpannedReader(CacheWithUpstreamIdReader(RekeyingReader(blockHashToId, caches.getBlocksByHash())), tracer, CACHE_BLOCK_BY_HASH_READER),
-            SpannedReader(directReader.blockReader, tracer, DIRECT_QUORUM_RPC_READER),
-        )
-    }
-
-    fun blocksByHashParsed(): Reader<BlockHash, BlockJson<TransactionRefJson>> {
-        return TransformingReader(
-            blocksByHashAsCont(),
-            extractBlock,
-        )
+    open fun blockByFinalization(): Reader<FinalizationType, Result<BlockContainer>> {
+        return SpannedReader(directReader.blockByFinalizationReader, tracer, DIRECT_QUORUM_RPC_READER)
     }
 
     open fun blocksByIdAsCont(): Reader<BlockId, Result<BlockContainer>> {

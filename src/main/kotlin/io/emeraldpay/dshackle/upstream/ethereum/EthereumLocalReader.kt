@@ -176,8 +176,8 @@ class EthereumLocalReader(
                 }
                 blockRef == "finalized" || blockRef == "safe" -> {
                     val type = FinalizationType.fromBlockRef(blockRef)
-                    return reader.directReader
-                        .blockByFinalizationReader.read(type)
+                    return reader
+                        .blockByFinalization().read(type)
                         .map {
                             ChainResponse(it.data.json, it.resolvedUpstreamData, FinalizationData(it.data.height, type))
                         }

@@ -5,7 +5,18 @@ import io.emeraldpay.api.proto.BlockchainOuterClass
 class FinalizationData(
     val height: Long,
     val type: FinalizationType,
-)
+) {
+
+    override fun toString(): String {
+        return "FinalizationData($height, ${type.toBlockRef()})"
+    }
+    override fun equals(other: Any?): Boolean {
+        return when (other) {
+            is FinalizationData -> other.height == height && other.type == type
+            else -> false
+        }
+    }
+}
 
 enum class FinalizationType {
     UNKNOWN,
