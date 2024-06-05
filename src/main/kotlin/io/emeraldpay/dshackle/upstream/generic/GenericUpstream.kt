@@ -280,6 +280,8 @@ open class GenericUpstream(
         livenessSubscription = null
         lowerBlockDetectorSubscription?.dispose()
         lowerBlockDetectorSubscription = null
+        finalizationDetectorSubscription?.dispose()
+        finalizationDetectorSubscription = null
         connector.getHead().stop()
     }
 
