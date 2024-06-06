@@ -72,7 +72,7 @@ abstract class Multistream(
     private var cacheSubscription: Disposable? = null
 
     @Volatile
-    private var callMethods: CallMethods? = null
+    private var callMethods: DisabledCallMethods? = null
     private var callMethodsFactory: Factory<CallMethods> = Factory {
         return@Factory callMethods ?: throw FunctorException("Not initialized yet")
     }
@@ -238,7 +238,7 @@ abstract class Multistream(
                     this,
                     multistreamUnavailableMethodDisableDuration,
                     AggregatedCallMethods(it),
-                    (callMethods!! as DisabledCallMethods).disabledMethods,
+                    callMethods!!.disabledMethods,
                 )
             }
         }

@@ -65,8 +65,6 @@ open class GenericUpstreamCreator(
             chainConfig,
         ) ?: return UpstreamCreationData.default()
 
-        val methods = buildMethods(config, chain)
-
         val hashUrl = connection.let {
             if (it.connectorMode == GenericConnectorFactory.ConnectorMode.RPC_REQUESTS_WITH_MIXED_HEAD.name) it.rpc?.url ?: it.ws?.url else it.ws?.url ?: it.rpc?.url
         }
