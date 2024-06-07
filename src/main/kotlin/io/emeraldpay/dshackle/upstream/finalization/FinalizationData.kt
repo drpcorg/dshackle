@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.finalization
 
 import io.emeraldpay.api.proto.BlockchainOuterClass
+import io.emeraldpay.api.proto.Common
 
 class FinalizationData(
     val height: Long,
@@ -34,11 +35,11 @@ enum class FinalizationType {
         }
     }
 
-    fun toProtoFinalizationType(): BlockchainOuterClass.FinalizationType {
+    fun toProtoFinalizationType(): Common.FinalizationType {
         return when (this) {
-            FINALIZED_BLOCK -> BlockchainOuterClass.FinalizationType.FINALIZATION_FINALIZED_BLOCK
-            UNKNOWN -> BlockchainOuterClass.FinalizationType.UNRECOGNIZED
-            SAFE_BLOCK -> BlockchainOuterClass.FinalizationType.FINALIZATION_SAFE_BLOCK
+            FINALIZED_BLOCK -> Common.FinalizationType.FINALIZATION_FINALIZED_BLOCK
+            UNKNOWN -> Common.FinalizationType.UNRECOGNIZED
+            SAFE_BLOCK -> Common.FinalizationType.FINALIZATION_SAFE_BLOCK
         }
     }
 
@@ -51,11 +52,11 @@ enum class FinalizationType {
     }
 }
 
-fun BlockchainOuterClass.FinalizationType.fromProtoType(): FinalizationType {
+fun Common.FinalizationType.fromProtoType(): FinalizationType {
     return when (this) {
-        BlockchainOuterClass.FinalizationType.FINALIZATION_UNSPECIFIED -> FinalizationType.UNKNOWN
-        BlockchainOuterClass.FinalizationType.FINALIZATION_SAFE_BLOCK -> FinalizationType.SAFE_BLOCK
-        BlockchainOuterClass.FinalizationType.FINALIZATION_FINALIZED_BLOCK -> FinalizationType.FINALIZED_BLOCK
-        BlockchainOuterClass.FinalizationType.UNRECOGNIZED -> FinalizationType.UNKNOWN
+        Common.FinalizationType.FINALIZATION_UNSPECIFIED -> FinalizationType.UNKNOWN
+        Common.FinalizationType.FINALIZATION_SAFE_BLOCK -> FinalizationType.SAFE_BLOCK
+        Common.FinalizationType.FINALIZATION_FINALIZED_BLOCK -> FinalizationType.FINALIZED_BLOCK
+        Common.FinalizationType.UNRECOGNIZED -> FinalizationType.UNKNOWN
     }
 }

@@ -27,7 +27,12 @@ class EthereumFinalizationDetector : FinalizationDetector {
         upstream: Upstream,
         blockTime: Duration,
     ): Flux<FinalizationData> {
-        return Flux.interval(blockTime.coerceAtLeast(Duration.ofSeconds(1)).multipliedBy(6)).flatMap {
+        val timer =
+            Flux.merge(
+                Flux.just(1),
+                Flux.interval(blockTime.coerceAtLeast(Duration.ofSeconds(1)).multipliedBy(6)),
+            )
+        return timer.flatMap {
             Flux.fromIterable(
                 listOf(
                     Pair(

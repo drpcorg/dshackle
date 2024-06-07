@@ -75,10 +75,10 @@ class GenericGrpcUpstreamTest {
                 .setTimestamp(0)
                 .addAllFinalizationData(
                     mutableListOf(
-                        BlockchainOuterClass
+                        Common
                             .FinalizationData
                             .newBuilder()
-                            .setType(BlockchainOuterClass.FinalizationType.FINALIZATION_FINALIZED_BLOCK)
+                            .setType(Common.FinalizationType.FINALIZATION_FINALIZED_BLOCK)
                             .setHeight(8L)
                             .build(),
                     ),

@@ -64,7 +64,7 @@ class StreamHead(
                 }
         val finalizationData =
             ms.getFinalizations().map {
-                BlockchainOuterClass.FinalizationData.newBuilder()
+                Common.FinalizationData.newBuilder()
                     .setHeight(it.height)
                     .setType(it.type.toProtoFinalizationType())
                     .build()

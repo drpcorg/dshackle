@@ -19,6 +19,7 @@ package io.emeraldpay.dshackle.rpc
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass
+import io.emeraldpay.api.proto.Common
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.Global.Companion.nullValue
@@ -245,7 +246,7 @@ open class NativeCall(
             result.upstreamNodeVersion = it.nodeVersion
         }
         it.finalization?.let {
-            result.finalization = BlockchainOuterClass.FinalizationData.newBuilder()
+            result.finalization = Common.FinalizationData.newBuilder()
                 .setHeight(it.height)
                 .setType(it.type.toProtoFinalizationType())
                 .build()
