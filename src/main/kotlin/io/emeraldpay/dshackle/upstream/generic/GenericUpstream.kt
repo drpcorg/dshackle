@@ -222,10 +222,13 @@ open class GenericUpstream(
                 if (group == "trace" || group == "debug" || group == "filter") {
                     if (config.methodGroups == null) {
                         config.methodGroups = UpstreamsConfig.MethodGroups(setOf("filter"), setOf())
-                    }
-                    if (!config.methodGroups!!.disabled.contains(group) && !config.methodGroups!!.enabled.contains(group)) {
-                        config.methodGroups!!.enabled = config.methodGroups!!.enabled.plus(group)
-                        changed = true
+                    } else {
+                        val disabled = config.methodGroups!!.disabled
+                        val enabled = config.methodGroups!!.enabled
+                        if (!disabled.contains(group) && !enabled.contains(group)) {
+                            config.methodGroups!!.enabled = enabled.plus(group)
+                            changed = true
+                        }
                     }
                 }
             }
