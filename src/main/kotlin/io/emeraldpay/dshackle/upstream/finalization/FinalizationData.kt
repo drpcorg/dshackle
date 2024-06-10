@@ -1,6 +1,5 @@
 package io.emeraldpay.dshackle.upstream.finalization
 
-import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.api.proto.Common
 
 class FinalizationData(
