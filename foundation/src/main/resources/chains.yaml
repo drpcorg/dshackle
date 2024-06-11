@@ -198,6 +198,7 @@ chain-settings:
           chain-id: 0x38
           short-names: [bsc, binance, bnb-smart-chain]
           gas-price-condition: ne 3000000000
+          call-validate-contract: 0x29fa9fc9e0fffec904124d179ddcc41f5528db7c
         - id: Testnet
           priority: 1
           code: BSC_TESTNET
