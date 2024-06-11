@@ -8,7 +8,6 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
-import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult.UPSTREAM_VALID
 import reactor.core.publisher.Mono
 import java.util.concurrent.TimeoutException
 
@@ -49,7 +48,7 @@ class GenericUpstreamValidator(
             startupValidators.map { exec(it, ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR) },
         ) { a -> a.map { it as ValidateUpstreamSettingsResult } }
             .map(::resolve)
-            .defaultIfEmpty(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+            .defaultIfEmpty(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
             .onErrorResume {
                 log.error("Error during upstream validation for ${upstream.getId()}", it)
                 Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
@@ -57,6 +56,6 @@ class GenericUpstreamValidator(
     }
 
     override fun validateUpstreamSettingsOnStartup(): ValidateUpstreamSettingsResult {
-        return validateUpstreamSettings().block() ?: UPSTREAM_VALID
+        return validateUpstreamSettings().block() ?: ValidateUpstreamSettingsResult.UPSTREAM_VALID
     }
 }
