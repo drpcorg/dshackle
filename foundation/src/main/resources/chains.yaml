@@ -683,13 +683,13 @@ chain-settings:
           priority: 1
           code: VARA_MAINNET
           short-names: [vara]
-          chain-id: 0x0
+          chain-id: Vara Network
           grpcId: 1027
         - id: Testnet
           priority: 1
           code: VARA_TESTMET
           short-names: [vara-testnet]
-          chain-id: 0x0
+          chain-id: Vara Network Testnet
           grpcId: 10036
     - id: solana
       label: Solana
@@ -1282,19 +1282,19 @@ chain-settings:
           code: NEAR_MAINNET
           grpcId: 1050
           short-names: [near]
-          chain-id: 0x0
+          chain-id: mainnet
         - id: Testnet
           priority: 5
           code: NEAR_TESTNET
           grpcId: 10064
           short-names: [near-testnet]
-          chain-id: 0x0
+          chain-id: testnet
         - id: Betanet
           priority: 1
           code: NEAR_BETANET
           grpcId: 10065
           short-names: [near-betanet]
-          chain-id: 0x0
+          chain-id: betanet
     - id: opcelestia-raspberry
       label: OP Celestia Raspberry
       type: eth
@@ -1420,13 +1420,13 @@ chain-settings:
           lagging: 1
       chains:
         - id: Mainnet
-          chain-id: 0x0
+          chain-id: cosmoshub-4
           short-names: [ cosmos-hub ]
           code: COSMOS_HUB
           grpcId: 1057
           priority: 100
         - id: Testnet
-          chain-id: 0x0
+          chain-id: provider
           short-names: [ cosmos-hub-testnet ]
           code: COSMOS_HUB_TESTNET
           grpcId: 10079
@@ -1441,13 +1441,13 @@ chain-settings:
           lagging: 1
       chains:
         - id: Mainnet
-          chain-id: 0x0
+          chain-id: axelar-dojo-1
           short-names: [ axelar ]
           code: AXELAR
           grpcId: 1059
           priority: 100
         - id: Testnet
-          chain-id: 0x0
+          chain-id: axelar-testnet-lisbon-3
           short-names: [ axelar-testnet ]
           code: AXELAR_TESTNET
           grpcId: 10081
@@ -1462,13 +1462,13 @@ chain-settings:
           lagging: 1
       chains:
         - id: Mainnet
-          chain-id: 0x0
+          chain-id: osmosis
           short-names: [ osmosis ]
           code: OSMOSIS
           grpcId: 1060
           priority: 100
         - id: Testnet
-          chain-id: 0x0
+          chain-id: osmo-test-5
           short-names: [ osmosis-testnet ]
           code: OSMOSIS_TESTNET
           grpcId: 10082
@@ -1483,13 +1483,13 @@ chain-settings:
           lagging: 1
       chains:
         - id: Mainnet
-          chain-id: 0x0
+          chain-id: neutron-1
           short-names: [ neutron ]
           code: NEUTRON
           grpcId: 1061
           priority: 100
         - id: Testnet
-          chain-id: 0x0
+          chain-id: pion-1
           short-names: [ neutron-testnet ]
           code: NEUTRON_TESTNET
           grpcId: 10083
