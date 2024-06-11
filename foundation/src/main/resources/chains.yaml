@@ -35,6 +35,7 @@ chain-settings:
       settings:
         expected-block-time: 12s
         mev-critical: true
+        allow-pruning-requirement: true
         lags:
           syncing: 6
           lagging: 1
@@ -76,6 +77,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 3s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -101,6 +103,7 @@ chain-settings:
       settings:
         mev-critical: true
         expected-block-time: 2.7s
+        allow-pruning-requirement: true
         lags:
           syncing: 20
           lagging: 10
@@ -131,6 +134,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 260ms
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -155,6 +159,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 2s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -179,6 +184,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 3s
+        allow-pruning-requirement: true
         mev-critical: true
         lags:
           syncing: 20
@@ -191,10 +197,7 @@ chain-settings:
           grpcId: 1006
           chain-id: 0x38
           short-names: [bsc, binance, bnb-smart-chain]
-          gas-price-condition:
-            - ne 3000000000
-            - ne 5000000000
-          call-validate-contract: 0x29fa9fc9e0fffec904124d179ddcc41f5528db7c
+          gas-price-condition: ne 3000000000
         - id: Testnet
           priority: 1
           code: BSC_TESTNET
@@ -206,6 +209,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 2.7s
+        allow-pruning-requirement: true
         options:
           disable-validation: true
         lags:
@@ -232,6 +236,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 260ms
+        allow-pruning-requirement: true
         options:
           disable-validation: true
         lags:
@@ -249,6 +254,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 5s
+        allow-pruning-requirement: true
         lags:
           syncing: 70
           lagging: 50
@@ -273,6 +279,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 2s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -297,6 +304,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 12s
+        allow-pruning-requirement: true
         lags:
           syncing: 6
           lagging: 1
@@ -319,6 +327,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 6s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -343,6 +352,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 2s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
           validate-syncing: false
@@ -392,6 +402,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 500ms
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -416,6 +427,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 1s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -442,6 +454,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 5s
+        allow-pruning-requirement: true
         lags:
           syncing: 10
           lagging: 5
@@ -464,6 +477,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 12s
+        allow-pruning-requirement: true
         lags:
           syncing: 6
           lagging: 1
@@ -486,6 +500,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 12s
+        allow-pruning-requirement: true
         lags:
           syncing: 6
           lagging: 1
@@ -554,6 +569,7 @@ chain-settings:
         options:
           validate-peers: false
         expected-block-time: 30s
+        allow-pruning-requirement: true
         lags:
           syncing: 40
           lagging: 20
@@ -600,6 +616,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 6s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -613,8 +630,7 @@ chain-settings:
           short-names: [kava]
           chain-id: 0x8ae
           grpcId: 1025
-          gas-price-condition:
-            - eq 1000000000
+          gas-price-condition: eq 1000000000
         - id: Testnet
           priority: 10
           code: KAVA_TESTNET
@@ -773,6 +789,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 5s
+        allow-pruning-requirement: true
         lags:
           syncing: 20
           lagging: 10
@@ -835,6 +852,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 10s
+        allow-pruning-requirement: true
         lags:
           syncing: 10
           lagging: 5
@@ -933,6 +951,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 2s
+        allow-pruning-requirement: true
         options:
           validate-peers: false
         lags:
@@ -1022,6 +1041,7 @@ chain-settings:
       type: eth
       settings:
         expected-block-time: 2s
+        allow-pruning-requirement: true
         lags:
           syncing: 40
           lagging: 20
