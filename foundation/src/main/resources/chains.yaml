@@ -354,7 +354,6 @@ chain-settings:
         allow-pruning-requirement: true
         options:
           validate-peers: false
-          validate-syncing: true
         lags:
           syncing: 10
           lagging: 5
@@ -1267,7 +1266,6 @@ chain-settings:
       settings:
         options:
           validate-peers: false
-          validate-syncing: true
         fork-choice: quorum
         expected-block-time: 300ms
         lags:
