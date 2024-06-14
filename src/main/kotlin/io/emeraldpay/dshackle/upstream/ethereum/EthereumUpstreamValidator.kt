@@ -28,6 +28,7 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
+import io.emeraldpay.dshackle.upstream.arbitrum.json.NitroSyncingJson
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Address
 import io.emeraldpay.dshackle.upstream.ethereum.hex.HexData
 import io.emeraldpay.dshackle.upstream.ethereum.json.SyncingJson
@@ -58,7 +59,13 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
     override fun validateSyncingRequest(): ValidateSyncingRequest {
         return ValidateSyncingRequest(
             ChainRequest("eth_syncing", ListParams()),
-        ) { bytes -> objectMapper.readValue(bytes, SyncingJson::class.java).isSyncing }
+        ) { bytes ->
+            if (listOf(Chain.ARBITRUM__MAINNET, Chain.ARBITRUM__SEPOLIA, Chain.ARBITRUM_NOVA__MAINNET).contains(chain)) {
+                objectMapper.readValue(bytes, NitroSyncingJson::class.java).isSyncing
+            } else {
+                objectMapper.readValue(bytes, SyncingJson::class.java).isSyncing
+            }
+        }
     }
 
     override fun validatePeersRequest(): ValidatePeersRequest {
