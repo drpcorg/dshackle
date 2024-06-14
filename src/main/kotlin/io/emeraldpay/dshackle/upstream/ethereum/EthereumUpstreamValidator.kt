@@ -28,10 +28,8 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
-import io.emeraldpay.dshackle.upstream.arbitrum.json.NitroSyncingJson
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Address
 import io.emeraldpay.dshackle.upstream.ethereum.hex.HexData
-import io.emeraldpay.dshackle.upstream.ethereum.json.SyncingJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionCallJson
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory
@@ -60,10 +58,12 @@ open class EthereumUpstreamValidator @JvmOverloads constructor(
         return ValidateSyncingRequest(
             ChainRequest("eth_syncing", ListParams()),
         ) { bytes ->
-            if (listOf(Chain.ARBITRUM__MAINNET, Chain.ARBITRUM__SEPOLIA, Chain.ARBITRUM_NOVA__MAINNET).contains(chain)) {
-                objectMapper.readValue(bytes, NitroSyncingJson::class.java).isSyncing
+            val raw = Global.objectMapper.readTree(bytes)
+            if (raw.isBoolean) {
+                raw.asBoolean()
             } else {
-                objectMapper.readValue(bytes, SyncingJson::class.java).isSyncing
+                log.warn("Received syncing object ${raw.toPrettyString()} for upstream ${upstream.getId()}")
+                true
             }
         }
     }
