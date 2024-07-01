@@ -122,6 +122,7 @@ class SubscribeChainStatus(
                     .setVersion(Global.version)
                     .build(),
             )
+            .setFullResponse(true)
             .build()
     }
 }

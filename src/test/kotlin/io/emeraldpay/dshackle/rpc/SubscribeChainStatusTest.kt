@@ -225,6 +225,11 @@ class SubscribeChainStatusTest {
                     )
                     .build(),
             )
+            .apply {
+                if (headEvent) {
+                    setFullResponse(true)
+                }
+            }
             .build()
     }
 
