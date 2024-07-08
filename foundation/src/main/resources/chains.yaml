@@ -1615,7 +1615,7 @@ chain-settings:
       chains:
         - id: Mainnet
           priority: 100
-          code: ZIRCUIT_TESTNET
+          code: ZIRCUIT_MAINNET
           short-names: [zircuit-mainnet]
           chain-id: 0xbf04
           grpcId: 1063
