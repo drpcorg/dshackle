@@ -18,6 +18,7 @@ package io.emeraldpay.dshackle.rpc
 import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.api.proto.BlockchainOuterClass.NativeSubscribeReplyItem
+import io.emeraldpay.api.proto.Common.ChainRef
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.SilentException
@@ -76,6 +77,8 @@ open class NativeSubscribe(
             return Mono.error(UnsupportedOperationException("subscribe ${request.method} is not supported for ${chain.chainCode}"))
         }
 
+        log.info("sub_id:$subscriptionId subscription begin ${request.method} on ${chain.chainCode}")
+
         val nonce = request.nonce.takeIf { it != 0L }
         val matcher = Selector.convertToMatcher(request.selector)
 
@@ -96,7 +99,11 @@ open class NativeSubscribe(
             }
             subscribe(chain, method, params, matcher, subscriptionId)
         }
-        return publisher.map { ResponseHolder(it, nonce) }
+        return publisher.map { ResponseHolder(it, nonce) }.doOnEach {
+            if (request.chain.equals(ChainRef.CHAIN_VARA__MAINNET)) {
+                log.info("VARA sub_id:$subscriptionId event: ${it.type} value: ${it.get()}")
+            }
+        }
     }
 
     fun convertToStatus(t: Throwable) = convertToStatus(t, "")
@@ -126,6 +133,9 @@ open class NativeSubscribe(
             .subscribe(method, params, matcher)
             .doOnError {
                 log.error("sub_id:$subscriptionId Error during subscription to $method, chain $chain, params $params", it)
+            }
+            .doOnSubscribe {
+                log.info("sub_id:$subscriptionId Subscribed to $method, chain $chain, params $params")
             }
 
     private fun getUpstream(chain: Chain): Multistream =
