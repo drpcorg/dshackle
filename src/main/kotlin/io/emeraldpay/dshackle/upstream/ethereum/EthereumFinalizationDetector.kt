@@ -1,9 +1,9 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
-import io.emeraldpay.dshackle.upstream.DefaultUpstream
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionRefJson
@@ -32,11 +32,8 @@ class EthereumFinalizationDetector : FinalizationDetector {
     override fun detectFinalization(
         upstream: Upstream,
         blockTime: Duration,
+        chain: Chain,
     ): Flux<FinalizationData> {
-        var chainName = ""
-        if (upstream is DefaultUpstream) {
-            chainName = upstream.getChainRef().toString()
-        }
         return Flux.merge(
             finalizationSink.asFlux(),
             Flux.interval(
@@ -69,7 +66,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
                             .read(req)
                             .onErrorResume {
                                 if (it.message != null && it.message!!.matches(Regex("(bad request|block not found|Unknown block|tag not supported on pre-merge network)"))) {
-                                    log.warn("Can't retrieve tagged block, finalization detector for upstream ${upstream.getId()} ${chainName} tag $type disabled")
+                                    log.warn("Can't retrieve tagged block, finalization detector for upstream ${upstream.getId()} $chain tag $type disabled")
                                     disableDetector[type] = true
                                 } else {
                                     throw it
@@ -94,7 +91,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
                         Flux.empty()
                     }
                 }.onErrorResume {
-                    log.error("Error in FinalizationDetector for upstream ${upstream.getId()} ${chainName} — $it")
+                    log.error("Error in FinalizationDetector for upstream ${upstream.getId()} $chain — $it")
                     Flux.empty()
                 }
             }.filter {
