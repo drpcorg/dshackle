@@ -164,6 +164,10 @@ abstract class DefaultUpstream(
         return id
     }
 
+    fun getChainRef(): Chain {
+        return chain
+    }
+
     override fun updateLowerBound(lowerBound: Long, type: LowerBoundType) {
         // NOOP
     }
