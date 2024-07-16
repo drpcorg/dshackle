@@ -531,24 +531,25 @@ class DefaultEthereumMethods(
         return json.toByteArray()
     }
 
-    override fun getGroupMethods(groupName: String): Set<String> {
-        val isArbitrum = when (chain) {
-            Chain.ARBITRUM__MAINNET, Chain.ARB_BLUEBERRY__TESTNET -> true
-            Chain.ARBITRUM__SEPOLIA, Chain.ARBITRUM_NOVA__MAINNET -> true
-            else -> false
+    /* Arbitrum note: all arbtrace_ methods can be used on blocks prior to 22207816,
+     while debug_trace methods can be used for blocks after 22207818.
+     Block 22207817 cannot be traced but is empty.
+     */
+    private fun getTraceMethods(): List<String> {
+        return when (chain) {
+            Chain.ARBITRUM__MAINNET -> arbitrumTraceMethods
+            else -> traceMethods
         }
-        return when (groupName) {
+    }
+
+    override fun getGroupMethods(groupName: String): Set<String> =
+        when (groupName) {
             "filter" -> filterMethods
-            "trace" -> if (isArbitrum) {
-                arbitrumTraceMethods
-            } else {
-                traceMethods
-            }
+            "trace" -> getTraceMethods()
             "debug" -> debugMethods
             "default" -> getSupportedMethods()
             else -> emptyList()
         }.toSet()
-    }
 
     override fun getSupportedMethods(): Set<String> {
         return allowedMethods.plus(hardcodedMethods).toSortedSet()
