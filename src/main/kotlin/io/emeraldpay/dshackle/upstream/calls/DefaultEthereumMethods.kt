@@ -49,7 +49,7 @@ class DefaultEthereumMethods(
             "eth_newPendingTransactionFilter",
         )
 
-        var traceMethods = listOf(
+        val traceMethods = listOf(
             "trace_call",
             "trace_callMany",
             "trace_rawTransaction",
@@ -59,6 +59,17 @@ class DefaultEthereumMethods(
             "trace_filter",
             "trace_get",
             "trace_transaction",
+        )
+
+        var arbitrumTraceMethods = listOf(
+            "arbtrace_call",
+            "arbtrace_callMany",
+            "arbtrace_replayBlockTransactions",
+            "arbtrace_replayTransaction",
+            "arbtrace_block",
+            "arbtrace_filter",
+            "arbtrace_get",
+            "arbtrace_transaction",
         )
 
         val debugMethods = listOf(
@@ -118,6 +129,30 @@ class DefaultEthereumMethods(
         "hmyv2_getCXReceiptByHash",
     )
 
+    private val klayPossibleNotIndexedMethods = listOf(
+        "klay_blockNumber",
+        "klay_getBlockByHash",
+        "klay_getBlockReceipts",
+        "klay_getBlockTransactionCountByNumber",
+        "klay_getBlockWithConsensusInfoByNumber",
+        "klay_getBlockByNumber",
+        "klay_getBlockTransactionCountByHash",
+        "klay_getHeaderByNumber",
+        "klay_getHeaderByHash",
+        "klay_getBlockWithConsensusInfoByNumberRange",
+        "klay_getBlockWithConsensusInfoByHash",
+        "klay_getDecodedAnchoringTransactionByHash",
+        "klay_getRawTransactionByBlockNumberAndIndex",
+        "klay_getRawTransactionByBlockHashAndIndex",
+        "klay_getRawTransactionByHash",
+        "klay_getTransactionByBlockNumberAndIndex",
+        "klay_getTransactionBySenderTxHash",
+        "klay_getTransactionByBlockHashAndIndex",
+        "klay_getTransactionByHash",
+        "klay_getTransactionReceipt",
+        "klay_getTransactionReceiptBySenderTxHash",
+    )
+
     private val firstValueMethods = listOf(
         "eth_call",
         "eth_getStorageAt",
@@ -139,6 +174,11 @@ class DefaultEthereumMethods(
         "hmy_sendRawStakingTransaction",
         "hmy_sendRawTransaction",
         "hmy_getTransactionCount",
+    )
+
+    private val klaySpecialMethods = listOf(
+        "klay_sendRawTransaction",
+        "klay_getTransactionCount",
     )
 
     private val headVerifiedMethods = listOf(
@@ -174,49 +214,26 @@ class DefaultEthereumMethods(
         "klay_getAccount",
         "klay_getAccount",
         "klay_sign",
-        "klay_getTransactionCount",
         "klay_isContractAccount",
 
-        "klay_blockNumber",
-        "klay_getBlockByHash",
-        "klay_getBlockReceipts",
-        "klay_getBlockTransactionCountByNumber",
-        "klay_getBlockWithConsensusInfoByNumber",
         "klay_getCommittee",
         "klay_getCommitteeSize",
         "klay_getCouncil",
         "klay_getCouncilSize",
-        "klay_getBlockByNumber",
-        "klay_getBlockTransactionCountByHash",
-        "klay_getHeaderByNumber",
-        "klay_getHeaderByHash",
+
         "klay_getRewards",
         "klay_getStorageAt",
         "klay_syncing",
-        "klay_getBlockWithConsensusInfoByNumberRange",
-        "klay_getBlockWithConsensusInfoByHash",
 
         "klay_call",
-        "klay_getDecodedAnchoringTransactionByHash",
+
         "klay_estimateGas",
-        "klay_getTransactionByBlockNumberAndIndex",
-        "klay_getTransactionBySenderTxHash",
-        "klay_getTransactionByBlockHashAndIndex",
-        "klay_getTransactionByHash",
-        "klay_getTransactionReceipt",
-        "klay_sendRawTransaction",
+
         "klay_estimateComputationCost",
-        "klay_sendTransaction",
-        "klay_sendTransactionAsFeePayer",
-        "klay_signTransaction",
-        "klay_signTransactionAsFeePayer",
         "klay_pendingTransactions",
-        "klay_getTransactionReceiptBySenderTxHash",
         "klay_createAccessList",
-        "klay_getRawTransactionByBlockHashAndIndex",
-        "klay_getRawTransactionByHash",
+
         "klay_resend",
-        "klay_getRawTransactionByBlockNumberAndIndex",
 
         "klay_chainID",
         "klay_clientVersion",
@@ -323,24 +340,15 @@ class DefaultEthereumMethods(
             chainUnsupportedMethods(chain) +
             getDrpcVendorMethods(chain) +
             getChainSpecificMethods(chain)
-
-        // add trace method for arbitrum
-        traceMethods.plus(
-            when (chain) {
-                Chain.ARBITRUM__MAINNET, Chain.ARBITRUM__SEPOLIA, Chain.ARBITRUM_NOVA__MAINNET, Chain.ARB_BLUEBERRY__TESTNET ->
-                    listOf("arbtrace_call")
-                else -> emptyList<String>()
-            },
-        )
     }
 
     override fun createQuorumFor(method: String): CallQuorum {
         return when {
-            possibleNotIndexedMethods.contains(method) || harmonyPossibleNotIndexedMethods.contains(method) -> NotNullQuorum()
-            specialMethods.contains(method) || harmonySpecialMethods.contains(method) -> {
+            possibleNotIndexedMethods.contains(method) || harmonyPossibleNotIndexedMethods.contains(method) || klayPossibleNotIndexedMethods.contains(method) -> NotNullQuorum()
+            specialMethods.contains(method) || harmonySpecialMethods.contains(method) || klaySpecialMethods.contains(method) -> {
                 when (method) {
-                    "eth_getTransactionCount", "hmy_getTransactionCount" -> MaximumValueQuorum()
-                    "eth_sendRawTransaction", "hmy_sendRawStakingTransaction", "hmy_sendRawTransaction" -> BroadcastQuorum()
+                    "eth_getTransactionCount", "hmy_getTransactionCount", "klay_getTransactionCount" -> MaximumValueQuorum()
+                    "eth_sendRawTransaction", "hmy_sendRawStakingTransaction", "hmy_sendRawTransaction", "klay_sendRawTransaction" -> BroadcastQuorum()
                     else -> AlwaysQuorum()
                 }
             }
@@ -374,6 +382,8 @@ class DefaultEthereumMethods(
                 )
             Chain.KLAYTN__MAINNET, Chain.KLAYTN__BAOBAB ->
                 klayMethods
+                    .plus(klaySpecialMethods)
+                    .plus(klayPossibleNotIndexedMethods)
             Chain.MANTLE__MAINNET, Chain.MANTLE__SEPOLIA ->
                 listOf(
                     "rollup_gasPrices",
@@ -521,14 +531,24 @@ class DefaultEthereumMethods(
         return json.toByteArray()
     }
 
-    override fun getGroupMethods(groupName: String): Set<String> =
-        when (groupName) {
+    override fun getGroupMethods(groupName: String): Set<String> {
+        val isArbitrum = when (chain) {
+            Chain.ARBITRUM__MAINNET, Chain.ARB_BLUEBERRY__TESTNET -> true
+            Chain.ARBITRUM__SEPOLIA, Chain.ARBITRUM_NOVA__MAINNET -> true
+            else -> false
+        }
+        return when (groupName) {
             "filter" -> filterMethods
-            "trace" -> traceMethods
+            "trace" -> if (isArbitrum) {
+                arbitrumTraceMethods
+            } else {
+                traceMethods
+            }
             "debug" -> debugMethods
             "default" -> getSupportedMethods()
             else -> emptyList()
         }.toSet()
+    }
 
     override fun getSupportedMethods(): Set<String> {
         return allowedMethods.plus(hardcodedMethods).toSortedSet()
