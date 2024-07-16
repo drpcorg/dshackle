@@ -49,7 +49,7 @@ class DefaultEthereumMethods(
             "eth_newPendingTransactionFilter",
         )
 
-        val traceMethods = listOf(
+        var traceMethods = listOf(
             "trace_call",
             "trace_callMany",
             "trace_rawTransaction",
@@ -164,6 +164,94 @@ class DefaultEthereumMethods(
         "eth_chainId",
     )
 
+    private val klayMethods = listOf(
+        "klay_accountCreated",
+        "klay_accounts",
+        "klay_decodeAccountKey",
+        "klay_getAccountKey",
+        "klay_getCode",
+        "klay_encodeAccountKey",
+        "klay_getAccount",
+        "klay_getAccount",
+        "klay_sign",
+        "klay_getTransactionCount",
+        "klay_isContractAccount",
+
+        "klay_blockNumber",
+        "klay_getBlockByHash",
+        "klay_getBlockReceipts",
+        "klay_getBlockTransactionCountByNumber",
+        "klay_getBlockWithConsensusInfoByNumber",
+        "klay_getCommittee",
+        "klay_getCommitteeSize",
+        "klay_getCouncil",
+        "klay_getCouncilSize",
+        "klay_getBlockByNumber",
+        "klay_getBlockTransactionCountByHash",
+        "klay_getHeaderByNumber",
+        "klay_getHeaderByHash",
+        "klay_getRewards",
+        "klay_getStorageAt",
+        "klay_syncing",
+        "klay_getBlockWithConsensusInfoByNumberRange",
+        "klay_getBlockWithConsensusInfoByHash",
+
+        "klay_call",
+        "klay_getDecodedAnchoringTransactionByHash",
+        "klay_estimateGas",
+        "klay_getTransactionByBlockNumberAndIndex",
+        "klay_getTransactionBySenderTxHash",
+        "klay_getTransactionByBlockHashAndIndex",
+        "klay_getTransactionByHash",
+        "klay_getTransactionReceipt",
+        "klay_sendRawTransaction",
+        "klay_estimateComputationCost",
+        "klay_sendTransaction",
+        "klay_sendTransactionAsFeePayer",
+        "klay_signTransaction",
+        "klay_signTransactionAsFeePayer",
+        "klay_pendingTransactions",
+        "klay_getTransactionReceiptBySenderTxHash",
+        "klay_createAccessList",
+        "klay_getRawTransactionByBlockHashAndIndex",
+        "klay_getRawTransactionByHash",
+        "klay_resend",
+        "klay_getRawTransactionByBlockNumberAndIndex",
+
+        "klay_chainID",
+        "klay_clientVersion",
+        "klay_gasPriceAt",
+        "klay_gasPrice",
+        "klay_protocolVersion",
+        "klay_getChainConfig",
+        "klay_forkStatus",
+        "klay_getFilterChanges",
+        "klay_getFilterLogs",
+        "klay_newBlockFilter",
+        "klay_newPendingTransactionFilter",
+        "klay_uninstallFilter",
+        "klay_unsubscribe",
+        "klay_getLogs",
+        "klay_subscribe",
+        "klay_newFilter",
+
+        "klay_feeHistory",
+        "klay_lowerBoundGasPrice",
+        "klay_upperBoundGasPrice",
+        "klay_maxPriorityFeePerGas",
+
+        "klay_getStakingInfo",
+        "klay_sha3",
+        "klay_recoverFromTransaction",
+        "klay_recoverFromMessage",
+        "klay_getProof",
+        "klay_nodeAddress",
+
+        // they exist, but i have doubts that we need to expose them
+        // "klay_rewardbase"
+        // "klay_isParallelDBWrite"
+        // "klay_isSenderTxHashIndexingEnabled"
+    )
     private val harmonyMethods = listOf(
         "hmy_newFilter",
         "hmy_newBlockFilter",
@@ -235,6 +323,15 @@ class DefaultEthereumMethods(
             chainUnsupportedMethods(chain) +
             getDrpcVendorMethods(chain) +
             getChainSpecificMethods(chain)
+
+        // add trace method for arbitrum
+        traceMethods.plus(
+            when (chain) {
+                Chain.ARBITRUM__MAINNET, Chain.ARBITRUM__SEPOLIA, Chain.ARBITRUM_NOVA__MAINNET, Chain.ARB_BLUEBERRY__TESTNET ->
+                    listOf("arbtrace_call")
+                else -> emptyList<String>()
+            },
+        )
     }
 
     override fun createQuorumFor(method: String): CallQuorum {
@@ -263,9 +360,24 @@ class DefaultEthereumMethods(
 
     private fun getChainSpecificMethods(chain: Chain): List<String> {
         return when (chain) {
-            Chain.OPTIMISM__MAINNET, Chain.MANTLE__MAINNET ->
+            Chain.OPTIMISM__MAINNET, Chain.OPTIMISM__SEPOLIA ->
+                listOf(
+                    "optimism_outputAtBlock",
+                    "optimism_syncStatus",
+                    "optimism_rollupConfig",
+                    "optimism_version",
+                    "rollup_gasPrices",
+                )
+            Chain.SCROLL__MAINNET, Chain.SCROLL__SEPOLIA ->
+                listOf(
+                    "scroll_estimateL1DataFee",
+                )
+            Chain.KLAYTN__MAINNET, Chain.KLAYTN__BAOBAB ->
+                klayMethods
+            Chain.MANTLE__MAINNET, Chain.MANTLE__SEPOLIA ->
                 listOf(
                     "rollup_gasPrices",
+                    "eth_getBlockRange",
                 )
             Chain.POLYGON__MAINNET, Chain.POLYGON__MUMBAI -> listOf(
                 "bor_getAuthor",
@@ -276,7 +388,7 @@ class DefaultEthereumMethods(
                 "eth_getRootHash",
             )
 
-            Chain.POLYGON_ZKEVM__MAINNET -> listOf(
+            Chain.POLYGON_ZKEVM__MAINNET, Chain.POLYGON_ZKEVM__CARDONA -> listOf(
                 "zkevm_consolidatedBlockNumber",
                 "zkevm_isBlockConsolidated",
                 "zkevm_isBlockVirtualized",
@@ -288,7 +400,7 @@ class DefaultEthereumMethods(
                 "zkevm_getBroadcastURI",
             )
 
-            Chain.ZKSYNC__MAINNET -> listOf(
+            Chain.ZKSYNC__MAINNET, Chain.ZKSYNC__SEPOLIA -> listOf(
                 "zks_estimateFee",
                 "zks_estimateGasL1ToL2",
                 "zks_getAllAccountBalances",
