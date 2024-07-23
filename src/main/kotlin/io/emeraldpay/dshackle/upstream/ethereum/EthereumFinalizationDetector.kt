@@ -29,6 +29,14 @@ class EthereumFinalizationDetector : FinalizationDetector {
     private val disableDetector: ConcurrentHashMap<FinalizationType, Boolean> = ConcurrentHashMap()
     private val finalizationSink = Sinks.many().multicast().directBestEffort<FinalizationData>()
 
+    private val errorRegex = "(" +
+        ".*bad request.*" +
+        "|.*block not found.*" +
+        "|.*Unknown block.*" +
+        "|.*tag not supported on pre-merge network.*" +
+        "|.*hex string without 0x prefix.*" +
+        "|.*Invalid params.*" +
+        ")"
     override fun detectFinalization(
         upstream: Upstream,
         blockTime: Duration,
@@ -65,7 +73,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
                             .getIngressReader()
                             .read(req)
                             .onErrorResume {
-                                if (it.message != null && it.message!!.matches(Regex("(.*bad request.*|.*block not found.*|.*Unknown block.*|.*tag not supported on pre-merge network.*)"))) {
+                                if (it.message != null && it.message!!.matches(Regex(errorRegex))) {
                                     log.warn("Can't retrieve tagged block, finalization detector for upstream ${upstream.getId()} $chain tag $type disabled")
                                     disableDetector[type] = true
                                 } else {
