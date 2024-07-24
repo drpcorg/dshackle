@@ -458,7 +458,7 @@ class DefaultEthereumMethods(
                 "rsk_protocolVersion",
             )
             Chain.TRON_EVM__MAINNET, Chain.TRON_EVM__SHASTA -> listOf(
-                "buildTransaction"
+                "buildTransaction",
             )
 
             else -> emptyList()

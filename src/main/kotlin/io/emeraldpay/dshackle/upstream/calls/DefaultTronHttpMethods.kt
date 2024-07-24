@@ -60,7 +60,7 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/wallet/broadcasttransaction"),
         postMethod("/wallet/broadcasthex"),
         postMethod("/wallet/createtransaction"),
-        )
+    )
 
     private val trc10HttpMethods = setOf(
         postMethod("/wallet/getassetissuebyaccount"),
@@ -74,7 +74,7 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/wallet/participateassetissue"),
         postMethod("/wallet/unfreezeasset"),
         postMethod("/wallet/updateasset"),
-        )
+    )
 
     private val smartContractHttpMethods = setOf(
         postMethod("/wallet/getcontract"),
@@ -85,26 +85,26 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/wallet/updatesetting"),
         postMethod("/wallet/updateenergylimit"),
         postMethod("/wallet/clearabi"),
-        //postMethod("/wallet/estimateenergy"), // disabled by default
-        )
+        // postMethod("/wallet/estimateenergy"), // disabled by default
+    )
 
-    //commented methods are disabled on trongrid for security reasons
+    // commented methods are disabled on trongrid for security reasons
     private val tronzSmartContractHttpMethods = setOf(
-        //getMethod("/wallet/getspendingkey"),
-        //postMethod("/wallet/getexpandedspendingkey"),
-        //postMethod("/wallet/getakfromask"),
-        //postMethod("/wallet/getnkfromnsk"),
+        // getMethod("/wallet/getspendingkey"),
+        // postMethod("/wallet/getexpandedspendingkey"),
+        // postMethod("/wallet/getakfromask"),
+        // postMethod("/wallet/getnkfromnsk"),
         postMethod("/wallet/getincomingviewingkey"),
         getMethod("/wallet/getdiversifier"),
         postMethod("/wallet/getzenpaymentaddress"),
-        //getMethod("/wallet/getnewshieldedaddress"),
-        //postMethod("/wallet/createshieldedcontractparameters"),
-        //postMethod("/wallet/createspendauthsig"),
+        // getMethod("/wallet/getnewshieldedaddress"),
+        // postMethod("/wallet/createshieldedcontractparameters"),
+        // postMethod("/wallet/createspendauthsig"),
         postMethod("/wallet/gettriggerinputforshieldedtrc20contract"),
         postMethod("/wallet/scanshieldedtrc20notesbyivk"),
         postMethod("/wallet/scanshieldedtrc20notesbyovk"),
         postMethod("/wallet/isshieldedtrc20contractnotespent"),
-        )
+    )
 
     private val votingHttpMethods = setOf(
         getMethod("/wallet/listwitnesses"),
@@ -116,7 +116,7 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/wallet/getReward"),
         postMethod("/wallet/withdrawbalance"),
         getMethod("/wallet/getnextmaintenancetime"),
-        )
+    )
 
     private val proposalHttpMethods = setOf(
         getMethod("/wallet/listproposals"),
@@ -124,7 +124,7 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/wallet/proposalcreate"),
         postMethod("/wallet/proposalapprove"),
         postMethod("/wallet/proposaldelete"),
-        )
+    )
 
     private val dexHttpMethods = setOf(
         getMethod("/wallet/listexchanges"),
@@ -158,7 +158,7 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/walletsolidity/gettransactioninfobyid"),
         postMethod("/walletsolidity/gettransactionbyblocknum"),
         postMethod("/walletsolidity/gettransactioncountbyblocknum"),
-        )
+    )
 
     private val blockHttpSolidityMethods = setOf(
         postMethod("/walletsolidity/getblock"),
@@ -177,7 +177,7 @@ class DefaultTronHttpMethods : CallMethods {
         postMethod("/walletsolidity/getcanwithdrawunfreezeamount"),
         postMethod("/walletsolidity/getdelegatedresourceaccountindexv2"),
         postMethod("/walletsolidity/getavailableunfreezecount"),
-        )
+    )
 
     private val nodeHttpSolidityMethods = setOf(
         getMethod("/walletsolidity/getnodeinfo"),
@@ -185,7 +185,7 @@ class DefaultTronHttpMethods : CallMethods {
     )
     private val smartContractHttpSolidityMethods = setOf(
         postMethod("/walletsolidity/trigerconstantcontract"),
-        //postMethod("/walletsolidity/estimateenergy"), // disabled by default
+        // postMethod("/walletsolidity/estimateenergy"), // disabled by default
     )
     private val trc10HttpSolidityMethods = setOf(
         postMethod("/walletsolidity/getassetissuebyid"),

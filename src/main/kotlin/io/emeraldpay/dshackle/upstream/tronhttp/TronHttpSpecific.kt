@@ -7,27 +7,20 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
-import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.data.BlockId
-import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
-import io.emeraldpay.dshackle.upstream.SingleCallValidator
+import io.emeraldpay.dshackle.upstream.GenericSingleCallValidator
+import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
-import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
-import io.emeraldpay.dshackle.upstream.generic.GenericUpstreamValidator
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
-import io.emeraldpay.dshackle.upstream.near.NearChainSpecific.validate
-import io.emeraldpay.dshackle.upstream.near.NearChainSpecific.validateSettings
-import io.emeraldpay.dshackle.upstream.near.NearStatus
-import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import reactor.core.publisher.Mono
 import java.math.BigInteger
@@ -71,38 +64,28 @@ object TronHttpSpecific : AbstractPollChainSpecific() {
         return TronHttpUpstreamSettingsDetector(upstream)
     }
 
-    override fun validator(
+    override fun upstreamValidators(
         chain: Chain,
         upstream: Upstream,
         options: Options,
         config: ChainConfig,
-    ): UpstreamValidator {
-        return GenericUpstreamValidator(
-            upstream,
-            options,
-            listOf(
-                SingleCallValidator(
-                    ChainRequest("GET#/wallet/getnodeinfo", RestParams.emptyParams()),
-                ) { data ->
-                    validate(data)
-                },
-            ),
-            listOf(
-                SingleCallValidator(
-                    ChainRequest("GET#/wallet/getnodeinfo", RestParams.emptyParams()),
-                ) { data ->
-                    validateSettings(data, chain)
-                },
-            ),
+    ): List<SingleValidator<UpstreamAvailability>> {
+        var validators = listOf(
+            GenericSingleCallValidator(
+                ChainRequest("POST#/wallet/getnodeinfo", RestParams.emptyParams()),
+                upstream,
+            ) { _ -> UpstreamAvailability.OK },
         )
+        return validators
     }
 
-    private fun validate(data: ByteArray): UpstreamAvailability {
-        return UpstreamAvailability.OK
-    }
-
-    private fun validateSettings(data: ByteArray, chain: Chain): ValidateUpstreamSettingsResult {
-        return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+    override fun upstreamSettingsValidators(
+        chain: Chain,
+        upstream: Upstream,
+        options: Options,
+        config: ChainConfig,
+    ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
+        return emptyList()
     }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {

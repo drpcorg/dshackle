@@ -3,7 +3,6 @@ package io.emeraldpay.dshackle.upstream.tronhttp
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Global
-import io.emeraldpay.dshackle.upstream.BasicEthUpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.BasicUpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.NodeTypeRequest
