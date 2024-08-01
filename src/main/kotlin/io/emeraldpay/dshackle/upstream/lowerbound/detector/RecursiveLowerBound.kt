@@ -175,7 +175,7 @@ class RecursiveLowerBound(
                             "probably this error with message `{}` is not retryable, please report it to dshackle devs",
                         type,
                         upstream.getId(),
-                        it.failure().message
+                        it.failure().message,
                     )
                 } else {
                     log.debug(
