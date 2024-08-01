@@ -169,7 +169,7 @@ class RecursiveLowerBound(
                 !nonRetryableErrors.any { err -> it.message?.contains(err, true) ?: false }
             }
             .doAfterRetry {
-                if (it.totalRetries() > 100) {
+                if (it.totalRetries() > 30) {
                     log.warn(
                         "There are too much retries to calculate {} lower bound of upstream {}, " +
                             "probably this error with message `{}` is not retryable, please report it to dshackle devs",
