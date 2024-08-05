@@ -32,7 +32,7 @@ class GrpcUpstreamCreator(
     @Value("\${spring.application.max-metadata-size}")
     private var maxMetadataSize: Int = Defaults.maxMetadataSize
 
-    private val hashes: MutableMap<Byte, Boolean> = HashMap()
+    private val hashes: MutableMap<Short, Boolean> = HashMap()
 
     companion object {
         val grpcUpstreamsScheduler: Scheduler = Schedulers.fromExecutorService(
