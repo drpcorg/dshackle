@@ -23,7 +23,9 @@ abstract class UpstreamCreator(
 
     companion object {
         fun getHash(nodeId: Int?, obj: Any, hashes: MutableMap<Short, Boolean>): Short =
-            nodeId?.toShort() ?: (obj.hashCode() % 65535).let {
+            nodeId?.toShort()?.also {
+                hashes[it] = true
+            } ?: (obj.hashCode() % 65535).let {
                 if (it == 0) 1 else it
             }.let { nonZeroHash ->
                 listOf<Function<Int, Int>>(
