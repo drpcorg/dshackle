@@ -17,6 +17,8 @@ class UpstreamCreatorTest {
         val hash = UpstreamCreator.getHash(inputHash, obj, hashes)
 
         assertThat(hash).isEqualTo(answer)
+
+        println(hashes)
     }
 
     companion object {
@@ -33,6 +35,8 @@ class UpstreamCreatorTest {
                 Arguments.of(null, 49, (-32719).toShort()),
                 Arguments.of(null, 49, (-32768).toShort()),
                 Arguments.of(null, 49, (-32767).toShort()),
+                Arguments.of(null, 32718, (-32718).toShort()),
+                Arguments.of(null, 32718, (-50).toShort()),
             )
     }
 }
