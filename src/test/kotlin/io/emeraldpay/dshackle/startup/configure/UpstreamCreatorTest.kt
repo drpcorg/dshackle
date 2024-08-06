@@ -12,7 +12,7 @@ class UpstreamCreatorTest {
     fun `test getHash`(
         inputHash: Int?,
         obj: Any,
-        answer: Short
+        answer: Short,
     ) {
         val hash = UpstreamCreator.getHash(inputHash, obj, hashes)
 
@@ -20,7 +20,7 @@ class UpstreamCreatorTest {
     }
 
     companion object {
-        private val hashes: MutableMap<Short, Boolean> = HashMap()
+        private val hashes = HashSet<Short>()
 
         @JvmStatic
         fun data(): List<Arguments> =
@@ -32,7 +32,7 @@ class UpstreamCreatorTest {
                 Arguments.of(null, 49, (32718).toShort()),
                 Arguments.of(null, 49, (-32719).toShort()),
                 Arguments.of(null, 49, (-32768).toShort()),
-                Arguments.of(null, 49, (-32767).toShort())
+                Arguments.of(null, 49, (-32767).toShort()),
             )
     }
 }
