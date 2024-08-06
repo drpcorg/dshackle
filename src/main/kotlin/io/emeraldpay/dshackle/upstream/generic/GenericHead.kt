@@ -38,7 +38,7 @@ open class GenericHead(
             .subscribeOn(headScheduler)
             .timeout(Defaults.timeout, Mono.error(Exception("Block data not received")))
             .onErrorResume { err ->
-                log.error("Failed to fetch latest block: ${err.message} $upstreamId", err)
+                log.error("Failed to fetch latest block: ${err.message} $upstreamId")
                 Mono.empty()
             }
     }
