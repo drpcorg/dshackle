@@ -232,8 +232,6 @@ open class GenericUpstream(
     }
 
     private fun detectRpcModules(config: UpstreamsConfig.Upstream<*>, buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods) {
-        rpcModulesDetector?.detectRpcModules()
-
         val rpcDetector = rpcModulesDetector?.detectRpcModules()?.block() ?: HashMap<String, String>()
         log.info("Upstream rpc detector for  ${getId()} returned  $rpcDetector ")
         if (rpcDetector.size != 0) {

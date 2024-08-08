@@ -30,7 +30,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
 
         when:
-        def act = detector.detectLabels()
+        def act = detector.internalDetectLabels()
         then:
         StepVerifier.create(act)
             .expectNext(
@@ -61,7 +61,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
 
         when:
-        def act = detector.detectLabels()
+        def act = detector.internalDetectLabels()
         then:
         StepVerifier.create(act)
                 .expectNext(
@@ -90,7 +90,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         }
         def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
         when:
-        def act = detector.detectLabels()
+        def act = detector.internalDetectLabels()
         then:
         StepVerifier.create(act)
             .expectNext(new Pair<String, String>("archive", "false"))
