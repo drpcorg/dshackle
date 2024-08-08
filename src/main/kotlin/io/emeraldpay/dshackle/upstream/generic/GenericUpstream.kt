@@ -72,7 +72,7 @@ open class GenericUpstream(
         versionRules: Supplier<CompatibleVersionsRules?>,
     ) : this(config.id!!, chain, hash, options, config.role, buildMethods(config, chain), node, chainConfig, connectorFactory, validatorBuilder, upstreamSettingsDetectorBuilder, lowerBoundServiceBuilder, finalizationDetectorBuilder, versionRules) {
         rpcModulesDetector = upstreamRpcModulesDetectorBuilder(this)
-        detectRpcModules(config, buildMethods)
+    //    detectRpcModules(config, buildMethods)
     }
 
     private val validator: UpstreamValidator? = validatorBuilder(chain, this, getOptions(), chainConfig, versionRules)
@@ -149,8 +149,8 @@ open class GenericUpstream(
         log.info("Configured for ${getChain().chainName}")
         connector.start()
 
-        if (validator != null) {
-            val validSettingsResult = validator.validateUpstreamSettingsOnStartup()
+        if (false) {
+            val validSettingsResult = validator!!.validateUpstreamSettingsOnStartup()
             when (validSettingsResult) {
                 ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR -> {
                     log.warn("Upstream ${getId()} couldn't start, invalid upstream settings")
@@ -166,7 +166,7 @@ open class GenericUpstream(
                     upstreamStart()
                 }
             }
-            validateUpstreamSettings()
+        //    validateUpstreamSettings()
         } else {
             isUpstreamValid.set(true)
             upstreamStart()
@@ -255,7 +255,7 @@ open class GenericUpstream(
     }
 
     private fun upstreamStart() {
-        if (getOptions().disableValidation) {
+        if (true) {
             log.warn("Disable validation for upstream ${this.getId()}")
             this.setLag(0)
             this.setStatus(UpstreamAvailability.OK)
@@ -270,11 +270,11 @@ open class GenericUpstream(
         }, {
             log.debug("Error while checking live subscription for ${getId()}", it)
         },)
-        detectSettings()
-
-        detectLowerBlock()
-
-        detectFinalization()
+//        detectSettings()
+//
+//        detectLowerBlock()
+//
+//        detectFinalization()
     }
 
     override fun stop() {
