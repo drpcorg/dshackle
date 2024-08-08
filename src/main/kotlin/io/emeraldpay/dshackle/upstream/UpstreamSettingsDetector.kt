@@ -7,6 +7,7 @@ import io.emeraldpay.dshackle.Global
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 const val UNKNOWN_CLIENT_VERSION = "unknown"
 
@@ -17,13 +18,23 @@ abstract class UpstreamSettingsDetector(
 ) {
     protected val log = LoggerFactory.getLogger(this::class.java)
 
-    abstract fun detectLabels(): Flux<Pair<String, String>>
+    fun detectLabels(): Flux<Pair<String, String>> {
+        return internalDetectLabels()
+            .timeout(Duration.ofSeconds(5))
+            .onErrorResume {
+                log.warn("Couldn't detect labels for upstream {}, message {}", upstream.getId(), it.message)
+                Flux.empty()
+            }
+    }
+
+    protected abstract fun internalDetectLabels(): Flux<Pair<String, String>>
 
     fun detectClientVersion(): Mono<String> {
         return upstream.getIngressReader()
             .read(clientVersionRequest())
             .flatMap(ChainResponse::requireResult)
             .map(::parseClientVersion)
+            .timeout(Duration.ofSeconds(5))
             .onErrorResume {
                 log.warn("Can't detect the client version of upstream ${upstream.getId()}, reason - {}", it.message)
                 Mono.just(UNKNOWN_CLIENT_VERSION)

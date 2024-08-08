@@ -100,10 +100,12 @@ class EthereumFinalizationDetector : FinalizationDetector {
                     } else {
                         Flux.empty()
                     }
-                }.onErrorResume {
-                    log.error("Error in FinalizationDetector for upstream ${upstream.getId()} $chain — $it")
-                    Flux.empty()
                 }
+                    .timeout(Duration.ofSeconds(5))
+                    .onErrorResume {
+                        log.error("Error in FinalizationDetector for upstream {}, chain {}, message {}", upstream.getId(), chain, it.message)
+                        Flux.empty()
+                    }
             }.filter {
                 it.height > (data[it.type]?.height ?: 0)
             }.doOnNext {

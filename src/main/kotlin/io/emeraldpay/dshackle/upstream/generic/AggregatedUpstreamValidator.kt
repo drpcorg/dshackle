@@ -7,6 +7,7 @@ import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 class AggregatedUpstreamValidator(
     upstream: Upstream,
@@ -21,6 +22,7 @@ class AggregatedUpstreamValidator(
         ) { a -> a.map { it as UpstreamAvailability } }
             .map(::resolve)
             .defaultIfEmpty(UpstreamAvailability.OK) // upstream is OK on case there are no validators
+            .timeout(Duration.ofSeconds(5))
             .onErrorResume {
                 log.error("Error during upstream validation for ${upstream.getId()}", it)
                 Mono.just(UpstreamAvailability.UNAVAILABLE)
@@ -33,9 +35,10 @@ class AggregatedUpstreamValidator(
         ) { a -> a.map { it as ValidateUpstreamSettingsResult } }
             .map(::resolve)
             .defaultIfEmpty(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            .timeout(Duration.ofSeconds(5))
             .onErrorResume {
-                log.error("Error during upstream validation for ${upstream.getId()}", it)
-                Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+                log.error("Error during upstream validation for {}, message {}", upstream.getId(), it.message)
+                Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
             }
     }
 
