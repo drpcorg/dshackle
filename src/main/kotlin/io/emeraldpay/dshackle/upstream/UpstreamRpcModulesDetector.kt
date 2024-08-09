@@ -6,6 +6,7 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
+import java.time.Duration
 
 typealias UpstreamRpcModulesDetectorBuilder = (Upstream) -> UpstreamRpcModulesDetector?
 
@@ -19,6 +20,7 @@ abstract class UpstreamRpcModulesDetector(
             .read(rpcModulesRequest())
             .flatMap(ChainResponse::requireResult)
             .map(::parseRpcModules)
+            .timeout(Duration.ofSeconds(5))
             .onErrorResume {
                 log.warn("Can't detect rpc_modules of upstream ${upstream.getId()}, reason - {}", it.message)
                 Mono.just(HashMap())

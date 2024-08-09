@@ -72,7 +72,7 @@ open class GenericUpstream(
         versionRules: Supplier<CompatibleVersionsRules?>,
     ) : this(config.id!!, chain, hash, options, config.role, buildMethods(config, chain), node, chainConfig, connectorFactory, validatorBuilder, upstreamSettingsDetectorBuilder, lowerBoundServiceBuilder, finalizationDetectorBuilder, versionRules) {
         rpcModulesDetector = upstreamRpcModulesDetectorBuilder(this)
-        detectRpcModules(config, buildMethods)
+    //    detectRpcModules(config, buildMethods)
     }
 
     private val validator: UpstreamValidator? = validatorBuilder(chain, this, getOptions(), chainConfig, versionRules)
@@ -232,8 +232,6 @@ open class GenericUpstream(
     }
 
     private fun detectRpcModules(config: UpstreamsConfig.Upstream<*>, buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods) {
-        rpcModulesDetector?.detectRpcModules()
-
         val rpcDetector = rpcModulesDetector?.detectRpcModules()?.block() ?: HashMap<String, String>()
         log.info("Upstream rpc detector for  ${getId()} returned  $rpcDetector ")
         if (rpcDetector.size != 0) {
@@ -257,7 +255,7 @@ open class GenericUpstream(
     }
 
     private fun upstreamStart() {
-        if (getOptions().disableValidation) {
+        if (true) {
             log.warn("Disable validation for upstream ${this.getId()}")
             this.setLag(0)
             this.setStatus(UpstreamAvailability.OK)
@@ -272,11 +270,11 @@ open class GenericUpstream(
         }, {
             log.debug("Error while checking live subscription for ${getId()}", it)
         },)
-        detectSettings()
-
-        detectLowerBlock()
-
-        detectFinalization()
+//        detectSettings()
+//
+//        detectLowerBlock()
+//
+//        detectFinalization()
     }
 
     override fun stop() {
