@@ -47,7 +47,6 @@ class GenericRpcHead(
             interval,
             getLatestBlock(api).toFlux(),
         ) { it.publishOn(headScheduler).filter { !isSyncing } }
-
         refreshSubscription = super.follow(base)
     }
 
