@@ -149,8 +149,8 @@ open class GenericUpstream(
         log.info("Configured for ${getChain().chainName}")
         connector.start()
 
-        if (false) {
-            val validSettingsResult = validator!!.validateUpstreamSettingsOnStartup()
+        if (validator != null) {
+            val validSettingsResult = validator.validateUpstreamSettingsOnStartup()
             when (validSettingsResult) {
                 ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR -> {
                     log.warn("Upstream ${getId()} couldn't start, invalid upstream settings")
@@ -166,7 +166,7 @@ open class GenericUpstream(
                     upstreamStart()
                 }
             }
-        //    validateUpstreamSettings()
+            validateUpstreamSettings()
         } else {
             isUpstreamValid.set(true)
             upstreamStart()
