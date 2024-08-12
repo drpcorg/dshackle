@@ -132,6 +132,52 @@ class GenericWsHeadTest {
     }
 
     @Test
+    fun `no validate chain settings if it's disabled`() {
+        val block = block()
+        val reader = mock<ChainReader> {
+            on { read(ChainRequest("eth_getBlockByNumber", ListParams("latest", false))) } doReturn Mono.empty()
+        }
+        val wsSub = mock<WsSubscriptions> {
+            on { connectionInfoFlux() } doReturn Flux.empty()
+            on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
+                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block)), "id", AtomicReference("subId"))
+        }
+        val connection = mock<WsConnection>()
+        val wsPool = mock<WsConnectionPool> {
+            on { getConnection() } doReturn connection
+        }
+        val wsClient = JsonRpcWsClient(wsPool)
+        val upstream = mock<DefaultUpstream> {
+            on { getId() } doReturn "id"
+            on { getChain() } doReturn Chain.ETHEREUM__MAINNET
+            on { getOptions() } doReturn ChainOptions.PartialOptions(disableUpstreamValidation = true).buildOptions()
+        }
+
+        val wsHead = GenericWsHead(
+            AlwaysForkChoice(),
+            BlockValidator.ALWAYS_VALID,
+            reader,
+            wsSub,
+            Schedulers.boundedElastic(),
+            Schedulers.boundedElastic(),
+            upstream,
+            EthereumChainSpecific,
+            wsClient,
+            Duration.ofSeconds(60),
+        )
+
+        StepVerifier.create(wsHead.getFlux())
+            .then { wsHead.start() }
+            .expectNext(BlockContainer.from(block))
+            .thenCancel()
+            .verify(Duration.ofSeconds(3))
+
+        verify(connection, never()).callRpc(ChainRequest("eth_chainId", ListParams()))
+        verify(connection, never()).callRpc(ChainRequest("net_version", ListParams()))
+        verify(wsSub).subscribe(ChainRequest("eth_subscribe", ListParams("newHeads")))
+    }
+
+    @Test
     fun `validate chain settings, getting an error and then head sub`() {
         val block = block()
         val reader = mock<ChainReader> {
