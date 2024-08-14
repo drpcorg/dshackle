@@ -285,7 +285,7 @@ open class GenericUpstream(
         }, {
             log.debug("Error while checking live subscription for ${getId()}", it)
         },)
-//        detectSettings()
+        detectSettings()
 //
 //        detectLowerBlock()
 //
