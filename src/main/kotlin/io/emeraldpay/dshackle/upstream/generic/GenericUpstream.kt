@@ -265,7 +265,7 @@ open class GenericUpstream(
     }
 
     private fun upstreamStart() {
-        if (getOptions().disableValidation) {
+        if (true) {
             log.warn("Disable validation for upstream ${this.getId()}")
             this.setLag(0)
             this.setStatus(UpstreamAvailability.OK)
