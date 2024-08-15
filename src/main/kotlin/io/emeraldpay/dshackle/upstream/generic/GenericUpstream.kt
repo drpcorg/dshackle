@@ -35,10 +35,13 @@ import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundServiceBuilder
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import org.springframework.context.Lifecycle
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.Disposable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
+import reactor.core.scheduler.Schedulers
 import java.time.Duration
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Supplier
@@ -331,9 +334,11 @@ open class GenericUpstream(
 
     private fun detectFinalization() {
         finalizationDetectorSubscription =
-            finalizationDetector.detectFinalization(this, chainConfig.expectedBlockTime, getChain()).subscribe {
-                sendUpstreamStateEvent(UPDATED)
-            }
+            finalizationDetector.detectFinalization(this, chainConfig.expectedBlockTime, getChain())
+                .subscribeOn(finalizationScheduler)
+                .subscribe {
+                    sendUpstreamStateEvent(UPDATED)
+                }
     }
 
     private fun detectLowerBlock() {
@@ -355,4 +360,9 @@ open class GenericUpstream(
     }
 
     fun isValid(): Boolean = isUpstreamValid.get()
+
+    companion object {
+        private val finalizationScheduler =
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("finalization")))
+    }
 }
