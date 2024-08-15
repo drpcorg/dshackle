@@ -228,20 +228,23 @@ open class GenericUpstream(
         Flux.interval(
             Duration.ZERO,
             Duration.ofSeconds(getOptions().validationInterval.toLong() * 5),
-        ).flatMap {
-            Flux.merge(
-                settingsDetector?.detectLabels()
-                    ?.doOnNext { label ->
-                        updateLabels(label)
-                        sendUpstreamStateEvent(UPDATED)
-                    },
-                settingsDetector?.detectClientVersion()
-                    ?.doOnNext {
-                        log.info("Detected node version $it for upstream ${getId()}")
-                        clientVersion.set(it)
-                    },
-            )
-        }.subscribe()
+        )
+            .subscribeOn(finalizationScheduler)
+            .flatMap {
+                Flux.merge(
+                    settingsDetector?.detectLabels()
+                        ?.doOnNext { label ->
+                            updateLabels(label)
+                            sendUpstreamStateEvent(UPDATED)
+                        },
+                    settingsDetector?.detectClientVersion()
+                        ?.doOnNext {
+                            log.info("Detected node version $it for upstream ${getId()}")
+                            clientVersion.set(it)
+                        },
+                )
+            }
+            .subscribe()
     }
 
     private fun detectRpcModules(config: UpstreamsConfig.Upstream<*>, buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods) {
@@ -288,11 +291,11 @@ open class GenericUpstream(
         }, {
             log.debug("Error while checking live subscription for ${getId()}", it)
         },)
-        //detectSettings()
+        detectSettings()
 //
 //        detectLowerBlock()
 //
-        detectFinalization()
+    //    detectFinalization()
     }
 
     override fun stop() {
