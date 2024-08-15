@@ -12,7 +12,9 @@ import reactor.core.scheduler.Scheduler
 import reactor.core.scheduler.Schedulers
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 @Configuration
 open class SchedulersConfig {
@@ -75,21 +77,29 @@ open class SchedulersConfig {
     }
 
     private fun makeScheduler(name: String, size: Int, monitoringConfig: MonitoringConfig): Scheduler {
-        return Schedulers.fromExecutorService(makePool(name, size * threadsMultiplier, monitoringConfig))
+        return Schedulers.fromExecutorService(makePool(name, size, monitoringConfig))
     }
 
     private fun makePool(name: String, size: Int, monitoringConfig: MonitoringConfig): ExecutorService {
-        val pool = Executors.newFixedThreadPool(size, CustomizableThreadFactory("$name-"))
+        val cachedPool = ThreadPoolExecutor(
+            size,
+            size * threadsMultiplier,
+            60L,
+            TimeUnit.SECONDS,
+            SynchronousQueue(),
+            CustomizableThreadFactory("$name-")
+        )
+       // val pool = Executors.newFixedThreadPool(size, CustomizableThreadFactory("$name-"))
 
         return if (monitoringConfig.enableExtended) {
             ExecutorServiceMetrics.monitor(
                 Metrics.globalRegistry,
-                pool,
+                cachedPool,
                 name,
                 Tag.of("reactor_scheduler_id", "_"),
             )
         } else {
-            pool
+            cachedPool
         }
     }
 }
