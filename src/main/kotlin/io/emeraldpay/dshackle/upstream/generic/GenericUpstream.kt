@@ -289,7 +289,7 @@ open class GenericUpstream(
 //
 //        detectLowerBlock()
 //
-//        detectFinalization()
+        detectFinalization()
     }
 
     override fun stop() {
