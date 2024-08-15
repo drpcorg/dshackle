@@ -159,8 +159,8 @@ open class GenericUpstream(
         log.info("Configured for ${getChain().chainName}")
         connector.start()
 
-        if (false) {
-            val validSettingsResult = validator!!.validateUpstreamSettingsOnStartup()
+        if (validator != null) {
+            val validSettingsResult = validator.validateUpstreamSettingsOnStartup()
             when (validSettingsResult) {
                 UPSTREAM_FATAL_SETTINGS_ERROR -> {
                     log.warn("Upstream ${getId()} couldn't start, invalid upstream settings")
@@ -195,6 +195,7 @@ open class GenericUpstream(
                 },
                 headLivenessState.asFlux(),
             )
+                .subscribeOn(upstreamSettingsScheduler)
                 .distinctUntilChanged()
                 .subscribe {
                     when (it) {
@@ -229,7 +230,7 @@ open class GenericUpstream(
             Duration.ZERO,
             Duration.ofSeconds(getOptions().validationInterval.toLong() * 5),
         )
-            .subscribeOn(finalizationScheduler)
+            .subscribeOn(settingsScheduler)
             .flatMap {
                 Flux.merge(
                     settingsDetector?.detectLabels()
@@ -271,7 +272,7 @@ open class GenericUpstream(
     }
 
     private fun upstreamStart() {
-        if (true) {
+        if (getOptions().disableValidation) {
             log.warn("Disable validation for upstream ${this.getId()}")
             this.setLag(0)
             this.setStatus(UpstreamAvailability.OK)
@@ -293,9 +294,9 @@ open class GenericUpstream(
         },)
         detectSettings()
 //
-//        detectLowerBlock()
+        detectLowerBlock()
 //
-    //    detectFinalization()
+        detectFinalization()
     }
 
     override fun stop() {
@@ -347,6 +348,7 @@ open class GenericUpstream(
     private fun detectLowerBlock() {
         lowerBlockDetectorSubscription =
             lowerBoundService.detectLowerBounds()
+                .subscribeOn(lowerScheduler)
                 .subscribe {
                     sendUpstreamStateEvent(UPDATED)
                 }
@@ -365,7 +367,13 @@ open class GenericUpstream(
     fun isValid(): Boolean = isUpstreamValid.get()
 
     companion object {
+        private val upstreamSettingsScheduler =
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("upstreamSettings")))
         private val finalizationScheduler =
             Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("finalization")))
+        private val settingsScheduler =
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("settings")))
+        private val lowerScheduler =
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("lower")))
     }
 }
