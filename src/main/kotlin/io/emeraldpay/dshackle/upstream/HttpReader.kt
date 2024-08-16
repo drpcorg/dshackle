@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
+import java.time.Duration
 import java.util.Base64
 import java.util.function.Consumer
 import java.util.function.Function
@@ -30,8 +31,9 @@ abstract class HttpReader(
 
     init {
         val connectionProvider = ConnectionProvider.builder("dshackleConnectionPool")
-            .maxConnections(1500)
-            .pendingAcquireMaxCount(10000)
+            .maxConnections(100)
+            .pendingAcquireMaxCount(1000)
+            .pendingAcquireTimeout(Duration.ofSeconds(10))
             .build()
 
         var build = HttpClient.create(connectionProvider)
