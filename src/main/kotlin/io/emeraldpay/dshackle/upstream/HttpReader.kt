@@ -31,8 +31,8 @@ abstract class HttpReader(
 
     init {
         val connectionProvider = ConnectionProvider.builder("dshackleConnectionPool")
-            .maxConnections(100)
-            .pendingAcquireMaxCount(1000)
+            .maxConnections(1500)
+            .pendingAcquireMaxCount(10000)
             .pendingAcquireTimeout(Duration.ofSeconds(10))
             .build()
 
