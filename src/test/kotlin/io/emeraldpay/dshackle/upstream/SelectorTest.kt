@@ -241,7 +241,7 @@ class SelectorTest {
                 of(10000, 400, MatchesResponse.Success),
                 of(10000, 50000, MatchesResponse.LowerHeightResponse(10000, 50000, LowerBoundType.STATE)),
                 of(5000, 5000, MatchesResponse.Success),
-                of(3000, 0, MatchesResponse.LowerHeightResponse(3000, 0, LowerBoundType.STATE))
+                of(3000, 0, MatchesResponse.LowerHeightResponse(3000, 0, LowerBoundType.STATE)),
             )
 
         @JvmStatic
