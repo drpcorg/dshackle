@@ -376,12 +376,12 @@ open class GenericUpstream(
 
     companion object {
         private val upstreamSettingsScheduler =
-            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("upstreamSettings")))
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("upstreamSettings-")))
         private val finalizationScheduler =
-            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("finalization")))
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("finalization-")))
         private val settingsScheduler =
-            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("settings")))
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("settings-")))
         private val lowerScheduler =
-            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("lower")))
+            Schedulers.fromExecutor(Executors.newFixedThreadPool(4, CustomizableThreadFactory("lowerBound-")))
     }
 }
