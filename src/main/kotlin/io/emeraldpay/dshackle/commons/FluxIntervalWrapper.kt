@@ -1,8 +1,11 @@
 package io.emeraldpay.dshackle.commons
 
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import zmq.util.function.Supplier
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.function.Function
 
 object FluxIntervalWrapper {
 
@@ -11,8 +14,8 @@ object FluxIntervalWrapper {
     // which prevents performing the inner flatMap if it is not finished in the previous step
     fun <T> interval(
         period: Duration,
-        mapper: Flux<T>,
-        transformer: (Flux<Long>) -> Flux<Long>,
+        mapper: Supplier<Mono<T>>,
+        transformer: Function<Flux<Long>, Flux<Long>>,
     ): Flux<T> {
         val isProcessing = AtomicBoolean(false)
 
@@ -21,8 +24,8 @@ object FluxIntervalWrapper {
             .filter { !isProcessing.get() }
             .flatMap {
                 isProcessing.set(true)
-                mapper
-                    .doFinally { isProcessing.set(false) }
+                mapper.get()
+                    .doOnTerminate { isProcessing.set(false) }
             }
     }
 }

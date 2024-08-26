@@ -26,7 +26,6 @@ import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.forkchoice.ForkChoice
 import reactor.core.Disposable
 import reactor.core.scheduler.Scheduler
-import reactor.kotlin.core.publisher.toFlux
 import java.time.Duration
 
 class GenericRpcHead(
@@ -49,8 +48,9 @@ class GenericRpcHead(
         refreshSubscription?.dispose()
         val base = FluxIntervalWrapper.interval(
             interval,
-            getLatestBlock(api).toFlux(),
-        ) { it.publishOn(headScheduler).filter { !isSyncing } }
+            { getLatestBlock(api) },
+            { it.publishOn(headScheduler).filter { !isSyncing } },
+        )
         refreshSubscription = super.follow(base)
     }
 
