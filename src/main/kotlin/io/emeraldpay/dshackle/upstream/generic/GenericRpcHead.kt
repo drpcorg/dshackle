@@ -16,7 +16,6 @@
  */
 package io.emeraldpay.dshackle.upstream.generic
 
-import io.emeraldpay.dshackle.commons.FluxIntervalWrapper
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
@@ -25,6 +24,7 @@ import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.forkchoice.ForkChoice
 import reactor.core.Disposable
+import reactor.core.publisher.Flux
 import reactor.core.scheduler.Scheduler
 import java.time.Duration
 
@@ -46,11 +46,15 @@ class GenericRpcHead(
     override fun start() {
         super.start()
         refreshSubscription?.dispose()
-        val base = FluxIntervalWrapper.interval(
-            interval,
-            { getLatestBlock(api) },
-            { it.publishOn(headScheduler).filter { !isSyncing } },
-        )
+
+        val base = Flux.interval(interval)
+            .onBackpressureDrop()
+            .publishOn(headScheduler)
+            .filter { !isSyncing }
+            .concatMap {
+                getLatestBlock(api)
+            }
+
         refreshSubscription = super.follow(base)
     }
 
