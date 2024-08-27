@@ -203,7 +203,7 @@ class ChainIdValidator(
                     ctx.exception().message,
                 )
             }
-            .doOnError { log.error("Error during execution 'eth_chainId' - {} for {}", upstream.getId(), it.message) }
+            .doOnError { log.error("Error during execution 'eth_chainId' - {} for {}", it.message, upstream.getId()) }
             .flatMap(ChainResponse::requireStringResult)
     }
 
