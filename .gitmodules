@@ -1,6 +1,6 @@
 [submodule "emerald-grpc"]
 	path = emerald-grpc
-	url = git@github.com:p2p-org/emerald-grpc.git
+	url = git@github.com:drpcorg/emerald-grpc.git
 [submodule "foundation/src/main/resources/public"]
 	path = foundation/src/main/resources/public
 	url = git@github.com:drpcorg/public.git
