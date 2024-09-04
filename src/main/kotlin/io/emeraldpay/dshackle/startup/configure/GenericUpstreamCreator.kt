@@ -85,6 +85,7 @@ open class GenericUpstreamCreator(
             cs::validator,
             cs::upstreamSettingsDetector,
             cs::upstreamRpcModulesDetector,
+            cs::upstreamRpcMethodsDetector,
             buildMethodsFun,
             cs::lowerBoundService,
             cs::finalizationDetectorBuilder,

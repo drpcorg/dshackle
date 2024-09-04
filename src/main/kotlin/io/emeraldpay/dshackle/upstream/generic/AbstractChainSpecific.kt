@@ -20,6 +20,7 @@ import io.emeraldpay.dshackle.upstream.NoopCachingReader
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetector
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
@@ -69,6 +70,10 @@ abstract class AbstractChainSpecific : ChainSpecific {
     }
 
     override fun upstreamRpcModulesDetector(upstream: Upstream): UpstreamRpcModulesDetector? {
+        return null
+    }
+
+    override fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector? {
         return null
     }
 

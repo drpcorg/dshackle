@@ -25,6 +25,7 @@ import io.emeraldpay.dshackle.upstream.LogsOracle
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetector
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
@@ -84,9 +85,15 @@ interface ChainSpecific {
 
     fun upstreamSettingsDetector(chain: Chain, upstream: Upstream): UpstreamSettingsDetector?
 
-    fun chainSettingsValidator(chain: Chain, upstream: Upstream, reader: ChainReader?): SingleValidator<ValidateUpstreamSettingsResult>?
+    fun chainSettingsValidator(
+        chain: Chain,
+        upstream: Upstream,
+        reader: ChainReader?,
+    ): SingleValidator<ValidateUpstreamSettingsResult>?
 
     fun upstreamRpcModulesDetector(upstream: Upstream): UpstreamRpcModulesDetector?
+
+    fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector?
 
     fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription
 

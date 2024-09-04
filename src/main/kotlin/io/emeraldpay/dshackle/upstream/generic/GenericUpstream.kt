@@ -18,6 +18,8 @@ import io.emeraldpay.dshackle.upstream.IngressSubscription
 import io.emeraldpay.dshackle.upstream.UNKNOWN_CLIENT_VERSION
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
+import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetectorBuilder
 import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetector
 import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetectorBuilder
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetectorBuilder
@@ -62,7 +64,8 @@ open class GenericUpstream(
     lowerBoundServiceBuilder: LowerBoundServiceBuilder,
     finalizationDetectorBuilder: FinalizationDetectorBuilder,
     versionRules: Supplier<CompatibleVersionsRules?>,
-) : DefaultUpstream(id, hash, null, UpstreamAvailability.OK, options, role, targets, node, chainConfig, chain), Lifecycle {
+) : DefaultUpstream(id, hash, null, UpstreamAvailability.OK, options, role, targets, node, chainConfig, chain),
+    Lifecycle {
 
     constructor(
         config: UpstreamsConfig.Upstream<*>,
@@ -75,13 +78,30 @@ open class GenericUpstream(
         validatorBuilder: UpstreamValidatorBuilder,
         upstreamSettingsDetectorBuilder: UpstreamSettingsDetectorBuilder,
         upstreamRpcModulesDetectorBuilder: UpstreamRpcModulesDetectorBuilder,
+        upstreamRpcMethodsDetectorBuilder: UpstreamRpcMethodsDetectorBuilder,
         buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
         lowerBoundServiceBuilder: LowerBoundServiceBuilder,
         finalizationDetectorBuilder: FinalizationDetectorBuilder,
         versionRules: Supplier<CompatibleVersionsRules?>,
-    ) : this(config.id!!, chain, hash, options, config.role, buildMethods(config, chain), node, chainConfig, connectorFactory, validatorBuilder, upstreamSettingsDetectorBuilder, lowerBoundServiceBuilder, finalizationDetectorBuilder, versionRules) {
+    ) : this(
+        config.id!!,
+        chain,
+        hash,
+        options,
+        config.role,
+        buildMethods(config, chain),
+        node,
+        chainConfig,
+        connectorFactory,
+        validatorBuilder,
+        upstreamSettingsDetectorBuilder,
+        lowerBoundServiceBuilder,
+        finalizationDetectorBuilder,
+        versionRules,
+    ) {
         rpcModulesDetector = upstreamRpcModulesDetectorBuilder(this)
-        detectRpcModules(config, buildMethods)
+        rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this)
+        detectRpcModulesAndMethods(config, buildMethods)
     }
 
     private val validator: UpstreamValidator? = validatorBuilder(chain, this, getOptions(), chainConfig, versionRules)
@@ -94,6 +114,7 @@ open class GenericUpstream(
     private var livenessSubscription: Disposable? = null
     private val settingsDetector = upstreamSettingsDetectorBuilder(chain, this)
     private var rpcModulesDetector: UpstreamRpcModulesDetector? = null
+    private var rpcMethodsDetector: UpstreamRpcMethodsDetector? = null
 
     private val lowerBoundService = lowerBoundServiceBuilder(chain, this)
 
@@ -168,10 +189,12 @@ open class GenericUpstream(
                     connector.stop()
                     return
                 }
+
                 UPSTREAM_SETTINGS_ERROR -> {
                     log.warn("Non fatal upstream settings error, continue validation...")
                     connector.getHead().stop()
                 }
+
                 UPSTREAM_VALID -> {
                     isUpstreamValid.set(true)
                     upstreamStart()
@@ -247,31 +270,61 @@ open class GenericUpstream(
         }.subscribe()
     }
 
-    private fun detectRpcModules(config: UpstreamsConfig.Upstream<*>, buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods) {
+    private fun detectRpcModulesAndMethods(
+        config: UpstreamsConfig.Upstream<*>,
+        buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
+    ) {
         try {
-            val rpcDetector = rpcModulesDetector?.detectRpcModules()?.block(Defaults.internalCallsTimeout)
-                ?: HashMap<String, String>()
-            log.info("Upstream rpc detector for  ${getId()} returned  $rpcDetector ")
-            if (rpcDetector.size != 0) {
-                var changed = false
-                for ((group, _) in rpcDetector) {
-                    if (group == "trace" || group == "debug" || group == "filter") {
-                        if (config.methodGroups == null) {
-                            config.methodGroups = UpstreamsConfig.MethodGroups(setOf("filter"), setOf())
-                        } else {
-                            val disabled = config.methodGroups!!.disabled
-                            val enabled = config.methodGroups!!.enabled
-                            if (!disabled.contains(group) && !enabled.contains(group)) {
-                                config.methodGroups!!.enabled = enabled.plus(group)
-                                changed = true
-                            }
-                        }
+            detectModules(config, buildMethods)
+        } catch (e: Exception) {
+            log.error("Couldn't detect rpc modules of upstream {} due to error {}", getId(), e.message)
+        }
+        try {
+            detectMethods(config)
+        } catch (e: RuntimeException) {
+            log.error("Couldn't detect rpc methods of upstream {} due to error {}", getId(), e.message)
+        }
+    }
+
+    private fun detectMethods(config: UpstreamsConfig.Upstream<*>) {
+        val rpcDetector = rpcMethodsDetector?.detectRpcMethods()?.block(Defaults.internalCallsTimeout) ?: emptyMap()
+        log.info("Upstream rpc method detector for  ${getId()} returned  $rpcDetector ")
+        if (rpcDetector.isEmpty()) {
+            return
+        }
+        if (config.methods == null) {
+            config.methods = UpstreamsConfig.Methods(enabled = emptySet(), disabled = emptySet())
+        }
+        rpcDetector.forEach { (method, enabled) ->
+            config.methods!!.let { if (enabled) it.enabled else it.disabled }.plus(method)
+        }
+    }
+
+    private fun detectModules(
+        config: UpstreamsConfig.Upstream<*>,
+        buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
+    ) {
+        val rpcDetector = rpcModulesDetector?.detectRpcModules()?.block(Defaults.internalCallsTimeout)
+            ?: HashMap()
+        log.info("Upstream rpc detector for  ${getId()} returned  $rpcDetector ")
+        if (rpcDetector.isEmpty()) {
+            return
+        }
+        var changed = false
+        for ((group, _) in rpcDetector) {
+            if (listOf("trace", "debug", "filter").contains(group)) {
+                if (config.methodGroups == null) {
+                    config.methodGroups = UpstreamsConfig.MethodGroups(setOf("filter"), setOf())
+                } else {
+                    val disabled = config.methodGroups!!.disabled
+                    val enabled = config.methodGroups!!.enabled
+                    if (!disabled.contains(group) && !enabled.contains(group)) {
+                        config.methodGroups!!.enabled = enabled.plus(group)
+                        changed = true
                     }
                 }
-                if (changed) updateMethods(buildMethods(config, getChain()))
             }
-        } catch (e: RuntimeException) {
-            log.error("Couldn't detect rpc modules of upstream {} due to error {}", getId(), e.message)
+            if (changed) updateMethods(buildMethods(config, getChain()))
         }
     }
 
@@ -285,17 +338,20 @@ open class GenericUpstream(
             validatorSubscription = validator?.start()
                 ?.subscribe(this::setStatus)
         }
-        livenessSubscription = connector.headLivenessEvents().subscribe({
-            val hasSub = it == HeadLivenessState.OK
-            hasLiveSubscriptionHead.set(hasSub)
-            if (it == HeadLivenessState.FATAL_ERROR) {
-                headLivenessState.emitNext(UPSTREAM_FATAL_SETTINGS_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
-            } else {
-                sendUpstreamStateEvent(UPDATED)
-            }
-        }, {
-            log.debug("Error while checking live subscription for ${getId()}", it)
-        },)
+        livenessSubscription = connector.headLivenessEvents().subscribe(
+            {
+                val hasSub = it == HeadLivenessState.OK
+                hasLiveSubscriptionHead.set(hasSub)
+                if (it == HeadLivenessState.FATAL_ERROR) {
+                    headLivenessState.emitNext(UPSTREAM_FATAL_SETTINGS_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                } else {
+                    sendUpstreamStateEvent(UPDATED)
+                }
+            },
+            {
+                log.debug("Error while checking live subscription for ${getId()}", it)
+            },
+        )
         detectSettings()
 
         detectLowerBlock()
