@@ -190,7 +190,6 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         return BasicEthUpstreamRpcMethodsDetector(upstream)
     }
 
-
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
         return EthereumLowerBoundService(chain, upstream)
     }

@@ -39,7 +39,6 @@ import java.math.BigInteger
 import java.time.Instant
 
 object PolkadotChainSpecific : AbstractPollChainSpecific() {
-
     private val log = LoggerFactory.getLogger(PolkadotChainSpecific::class.java)
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         val response = Global.objectMapper.readValue(data, PolkadotBlockResponse::class.java)
@@ -153,9 +152,8 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
         return GenericIngressSubscription(ws, DefaultPolkadotMethods.subs.map { it.first })
     }
 
-    override fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector {
-        return BasicPolkadotUpstreamRpcMethodsDetector(upstream)
-    }
+    override fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector =
+        BasicPolkadotUpstreamRpcMethodsDetector(upstream)
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)

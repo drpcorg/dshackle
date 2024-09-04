@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import java.util.Optional
 
 typealias UpstreamRpcMethodsDetectorBuilder = (Upstream) -> UpstreamRpcMethodsDetector?
 
@@ -18,16 +17,17 @@ abstract class UpstreamRpcMethodsDetector(
 ) {
     protected val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    open fun detectRpcMethods(): Mono<Map<String, Boolean>> {
-        return detectByMagicMethod()
+    open fun detectRpcMethods(): Mono<Map<String, Boolean>> =
+        detectByMagicMethod()
             .map { it.associateWith { true } }
             .switchIfEmpty(detectByMethod())
-    }
 
-    private fun detectByMethod(): Mono<Map<String, Boolean>> {
-        return Flux.fromIterable(rpcMethods())
+    private fun detectByMethod(): Mono<Map<String, Boolean>> =
+        Flux
+            .fromIterable(rpcMethods())
             .flatMap { (method, params) ->
-                upstream.getIngressReader()
+                upstream
+                    .getIngressReader()
                     .read(ChainRequest(method, params))
                     .flatMap(ChainResponse::requireResult)
                     .map { mapOf(method to true) }
@@ -39,9 +39,9 @@ abstract class UpstreamRpcMethodsDetector(
                         mapOf(method to false).toMono()
                     }
             }.toMono()
-    }
 
     protected abstract fun detectByMagicMethod(): Mono<List<String>>
+
     protected abstract fun rpcMethods(): Set<Pair<String, CallParams>>
 }
 
@@ -49,36 +49,30 @@ abstract class UpstreamRpcMethodsDetector(
 class BasicEthUpstreamRpcMethodsDetector(
     upstream: Upstream,
 ) : UpstreamRpcMethodsDetector(upstream) {
-    override fun detectByMagicMethod(): Mono<List<String>> {
-        return Mono.empty()
-    }
+    override fun detectByMagicMethod(): Mono<List<String>> = Mono.empty()
 
-    override fun rpcMethods(): Set<Pair<String, CallParams>> {
-        return setOf("eth_getBlockReceipts" to ListParams("latest"))
-    }
+    override fun rpcMethods(): Set<Pair<String, CallParams>> = setOf("eth_getBlockReceipts" to ListParams("latest"))
 }
 
 class BasicPolkadotUpstreamRpcMethodsDetector(
     private val upstream: Upstream,
 ) : UpstreamRpcMethodsDetector(upstream) {
-    override fun detectByMagicMethod(): Mono<List<String>> {
-        return upstream.getIngressReader()
+    override fun detectByMagicMethod(): Mono<List<String>> =
+        upstream
+            .getIngressReader()
             .read(ChainRequest("rpc_methods", ListParams()))
             .flatMap(ChainResponse::requireResult)
             .map {
-                Global.objectMapper.readValue(it, object : TypeReference<HashMap<String, List<String>>>() {})
+                Global.objectMapper
+                    .readValue(it, object : TypeReference<HashMap<String, List<String>>>() {})
                     .getOrDefault("methods", emptyList())
-            }
-            .onErrorResume {
+            }.onErrorResume {
                 log.warn(
                     "Can't detect rpc method rpc_methods of upstream ${upstream.getId()}, reason - {}",
                     it.message,
                 )
                 Mono.empty()
             }
-    }
 
-    override fun rpcMethods(): Set<Pair<String, CallParams>> {
-        return emptySet()
-    }
+    override fun rpcMethods(): Set<Pair<String, CallParams>> = emptySet()
 }

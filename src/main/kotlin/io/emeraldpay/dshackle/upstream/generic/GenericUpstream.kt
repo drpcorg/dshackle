@@ -66,7 +66,6 @@ open class GenericUpstream(
     versionRules: Supplier<CompatibleVersionsRules?>,
 ) : DefaultUpstream(id, hash, null, UpstreamAvailability.OK, options, role, targets, node, chainConfig, chain),
     Lifecycle {
-
     constructor(
         config: UpstreamsConfig.Upstream<*>,
         chain: Chain,
@@ -83,22 +82,7 @@ open class GenericUpstream(
         lowerBoundServiceBuilder: LowerBoundServiceBuilder,
         finalizationDetectorBuilder: FinalizationDetectorBuilder,
         versionRules: Supplier<CompatibleVersionsRules?>,
-    ) : this(
-        config.id!!,
-        chain,
-        hash,
-        options,
-        config.role,
-        buildMethods(config, chain),
-        node,
-        chainConfig,
-        connectorFactory,
-        validatorBuilder,
-        upstreamSettingsDetectorBuilder,
-        lowerBoundServiceBuilder,
-        finalizationDetectorBuilder,
-        versionRules,
-    ) {
+    ) : this(config.id!!, chain, hash, options, config.role, buildMethods(config, chain), node, chainConfig, connectorFactory, validatorBuilder, upstreamSettingsDetectorBuilder, lowerBoundServiceBuilder, finalizationDetectorBuilder, versionRules) {
         rpcModulesDetector = upstreamRpcModulesDetectorBuilder(this)
         rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this)
         detectRpcModulesAndMethods(config, buildMethods)
@@ -304,8 +288,9 @@ open class GenericUpstream(
         config: UpstreamsConfig.Upstream<*>,
         buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
     ) {
-        val rpcDetector = rpcModulesDetector?.detectRpcModules()?.block(Defaults.internalCallsTimeout)
-            ?: HashMap()
+        val rpcDetector =
+            rpcModulesDetector?.detectRpcModules()?.block(Defaults.internalCallsTimeout)
+                ?: HashMap()
         log.info("Upstream rpc detector for  ${getId()} returned  $rpcDetector ")
         if (rpcDetector.isEmpty()) {
             return
@@ -338,20 +323,17 @@ open class GenericUpstream(
             validatorSubscription = validator?.start()
                 ?.subscribe(this::setStatus)
         }
-        livenessSubscription = connector.headLivenessEvents().subscribe(
-            {
-                val hasSub = it == HeadLivenessState.OK
-                hasLiveSubscriptionHead.set(hasSub)
-                if (it == HeadLivenessState.FATAL_ERROR) {
-                    headLivenessState.emitNext(UPSTREAM_FATAL_SETTINGS_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
-                } else {
-                    sendUpstreamStateEvent(UPDATED)
-                }
-            },
-            {
-                log.debug("Error while checking live subscription for ${getId()}", it)
-            },
-        )
+        livenessSubscription = connector.headLivenessEvents().subscribe({
+            val hasSub = it == HeadLivenessState.OK
+            hasLiveSubscriptionHead.set(hasSub)
+            if (it == HeadLivenessState.FATAL_ERROR) {
+                headLivenessState.emitNext(UPSTREAM_FATAL_SETTINGS_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+            } else {
+                sendUpstreamStateEvent(UPDATED)
+            }
+        }, {
+            log.debug("Error while checking live subscription for ${getId()}", it)
+        },)
         detectSettings()
 
         detectLowerBlock()
