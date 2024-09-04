@@ -9,6 +9,7 @@ import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.reader.ChainReader
+import io.emeraldpay.dshackle.upstream.BasicPolkadotUpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.CachingReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.EgressSubscription
@@ -20,6 +21,7 @@ import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultPolkadotMethods
@@ -149,6 +151,10 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
 
     override fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription {
         return GenericIngressSubscription(ws, DefaultPolkadotMethods.subs.map { it.first })
+    }
+
+    override fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector {
+        return BasicPolkadotUpstreamRpcMethodsDetector(upstream)
     }
 }
 

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
+import java.util.Optional
 
 typealias UpstreamRpcMethodsDetectorBuilder = (Upstream) -> UpstreamRpcMethodsDetector?
 
@@ -18,6 +19,12 @@ abstract class UpstreamRpcMethodsDetector(
     protected val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     open fun detectRpcMethods(): Mono<Map<String, Boolean>> {
+        return detectByMagicMethod()
+            .map { it.associateWith { true } }
+            .switchIfEmpty(detectByMethod())
+    }
+
+    private fun detectByMethod(): Mono<Map<String, Boolean>> {
         return Flux.fromIterable(rpcMethods())
             .flatMap { (method, params) ->
                 upstream.getIngressReader()
@@ -34,13 +41,44 @@ abstract class UpstreamRpcMethodsDetector(
             }.toMono()
     }
 
+    protected abstract fun detectByMagicMethod(): Mono<List<String>>
     protected abstract fun rpcMethods(): Set<Pair<String, CallParams>>
 }
 
+// Should be Eth network only?
 class BasicEthUpstreamRpcMethodsDetector(
     upstream: Upstream,
 ) : UpstreamRpcMethodsDetector(upstream) {
+    override fun detectByMagicMethod(): Mono<List<String>> {
+        return Mono.empty()
+    }
+
     override fun rpcMethods(): Set<Pair<String, CallParams>> {
-        return setOf("eth_getBlockReceipts" to ListParams())
+        return setOf("eth_getBlockReceipts" to ListParams("latest"))
+    }
+}
+
+class BasicPolkadotUpstreamRpcMethodsDetector(
+    private val upstream: Upstream,
+) : UpstreamRpcMethodsDetector(upstream) {
+    override fun detectByMagicMethod(): Mono<List<String>> {
+        return upstream.getIngressReader()
+            .read(ChainRequest("rpc_methods", ListParams()))
+            .flatMap(ChainResponse::requireResult)
+            .map {
+                Global.objectMapper.readValue(it, object : TypeReference<HashMap<String, List<String>>>() {})
+                    .getOrDefault("methods", emptyList())
+            }
+            .onErrorResume {
+                log.warn(
+                    "Can't detect rpc method rpc_methods of upstream ${upstream.getId()}, reason - {}",
+                    it.message,
+                )
+                Mono.empty()
+            }
+    }
+
+    override fun rpcMethods(): Set<Pair<String, CallParams>> {
+        return emptySet()
     }
 }

@@ -274,19 +274,19 @@ open class GenericUpstream(
         config: UpstreamsConfig.Upstream<*>,
         buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
     ) {
-        try {
-            detectModules(config, buildMethods)
-        } catch (e: Exception) {
-            log.error("Couldn't detect rpc modules of upstream {} due to error {}", getId(), e.message)
-        }
-        try {
-            detectMethods(config)
-        } catch (e: RuntimeException) {
-            log.error("Couldn't detect rpc methods of upstream {} due to error {}", getId(), e.message)
+        listOf(::detectModules, ::detectMethods).forEach {
+            try {
+                it(config, buildMethods)
+            } catch (e: Exception) {
+                log.error("Couldn't ${it.name} of upstream ${getId()} due to error {}", e.message)
+            }
         }
     }
 
-    private fun detectMethods(config: UpstreamsConfig.Upstream<*>) {
+    private fun detectMethods(
+        config: UpstreamsConfig.Upstream<*>,
+        buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
+    ) {
         val rpcDetector = rpcMethodsDetector?.detectRpcMethods()?.block(Defaults.internalCallsTimeout) ?: emptyMap()
         log.info("Upstream rpc method detector for  ${getId()} returned  $rpcDetector ")
         if (rpcDetector.isEmpty()) {
