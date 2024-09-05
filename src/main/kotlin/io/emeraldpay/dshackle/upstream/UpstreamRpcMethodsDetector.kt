@@ -33,7 +33,7 @@ abstract class UpstreamRpcMethodsDetector(
                     .map { mapOf(method to true) }
                     .onErrorResume {
                         log.warn(
-                            "Can't detect rpc method $method of upstream ${upstream.getId()}, reason - {}",
+                            "Can't detect rpc method {} of upstream {}, reason - {}", method, upstream.getId(),
                             it.message,
                         )
                         mapOf(method to false).toMono()
