@@ -7,7 +7,6 @@ import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.reader.ChainReader
-import io.emeraldpay.dshackle.upstream.BasicEthUpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.BasicEthUpstreamRpcModulesDetector
 import io.emeraldpay.dshackle.upstream.CachingReader
 import io.emeraldpay.dshackle.upstream.ChainRequest

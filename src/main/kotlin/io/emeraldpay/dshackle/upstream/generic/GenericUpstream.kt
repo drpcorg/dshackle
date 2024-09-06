@@ -302,6 +302,7 @@ open class GenericUpstream(
                 config.methods!!.enabled.plus(enableMethods).minus(disableMethods),
                 config.methods!!.disabled.plus(disableMethods).minus(enableMethods),
             )
+            updateMethods(buildMethods(config, getChain()))
         }
     }
 
