@@ -6,9 +6,7 @@ import io.emeraldpay.dshackle.upstream.rpcclient.CallParams
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.toMono
 
 typealias UpstreamRpcMethodsDetectorBuilder = (Upstream) -> UpstreamRpcMethodsDetector?
 
@@ -23,22 +21,26 @@ abstract class UpstreamRpcMethodsDetector(
             .switchIfEmpty(detectByMethod())
 
     private fun detectByMethod(): Mono<Map<String, Boolean>> =
-        Flux
-            .fromIterable(rpcMethods())
-            .flatMap { (method, params) ->
-                upstream
-                    .getIngressReader()
-                    .read(ChainRequest(method, params))
-                    .flatMap(ChainResponse::requireResult)
-                    .map { mapOf(method to true) }
-                    .onErrorResume {
-                        log.warn(
-                            "Can't detect rpc method {} of upstream {}, reason - {}", method, upstream.getId(),
-                            it.message,
-                        )
-                        mapOf(method to false).toMono()
+        Mono.zip(
+            rpcMethods().map {
+                Mono
+                    .just(it)
+                    .flatMap { (method, param) ->
+                        upstream
+                            .getIngressReader()
+                            .read(ChainRequest(method, param))
+                            .flatMap(ChainResponse::requireResult)
+                            .map { method to true }
+                            .onErrorReturn(
+                                method to false,
+                            )
                     }
-            }.toMono()
+            },
+        ) {
+            it
+                .map { p -> p as Pair<String, Boolean> }
+                .associate { (method, enabled) -> method to enabled }
+        }
 
     protected abstract fun detectByMagicMethod(): Mono<List<String>>
 
