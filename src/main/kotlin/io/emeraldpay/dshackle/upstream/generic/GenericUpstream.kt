@@ -286,20 +286,23 @@ open class GenericUpstream(
         config: UpstreamsConfig.Upstream<*>,
         buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
     ) {
-        val rpcDetector = rpcMethodsDetector?.detectRpcMethods()?.block(Defaults.internalCallsTimeout) ?: emptyMap()
-        log.info("Upstream rpc method detector for  ${getId()} returned  $rpcDetector ")
-        if (rpcDetector.isEmpty()) {
-            return
+        rpcMethodsDetector?.detectRpcMethods()?.subscribe { rpcDetector ->
+            log.info("Upstream rpc method detector for  ${getId()} returned  $rpcDetector ")
+            if (rpcDetector.isEmpty()) {
+                return@subscribe
+            }
+            if (config.methods == null) {
+                config.methods = UpstreamsConfig.Methods(mutableSetOf(), mutableSetOf())
+            }
+            val enableMethods =
+                rpcDetector.filter { (_, enabled) -> enabled }.keys.map { UpstreamsConfig.Method(it) }.toSet()
+            val disableMethods =
+                rpcDetector.filter { (_, enabled) -> !enabled }.keys.map { UpstreamsConfig.Method(it) }.toSet()
+            config.methods = UpstreamsConfig.Methods(
+                config.methods!!.enabled.plus(enableMethods).minus(disableMethods),
+                config.methods!!.disabled.plus(disableMethods).minus(enableMethods),
+            )
         }
-        if (config.methods == null) {
-            config.methods = UpstreamsConfig.Methods(mutableSetOf(), mutableSetOf())
-        }
-        val enableMethods = rpcDetector.filter { (_, enabled) -> enabled }.keys.map { UpstreamsConfig.Method(it) }.toSet()
-        val disableMethods = rpcDetector.filter { (_, enabled) -> !enabled }.keys.map { UpstreamsConfig.Method(it) }.toSet()
-        config.methods = UpstreamsConfig.Methods(
-            config.methods!!.enabled.plus(enableMethods).minus(disableMethods),
-            config.methods!!.disabled.plus(disableMethods).minus(enableMethods),
-        )
     }
 
     private fun detectModules(
