@@ -33,7 +33,8 @@ class BasicEthUpstreamRpcMethodsDetector(
     private fun parseRpcModules(data: ByteArray): Map<String, Boolean> {
         val modules = Global.objectMapper.readValue(data, object : TypeReference<HashMap<String, String>>() {})
         val allDisabledMethods =
-            DefaultEthereumMethods(upstream.getChain()).getSupportedMethods()
+            DefaultEthereumMethods(upstream.getChain())
+                .getSupportedMethods()
                 .filter { method ->
                     modules.all { (module, _) -> method.startsWith(module).not() }
                 }.associateWith { false }
