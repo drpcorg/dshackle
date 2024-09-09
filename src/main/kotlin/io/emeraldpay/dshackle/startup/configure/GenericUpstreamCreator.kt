@@ -84,7 +84,6 @@ open class GenericUpstreamCreator(
             connectorFactory,
             cs::validator,
             cs::upstreamSettingsDetector,
-            cs::upstreamRpcModulesDetector,
             cs::upstreamRpcMethodsDetector,
             buildMethodsFun,
             cs::lowerBoundService,

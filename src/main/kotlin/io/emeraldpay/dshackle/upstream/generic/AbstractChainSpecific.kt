@@ -21,7 +21,6 @@ import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
-import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetector
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
@@ -66,10 +65,6 @@ abstract class AbstractChainSpecific : ChainSpecific {
         upstream: Upstream,
         reader: ChainReader?,
     ): SingleValidator<ValidateUpstreamSettingsResult>? {
-        return null
-    }
-
-    override fun upstreamRpcModulesDetector(upstream: Upstream): UpstreamRpcModulesDetector? {
         return null
     }
 

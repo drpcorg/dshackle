@@ -1,7 +1,6 @@
 package io.emeraldpay.dshackle.upstream.generic
 
 import io.emeraldpay.dshackle.Chain
-import io.emeraldpay.dshackle.Defaults
 import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig.Labels
@@ -20,8 +19,6 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetectorBuilder
-import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetector
-import io.emeraldpay.dshackle.upstream.UpstreamRpcModulesDetectorBuilder
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetectorBuilder
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.UpstreamValidatorBuilder
@@ -76,7 +73,6 @@ open class GenericUpstream(
         connectorFactory: ConnectorFactory,
         validatorBuilder: UpstreamValidatorBuilder,
         upstreamSettingsDetectorBuilder: UpstreamSettingsDetectorBuilder,
-        upstreamRpcModulesDetectorBuilder: UpstreamRpcModulesDetectorBuilder,
         upstreamRpcMethodsDetectorBuilder: UpstreamRpcMethodsDetectorBuilder,
         buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
         lowerBoundServiceBuilder: LowerBoundServiceBuilder,
@@ -98,9 +94,8 @@ open class GenericUpstream(
         finalizationDetectorBuilder,
         versionRules,
     ) {
-        rpcModulesDetector = upstreamRpcModulesDetectorBuilder(this)
         rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this)
-        detectRpcModulesAndMethods(config, buildMethods)
+        detectRpcMethods(config, buildMethods)
     }
 
     private val validator: UpstreamValidator? = validatorBuilder(chain, this, getOptions(), chainConfig, versionRules)
@@ -112,7 +107,6 @@ open class GenericUpstream(
     protected val connector: GenericConnector = connectorFactory.create(this, chain)
     private var livenessSubscription: Disposable? = null
     private val settingsDetector = upstreamSettingsDetectorBuilder(chain, this)
-    private var rpcModulesDetector: UpstreamRpcModulesDetector? = null
     private var rpcMethodsDetector: UpstreamRpcMethodsDetector? = null
 
     private val lowerBoundService = lowerBoundServiceBuilder(chain, this)
@@ -269,69 +263,46 @@ open class GenericUpstream(
         }.subscribe()
     }
 
-    private fun detectRpcModulesAndMethods(
+    private fun detectRpcMethods(
         config: UpstreamsConfig.Upstream<*>,
         buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
     ) {
-        listOf(::detectModules, ::detectMethods).forEach {
-            try {
-                it(config, buildMethods)
-            } catch (e: Exception) {
-                log.error("Couldn't ${it.name} of upstream ${getId()} due to error {}", e.message)
-            }
-        }
-    }
-
-    private fun detectMethods(
-        config: UpstreamsConfig.Upstream<*>,
-        buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
-    ) {
-        rpcMethodsDetector?.detectRpcMethods()?.subscribe { rpcDetector ->
-            log.info("Upstream rpc method detector for  ${getId()} returned  $rpcDetector ")
-            if (rpcDetector.isEmpty()) {
-                return@subscribe
-            }
-            if (config.methods == null) {
-                config.methods = UpstreamsConfig.Methods(mutableSetOf(), mutableSetOf())
-            }
-            val enableMethods =
-                rpcDetector.filter { (_, enabled) -> enabled }.keys.map { UpstreamsConfig.Method(it) }.toSet()
-            val disableMethods =
-                rpcDetector.filter { (_, enabled) -> !enabled }.keys.map { UpstreamsConfig.Method(it) }.toSet()
-            config.methods = UpstreamsConfig.Methods(
-                config.methods!!.enabled.plus(enableMethods).minus(disableMethods),
-                config.methods!!.disabled.plus(disableMethods).minus(enableMethods),
-            )
-            updateMethods(buildMethods(config, getChain()))
-        }
-    }
-
-    private fun detectModules(
-        config: UpstreamsConfig.Upstream<*>,
-        buildMethods: (UpstreamsConfig.Upstream<*>, Chain) -> CallMethods,
-    ) {
-        val rpcDetector =
-            rpcModulesDetector?.detectRpcModules()?.block(Defaults.internalCallsTimeout)
-                ?: HashMap()
-        log.info("Upstream rpc detector for  ${getId()} returned  $rpcDetector ")
-        if (rpcDetector.isEmpty()) {
-            return
-        }
-        var changed = false
-        for ((group, _) in rpcDetector) {
-            if (listOf("trace", "debug", "filter").contains(group)) {
-                if (config.methodGroups == null) {
-                    config.methodGroups = UpstreamsConfig.MethodGroups(setOf("filter"), setOf())
-                } else {
-                    val disabled = config.methodGroups!!.disabled
-                    val enabled = config.methodGroups!!.enabled
-                    if (!disabled.contains(group) && !enabled.contains(group)) {
-                        config.methodGroups!!.enabled = enabled.plus(group)
-                        changed = true
-                    }
+        try {
+            rpcMethodsDetector?.detectRpcMethods()?.subscribe { rpcDetector ->
+                log.info("Upstream rpc method detector for  ${getId()} returned  $rpcDetector ")
+                if (rpcDetector.isEmpty()) {
+                    return@subscribe
                 }
+                if (config.methods == null) {
+                    config.methods = UpstreamsConfig.Methods(mutableSetOf(), mutableSetOf())
+                }
+                val enableMethods =
+                    rpcDetector
+                        .filter { (_, enabled) -> enabled }
+                        .keys
+                        .map { UpstreamsConfig.Method(it) }
+                        .toSet()
+                val disableMethods =
+                    rpcDetector
+                        .filter { (_, enabled) -> !enabled }
+                        .keys
+                        .map { UpstreamsConfig.Method(it) }
+                        .toSet()
+                config.methods =
+                    UpstreamsConfig.Methods(
+                        config.methods!!
+                            .enabled
+                            .plus(enableMethods)
+                            .minus(disableMethods),
+                        config.methods!!
+                            .disabled
+                            .plus(disableMethods)
+                            .minus(enableMethods),
+                    )
+                updateMethods(buildMethods(config, getChain()))
             }
-            if (changed) updateMethods(buildMethods(config, getChain()))
+        } catch (e: Exception) {
+            log.error("Couldn't detect methods of upstream ${getId()} due to error {}", e.message)
         }
     }
 

@@ -12,12 +12,9 @@ abstract class UpstreamRpcMethodsDetector(
 ) {
     protected val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    open fun detectRpcMethods(): Mono<Map<String, Boolean>> =
-        detectByMagicMethod()
-            .map { it.associateWith { true } }
-            .switchIfEmpty(detectByMethod())
+    open fun detectRpcMethods(): Mono<Map<String, Boolean>> = detectByMagicMethod().switchIfEmpty(detectByMethod())
 
-    private fun detectByMethod(): Mono<Map<String, Boolean>> =
+    protected fun detectByMethod(): Mono<Map<String, Boolean>> =
         Mono.zip(
             rpcMethods().map {
                 Mono
@@ -39,7 +36,7 @@ abstract class UpstreamRpcMethodsDetector(
                 .associate { (method, enabled) -> method to enabled }
         }
 
-    protected abstract fun detectByMagicMethod(): Mono<List<String>>
+    protected abstract fun detectByMagicMethod(): Mono<Map<String, Boolean>>
 
     protected abstract fun rpcMethods(): Set<Pair<String, CallParams>>
 }

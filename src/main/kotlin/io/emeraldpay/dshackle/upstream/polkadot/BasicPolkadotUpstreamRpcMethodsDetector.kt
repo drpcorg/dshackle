@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono
 class BasicPolkadotUpstreamRpcMethodsDetector(
     private val upstream: Upstream,
 ) : UpstreamRpcMethodsDetector(upstream) {
-    override fun detectByMagicMethod(): Mono<List<String>> =
+    override fun detectByMagicMethod(): Mono<Map<String, Boolean>> =
         upstream
             .getIngressReader()
             .read(ChainRequest("rpc_methods", ListParams()))
@@ -22,6 +22,7 @@ class BasicPolkadotUpstreamRpcMethodsDetector(
                 Global.objectMapper
                     .readValue(it, object : TypeReference<HashMap<String, List<String>>>() {})
                     .getOrDefault("methods", emptyList())
+                    .associateWith { true }
             }.onErrorResume {
                 log.warn(
                     "Can't detect rpc method rpc_methods of upstream ${upstream.getId()}, reason - {}",
