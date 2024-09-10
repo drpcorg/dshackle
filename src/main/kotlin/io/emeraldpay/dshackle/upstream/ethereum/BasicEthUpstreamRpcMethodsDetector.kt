@@ -37,8 +37,6 @@ class BasicEthUpstreamRpcMethodsDetector(
         val modules = Global.objectMapper.readValue(data, object : TypeReference<HashMap<String, String>>() {})
         return DefaultEthereumMethods(upstream.getChain())
             .getAllMethods()
-            .filter { method ->
-                modules.all { (module, _) -> method.startsWith(module).not() }
-            }.associateWith { false }
+            .associateWith { method -> modules.any { (module, _) -> method.startsWith(module) } }
     }
 }

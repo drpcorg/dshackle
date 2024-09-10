@@ -26,7 +26,14 @@ abstract class UpstreamRpcMethodsDetector(
                             .flatMap(ChainResponse::requireResult)
                             .map { method to true }
                             .onErrorResume { err ->
-                                if (err.message?.contains("does not exist/is not available") == true) {
+                                val notAvailableError =
+                                    listOf(
+                                        "method ([A-Za-z0-9_]+) does not exist/is not available",
+                                        "([A-Za-z0-9_]+) found but the containing module is disabled",
+                                        "Method not found",
+                                        "The method ([A-Za-z0-9_]+) is not available",
+                                    ).any { s -> s.toRegex().containsMatchIn(err.message ?: "") }
+                                if (notAvailableError) {
                                     Mono.just(method to false)
                                 } else {
                                     Mono.empty()
