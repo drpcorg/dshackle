@@ -7,6 +7,7 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -35,13 +36,11 @@ class BasicPolkadotUpstreamRpcMethodsDetectorTest {
                 on { getChain() } doReturn Chain.POLKADOT__MAINNET
             }
         val detector = BasicPolkadotUpstreamRpcMethodsDetector(upstream)
-        val result = detector.detectRpcMethods().block()
-        assert(result != null)
-        assert(result?.count() == 3)
-        assert(
-            result?.keys?.containsAll(setOf("account_nextIndex", "archive_unstable_body", "archive_unstable_call"))
-                ?: false,
-        )
+        Assertions.assertThat(detector.detectRpcMethods().block()).apply {
+            isNotNull()
+            hasSize(3)
+            containsKeys("account_nextIndex", "archive_unstable_body", "archive_unstable_call")
+        }
     }
 
     @Test
@@ -65,7 +64,6 @@ class BasicPolkadotUpstreamRpcMethodsDetectorTest {
                 on { getChain() } doReturn Chain.POLKADOT__MAINNET
             }
         val detector = BasicPolkadotUpstreamRpcMethodsDetector(upstream)
-        val result = detector.detectRpcMethods().block()
-        assert(result == null)
+        Assertions.assertThat(detector.detectRpcMethods().block()).isNull()
     }
 }

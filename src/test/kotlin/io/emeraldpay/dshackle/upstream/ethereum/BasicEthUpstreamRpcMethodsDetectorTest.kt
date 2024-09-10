@@ -7,6 +7,7 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -45,11 +46,12 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                 on { getChain() } doReturn Chain.ETHEREUM__MAINNET
             }
         val detector = BasicEthUpstreamRpcMethodsDetector(upstream)
-        val result = detector.detectRpcMethods().block()
-        assert(result != null)
-        assert(result?.count() == 2)
-        assert(result?.get("web3_clientVersion") == false)
-        assert(result?.get("eth_getBlockReceipts") == true)
+        Assertions.assertThat(detector.detectRpcMethods().block()).apply {
+            isNotNull()
+            hasSize(2)
+            containsEntry("web3_clientVersion", false)
+            containsEntry("eth_getBlockReceipts", true)
+        }
     }
 
     @Test
@@ -83,9 +85,10 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                 on { getChain() } doReturn Chain.ETHEREUM__MAINNET
             }
         val detector = BasicEthUpstreamRpcMethodsDetector(upstream)
-        val result = detector.detectRpcMethods().block()
-        assert(result != null)
-        assert(result?.count() == 1)
-        assert(result?.get("eth_getBlockReceipts") == true)
+        Assertions.assertThat(detector.detectRpcMethods().block()).apply {
+            isNotNull()
+            hasSize(1)
+            containsEntry("eth_getBlockReceipts", true)
+        }
     }
 }
