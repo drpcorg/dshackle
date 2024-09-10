@@ -94,7 +94,7 @@ open class GenericUpstream(
         finalizationDetectorBuilder,
         versionRules,
     ) {
-        rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this)
+        rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this, config)
         detectRpcMethods(config, buildMethods)
     }
 

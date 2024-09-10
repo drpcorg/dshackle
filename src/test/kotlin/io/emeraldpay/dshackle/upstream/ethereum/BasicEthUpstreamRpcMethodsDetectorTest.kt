@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.Chain
+import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainCallError
 import io.emeraldpay.dshackle.upstream.ChainRequest
@@ -45,7 +46,8 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                 on { getIngressReader() } doReturn reader
                 on { getChain() } doReturn Chain.ETHEREUM__MAINNET
             }
-        val detector = BasicEthUpstreamRpcMethodsDetector(upstream)
+        val config = mock<UpstreamsConfig.Upstream<*>> { }
+        val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
         Assertions.assertThat(detector.detectRpcMethods().block()).apply {
             isNotNull()
             size().isGreaterThanOrEqualTo(2)
@@ -84,11 +86,60 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                 on { getIngressReader() } doReturn reader
                 on { getChain() } doReturn Chain.ETHEREUM__MAINNET
             }
-        val detector = BasicEthUpstreamRpcMethodsDetector(upstream)
+        val config = mock<UpstreamsConfig.Upstream<*>> { }
+        val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
         Assertions.assertThat(detector.detectRpcMethods().block()).apply {
             isNotNull()
             hasSize(1)
             containsEntry("eth_getBlockReceipts", true)
+        }
+    }
+
+    @Test
+    fun `prefer local config methods group`() {
+        val reader =
+            mock<ChainReader> {
+                on {
+                    read(ChainRequest("rpc_modules", ListParams()))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            """{"net": "1.0","debug": "1.0","txpool": "1.0","drpc": "1.0","erigon": "1.0","eth": "1.0","trace": "1.0"}"""
+                                .toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getBlockReceipts", ListParams("latest")))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            """[{"blockHash": "0xd12897f54acaa79f4824aa4f8e1d0f045b5568f5b942073555e9977202c5c474","blockNumber": "0x13c1108"}]"""
+                                .toByteArray(),
+                            null,
+                        ),
+                    )
+            }
+
+        val upstream =
+            mock<Upstream> {
+                on { getIngressReader() } doReturn reader
+                on { getChain() } doReturn Chain.ETHEREUM__MAINNET
+            }
+        val config =
+            mock<UpstreamsConfig.Upstream<*>> {
+                on { methodGroups } doReturn
+                    UpstreamsConfig.MethodGroups(
+                        emptySet(),
+                        setOf("eth"),
+                    )
+            }
+        val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
+        Assertions.assertThat(detector.detectRpcMethods().block()).apply {
+            isNotNull()
+            containsEntry("eth_getBlockByNumber", false)
+            containsEntry("eth_getBlockReceipts", true)
+            containsEntry("debug_traceBlock", true)
         }
     }
 }

@@ -1,14 +1,16 @@
 package io.emeraldpay.dshackle.upstream
 
+import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.rpcclient.CallParams
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 
-typealias UpstreamRpcMethodsDetectorBuilder = (Upstream) -> UpstreamRpcMethodsDetector?
+typealias UpstreamRpcMethodsDetectorBuilder = (Upstream, UpstreamsConfig.Upstream<*>?) -> UpstreamRpcMethodsDetector?
 
 abstract class UpstreamRpcMethodsDetector(
     private val upstream: Upstream,
+    private val config: UpstreamsConfig.Upstream<*>? = null,
 ) {
     protected val log: Logger = LoggerFactory.getLogger(this::class.java)
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
+import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
@@ -151,8 +152,10 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
         return GenericIngressSubscription(ws, DefaultPolkadotMethods.subs.map { it.first })
     }
 
-    override fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector =
-        BasicPolkadotUpstreamRpcMethodsDetector(upstream)
+    override fun upstreamRpcMethodsDetector(
+        upstream: Upstream,
+        config: UpstreamsConfig.Upstream<*>?,
+    ): UpstreamRpcMethodsDetector = BasicPolkadotUpstreamRpcMethodsDetector(upstream)
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)

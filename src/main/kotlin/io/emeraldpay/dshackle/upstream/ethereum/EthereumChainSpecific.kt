@@ -4,6 +4,7 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
+import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.reader.ChainReader
@@ -179,9 +180,10 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         return ChainIdValidator(upstream, chain, reader)
     }
 
-    override fun upstreamRpcMethodsDetector(upstream: Upstream): UpstreamRpcMethodsDetector {
-        return BasicEthUpstreamRpcMethodsDetector(upstream)
-    }
+    override fun upstreamRpcMethodsDetector(
+        upstream: Upstream,
+        config: UpstreamsConfig.Upstream<*>?,
+    ): UpstreamRpcMethodsDetector? = config?.let { BasicEthUpstreamRpcMethodsDetector(upstream, it) }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
         return EthereumLowerBoundService(chain, upstream)
