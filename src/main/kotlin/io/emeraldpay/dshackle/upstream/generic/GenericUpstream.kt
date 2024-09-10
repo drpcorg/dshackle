@@ -290,14 +290,12 @@ open class GenericUpstream(
                         .toSet()
                 config.methods =
                     UpstreamsConfig.Methods(
-                        config.methods!!
-                            .enabled
-                            .plus(enableMethods)
-                            .minus(disableMethods),
-                        config.methods!!
-                            .disabled
-                            .plus(disableMethods)
-                            .minus(enableMethods),
+                        enableMethods
+                            .minus(disableMethods)
+                            .plus(config.methods!!.enabled),
+                        disableMethods
+                            .minus(enableMethods)
+                            .plus(config.methods!!.disabled),
                     )
                 updateMethods(buildMethods(config, getChain()))
             }
