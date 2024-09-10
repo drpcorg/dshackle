@@ -25,9 +25,13 @@ abstract class UpstreamRpcMethodsDetector(
                             .read(ChainRequest(method, param))
                             .flatMap(ChainResponse::requireResult)
                             .map { method to true }
-                            .onErrorReturn(
-                                method to false,
-                            )
+                            .onErrorResume { err ->
+                                if (err.message?.contains("does not exist/is not available") == true) {
+                                    Mono.just(method to false)
+                                } else {
+                                    Mono.empty()
+                                }
+                            }
                     }
             },
         ) {

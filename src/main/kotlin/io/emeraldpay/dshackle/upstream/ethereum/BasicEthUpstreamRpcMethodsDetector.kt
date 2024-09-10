@@ -20,7 +20,10 @@ class BasicEthUpstreamRpcMethodsDetector(
             .read(ChainRequest("rpc_modules", ListParams()))
             .flatMap(ChainResponse::requireResult)
             .map(::parseRpcModules)
-            .onErrorResume {
+            // force check all methods from rpcMethods
+            .zipWith(detectByMethod()) { a, b ->
+                a.plus(b)
+            }.onErrorResume {
                 log.warn("Can't detect rpc_modules of upstream ${upstream.getId()}, reason - {}", it.message)
                 Mono.empty()
             }
@@ -32,14 +35,10 @@ class BasicEthUpstreamRpcMethodsDetector(
 
     private fun parseRpcModules(data: ByteArray): Map<String, Boolean> {
         val modules = Global.objectMapper.readValue(data, object : TypeReference<HashMap<String, String>>() {})
-        val allDisabledMethods =
-            DefaultEthereumMethods(upstream.getChain())
-                .getSupportedMethods()
-                .filter { method ->
-                    modules.all { (module, _) -> method.startsWith(module).not() }
-                }.associateWith { false }
-        // Don't trust the modules, check the methods from rpcMethods
-        val rpcMethodsResponse = detectByMethod().block() ?: emptyMap()
-        return allDisabledMethods.plus(rpcMethodsResponse)
+        return DefaultEthereumMethods(upstream.getChain())
+            .getAllMethods()
+            .filter { method ->
+                modules.all { (module, _) -> method.startsWith(module).not() }
+            }.associateWith { false }
     }
 }
