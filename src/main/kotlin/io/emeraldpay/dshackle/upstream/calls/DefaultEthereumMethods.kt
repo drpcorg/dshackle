@@ -631,8 +631,7 @@ class DefaultEthereumMethods(
                 klayMethods
                     .plus(klaySpecialMethods)
                     .plus(klayPossibleNotIndexedMethods)
-            Chain.KAIA__MAINNET, Chain.KAIA__KAIROS ->
-                kaiaMethods
+                    .plus(kaiaMethods)
                     .plus(kaiaSpecialMethods)
                     .plus(kaiaPossibleNotIndexedMethods)
             Chain.MANTLE__MAINNET, Chain.MANTLE__SEPOLIA ->
