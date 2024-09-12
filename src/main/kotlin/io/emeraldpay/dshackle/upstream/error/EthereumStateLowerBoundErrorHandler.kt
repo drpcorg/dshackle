@@ -4,12 +4,8 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundStateDetector.Companion.stateErrors
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
-import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import org.slf4j.LoggerFactory
 
-object EthereumStateLowerBoundErrorHandler : ErrorHandler {
-    private val log = LoggerFactory.getLogger(this::class.java)
-
+object EthereumStateLowerBoundErrorHandler : EthereumLowerBoundErrorHandler() {
     private val firstTagIndexMethods = setOf(
         "eth_call",
         "debug_traceCall",
@@ -41,20 +37,7 @@ object EthereumStateLowerBoundErrorHandler : ErrorHandler {
         return stateErrors.any { errorMessage?.contains(it) ?: false } && applicableMethods.contains(request.method)
     }
 
-    private fun parseTagParam(request: ChainRequest, tagIndex: Int): Long? {
-        if (tagIndex != -1 && request.params is ListParams) {
-            val params = request.params.list
-            if (params.size >= tagIndex) {
-                val tag = params[tagIndex]
-                if (tag is String && tag.startsWith("0x")) {
-                    return tag.substring(2).toLong(16)
-                }
-            }
-        }
-        return null
-    }
-
-    private fun tagIndex(method: String): Int {
+    override fun tagIndex(method: String): Int {
         return if (firstTagIndexMethods.contains(method)) {
             1
         } else if (secondTagIndexMethods.contains(method)) {
