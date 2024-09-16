@@ -1,11 +1,10 @@
 package io.emeraldpay.dshackle.upstream.error
 
 import io.emeraldpay.dshackle.upstream.ChainRequest
-import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundStateDetector.Companion.stateErrors
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 
-object EthereumDebugTraceLowerBoundErrorHandler : EthereumLowerBoundErrorHandler() {
+object EthereumTraceLowerBoundErrorHandler : EthereumLowerBoundErrorHandler() {
     private val zeroTagIndexMethods = setOf(
         "trace_block",
         "arbtrace_block",
@@ -31,19 +30,6 @@ object EthereumDebugTraceLowerBoundErrorHandler : EthereumLowerBoundErrorHandler
         )
     private val errorRegexp = Regex("block .* not found")
 
-    override fun handle(upstream: Upstream, request: ChainRequest, errorMessage: String?) {
-        val type = if (request.method.startsWith("debug")) LowerBoundType.DEBUG else LowerBoundType.TRACE
-        try {
-            if (canHandle(request, errorMessage)) {
-                parseTagParam(request, tagIndex(request.method))?.let {
-                    upstream.updateLowerBound(it, type)
-                }
-            }
-        } catch (e: RuntimeException) {
-            log.warn("Couldn't update the {} lower bound of {}, reason - {}", type, upstream.getId(), e.message)
-        }
-    }
-
     override fun canHandle(request: ChainRequest, errorMessage: String?): Boolean {
         return (errors.any { errorMessage?.contains(it) ?: false } || (errorMessage?.matches(errorRegexp) ?: false)) &&
             applicableMethods.contains(request.method)
@@ -60,4 +46,6 @@ object EthereumDebugTraceLowerBoundErrorHandler : EthereumLowerBoundErrorHandler
             -1
         }
     }
+
+    override fun type(): LowerBoundType = LowerBoundType.TRACE
 }

@@ -1,7 +1,6 @@
 package io.emeraldpay.dshackle.upstream.error
 
 import io.emeraldpay.dshackle.upstream.ChainRequest
-import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundStateDetector.Companion.stateErrors
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 
@@ -21,18 +20,6 @@ object EthereumStateLowerBoundErrorHandler : EthereumLowerBoundErrorHandler() {
 
     private val applicableMethods = firstTagIndexMethods + secondTagIndexMethods
 
-    override fun handle(upstream: Upstream, request: ChainRequest, errorMessage: String?) {
-        try {
-            if (canHandle(request, errorMessage)) {
-                parseTagParam(request, tagIndex(request.method))?.let {
-                    upstream.updateLowerBound(it, LowerBoundType.STATE)
-                }
-            }
-        } catch (e: RuntimeException) {
-            log.warn("Couldn't update the {} lower bound of {}, reason - {}", LowerBoundType.STATE, upstream.getId(), e.message)
-        }
-    }
-
     override fun canHandle(request: ChainRequest, errorMessage: String?): Boolean {
         return stateErrors.any { errorMessage?.contains(it) ?: false } && applicableMethods.contains(request.method)
     }
@@ -46,4 +33,6 @@ object EthereumStateLowerBoundErrorHandler : EthereumLowerBoundErrorHandler() {
             -1
         }
     }
+
+    override fun type(): LowerBoundType = LowerBoundType.STATE
 }
