@@ -65,34 +65,34 @@ class GenericWsHead(
     }
     private val chainIdValidator = chainSpecific.chainSettingsValidator(upstream.getChain(), upstream, jsonRpcWsClient)
 
-    private var connectionId = AtomicReference("")
-    private var subscribed = AtomicBoolean(false)
-    private var connected = AtomicBoolean(false)
-    private var isSyncing = AtomicBoolean(false)
+    private val connectionId = AtomicReference("")
+    private val subscribed = AtomicBoolean(false)
+    private val connected = AtomicBoolean(false)
+    private val isSyncing = AtomicBoolean(false)
 
-    private var subscription: Disposable? = null
-    private var headResubSubscription: Disposable? = null
+    private val subscription = AtomicReference<Disposable?>()
+    private val headResubSubscription = AtomicReference<Disposable?>()
     private val noHeadUpdatesSink = Sinks.many().multicast().directBestEffort<Boolean>()
 
-    private var subscriptionId = AtomicReference("")
+    private val subscriptionId = AtomicReference("")
 
     override fun isRunning(): Boolean {
-        return subscription != null
+        return subscription.get() != null
     }
 
     override fun start() {
         super.start()
-        this.subscription?.dispose()
+        this.subscription.get()?.dispose()
         this.subscribed.set(true)
         val heads = Flux.merge(
             // get the current block, not just wait for the next update
             getLatestBlock(api),
             listenNewHeads(),
         )
-        this.subscription = super.follow(heads)
+        this.subscription.set(super.follow(heads))
 
-        if (headResubSubscription == null) {
-            headResubSubscription = registerHeadResubscribeFlux()
+        if (headResubSubscription.get() == null) {
+            headResubSubscription.set(registerHeadResubscribeFlux())
         }
     }
 
@@ -145,8 +145,7 @@ class GenericWsHead(
     override fun stop() {
         super.stop()
         cancelSub()
-        headResubSubscription?.dispose()
-        headResubSubscription = null
+        headResubSubscription.getAndSet(null)?.dispose()
     }
 
     override fun chainIdValidator(): SingleValidator<ValidateUpstreamSettingsResult>? {
@@ -172,7 +171,7 @@ class GenericWsHead(
             wsSubscriptions.subscribe(chainSpecific.listenNewHeadsRequest().copy(id = ids.getAndIncrement()))
                 .also {
                     connectionId.set(it.connectionId)
-                    subscriptionId = it.subId
+                    subscriptionId.set(it.subId.get())
                     if (!connected.get()) {
                         connected.set(true)
                     }
@@ -209,8 +208,7 @@ class GenericWsHead(
     }
 
     private fun cancelSub() {
-        subscription?.dispose()
-        subscription = null
+        subscription.getAndSet(null)?.dispose()
         subscribed.set(false)
     }
 }
