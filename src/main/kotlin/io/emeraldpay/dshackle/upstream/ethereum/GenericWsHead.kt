@@ -91,7 +91,9 @@ class GenericWsHead(
         )
         this.subscription.set(super.follow(heads))
 
-        headResubSubscription.compareAndSet(null, registerHeadResubscribeFlux())
+        if (headResubSubscription.get() == null) {
+            headResubSubscription.set(registerHeadResubscribeFlux())
+        }
     }
 
     override fun onNoHeadUpdates() {
