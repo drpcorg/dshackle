@@ -65,7 +65,7 @@ class GenericWsHead(
     }
     private val chainIdValidator = chainSpecific.chainSettingsValidator(upstream.getChain(), upstream, jsonRpcWsClient)
 
-    private val connectionId = AtomicReference("")
+    private val connectionId = AtomicReference<String?>(null)
     private val subscribed = AtomicBoolean(false)
     private val connected = AtomicBoolean(false)
     private val isSyncing = AtomicBoolean(false)
@@ -186,7 +186,7 @@ class GenericWsHead(
                     headLivenessSink.emitNext(HeadLivenessState.DISCONNECTED) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                     subscribed.set(false)
                     connected.set(false)
-                    connectionId.set("")
+                    connectionId.set(null)
                 } else if (it.connectionState == WsConnection.ConnectionState.CONNECTED) {
                     connected.set(true)
                     return@map true
