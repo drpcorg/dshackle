@@ -91,9 +91,7 @@ class GenericWsHead(
         )
         this.subscription.set(super.follow(heads))
 
-        if (headResubSubscription.get() == null) {
-            headResubSubscription.set(registerHeadResubscribeFlux())
-        }
+        headResubSubscription.compareAndSet(null, registerHeadResubscribeFlux())
     }
 
     override fun onNoHeadUpdates() {
@@ -182,6 +180,7 @@ class GenericWsHead(
     }
 
     private fun registerHeadResubscribeFlux(): Disposable {
+        println("here")
         val connectionStates = wsSubscriptions.connectionInfoFlux()
             .map {
                 if (it.connectionId == connectionId.get() && it.connectionState == WsConnection.ConnectionState.DISCONNECTED) {
