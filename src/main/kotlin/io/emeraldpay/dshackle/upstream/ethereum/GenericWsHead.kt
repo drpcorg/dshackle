@@ -180,7 +180,6 @@ class GenericWsHead(
     }
 
     private fun registerHeadResubscribeFlux(): Disposable {
-        println("here")
         val connectionStates = wsSubscriptions.connectionInfoFlux()
             .map {
                 if (it.connectionId == connectionId.get() && it.connectionState == WsConnection.ConnectionState.DISCONNECTED) {
