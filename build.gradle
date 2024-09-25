@@ -36,8 +36,8 @@ group = 'io.emeraldpay.dshackle'
 version = getVersion()
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_20
-    targetCompatibility = JavaVersion.VERSION_20
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
@@ -132,10 +132,10 @@ tasks.withType(Test) { jvmArgs += "--enable-preview" }
 tasks.withType(JavaExec) { jvmArgs += "--enable-preview" }
 
 compileKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_20)
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 compileTestKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_20)
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 
 test {
