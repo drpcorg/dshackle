@@ -19,7 +19,7 @@ import io.emeraldpay.dshackle.upstream.calls.DefaultCosmosMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultPolkadotMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultStarknetMethods
-import io.emeraldpay.dshackle.upstream.calls.DefaultTonCenterHttpMethods
+import io.emeraldpay.dshackle.upstream.calls.DefaultTonHttpMethods
 import org.springframework.stereotype.Component
 
 @Component
@@ -40,7 +40,7 @@ class CallTargetsHolder {
             NEAR -> DefaultNearMethods()
             ETHEREUM_BEACON_CHAIN -> DefaultBeaconChainMethods()
             COSMOS -> DefaultCosmosMethods()
-            TON_CENTER -> DefaultTonCenterHttpMethods()
+            TON -> DefaultTonHttpMethods()
             UNKNOWN -> throw IllegalArgumentException("unknown chain")
         }
         callTargets[chain] = created

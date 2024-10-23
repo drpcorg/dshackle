@@ -12,7 +12,7 @@ enum class BlockchainType(
     NEAR(ApiType.JSON_RPC),
     ETHEREUM_BEACON_CHAIN(ApiType.REST),
     COSMOS(ApiType.JSON_RPC),
-    TON_CENTER(ApiType.REST);
+    TON(ApiType.REST);
 }
 
 enum class ApiType {

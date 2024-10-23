@@ -135,7 +135,7 @@ open class CodeGen(private val config: ChainsConfig) {
             "solana" -> "BlockchainType.SOLANA"
             "near" -> "BlockchainType.NEAR"
             "eth-beacon-chain" -> "BlockchainType.ETHEREUM_BEACON_CHAIN"
-            "ton-center" -> "BlockchainType.TON_CENTER"
+            "ton" -> "BlockchainType.TON"
             "cosmos" -> "BlockchainType.COSMOS"
             else -> throw IllegalArgumentException("unknown blockchain type $type")
         }

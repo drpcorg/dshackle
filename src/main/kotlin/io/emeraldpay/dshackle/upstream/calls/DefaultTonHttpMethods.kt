@@ -4,7 +4,7 @@ import io.emeraldpay.dshackle.quorum.AlwaysQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
-class DefaultTonCenterHttpMethods : CallMethods {
+class DefaultTonHttpMethods : CallMethods {
 
     // HTTP API section
     private val accountHttpMethods = setOf(

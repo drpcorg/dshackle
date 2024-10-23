@@ -1,4 +1,4 @@
-package io.emeraldpay.dshackle.upstream.toncenter
+package io.emeraldpay.dshackle.upstream.ton
 
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
@@ -31,7 +31,7 @@ fun generateRandomString(length: Int): String {
         .joinToString("")
 }
 
-object TonCenterHttpSpecific : AbstractPollChainSpecific() {
+object TonHttpSpecific : AbstractPollChainSpecific() {
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         throw NotImplementedError()
     }
@@ -45,7 +45,7 @@ object TonCenterHttpSpecific : AbstractPollChainSpecific() {
     }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
-        return TonCenterLowerBoundService(chain, upstream)
+        return TonLowerBoundService(chain, upstream)
     }
 
     override fun latestBlockRequest(): ChainRequest {
@@ -53,7 +53,7 @@ object TonCenterHttpSpecific : AbstractPollChainSpecific() {
     }
 
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        val blockHeader = Global.objectMapper.readValue<TonCenterMasterchainInfo>(data)
+        val blockHeader = Global.objectMapper.readValue<TonMasterchainInfo>(data)
 
 
 
@@ -93,7 +93,7 @@ object TonCenterHttpSpecific : AbstractPollChainSpecific() {
     }
 }
 
-data class TonCenterMasterchainInfoResultLast(
+data class TonMasterchainInfoResultLast(
     val workchain: Int,
     val shard: String,
     val seqno: Long,
@@ -101,17 +101,17 @@ data class TonCenterMasterchainInfoResultLast(
     val file_hash: String,
 )
 
-data class TonCenterMasterchainInfoResult(
-    val last: TonCenterMasterchainInfoResultLast,
+data class TonMasterchainInfoResult(
+    val last: TonMasterchainInfoResultLast,
 )
 
-data class TonCenterMasterchainInfo(
+data class TonMasterchainInfo(
     val ok: Boolean,
-    val result: TonCenterMasterchainInfoResult,
+    val result: TonMasterchainInfoResult,
 )
 
-class TonCenterMasterchainInfoDeserializer : JsonDeserializer<TonCenterMasterchainInfo>() {
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): TonCenterMasterchainInfo {
+class TonMasterchainInfoDeserializer : JsonDeserializer<TonMasterchainInfo>() {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): TonMasterchainInfo {
         val node = p.readValueAsTree<JsonNode>()
         val ok = node["ok"].booleanValue()
         val workchain = node["result"]["last"]["workchain"].intValue()
@@ -120,10 +120,10 @@ class TonCenterMasterchainInfoDeserializer : JsonDeserializer<TonCenterMastercha
         val root_hash = node["result"]["last"]["root_hash"].textValue()
         val file_hash = node["result"]["last"]["file_hash"].textValue()
 
-        return TonCenterMasterchainInfo(
+        return TonMasterchainInfo(
             ok,
-            TonCenterMasterchainInfoResult(
-                TonCenterMasterchainInfoResultLast(
+            TonMasterchainInfoResult(
+                TonMasterchainInfoResultLast(
                     workchain,
                     shard,
                     seqno,

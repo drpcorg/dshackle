@@ -43,7 +43,7 @@ import io.emeraldpay.dshackle.upstream.near.NearChainSpecific
 import io.emeraldpay.dshackle.upstream.polkadot.PolkadotChainSpecific
 import io.emeraldpay.dshackle.upstream.solana.SolanaChainSpecific
 import io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific
-import io.emeraldpay.dshackle.upstream.toncenter.TonCenterHttpSpecific
+import io.emeraldpay.dshackle.upstream.ton.TonHttpSpecific
 import org.apache.commons.collections4.Factory
 import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
@@ -112,7 +112,7 @@ object ChainSpecificRegistry {
             SOLANA -> SolanaChainSpecific
             NEAR -> NearChainSpecific
             ETHEREUM_BEACON_CHAIN -> BeaconChainSpecific
-            TON_CENTER -> TonCenterHttpSpecific
+            TON_CENTER -> TonHttpSpecific
             COSMOS -> CosmosChainSpecific
             BITCOIN -> throw IllegalArgumentException("bitcoin should use custom streams implementation")
             UNKNOWN -> throw IllegalArgumentException("unknown chain")
