@@ -8,7 +8,7 @@ import io.emeraldpay.dshackle.BlockchainType.NEAR
 import io.emeraldpay.dshackle.BlockchainType.POLKADOT
 import io.emeraldpay.dshackle.BlockchainType.SOLANA
 import io.emeraldpay.dshackle.BlockchainType.STARKNET
-import io.emeraldpay.dshackle.BlockchainType.TON_CENTER
+import io.emeraldpay.dshackle.BlockchainType.TON
 import io.emeraldpay.dshackle.BlockchainType.UNKNOWN
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.foundation.ChainOptions

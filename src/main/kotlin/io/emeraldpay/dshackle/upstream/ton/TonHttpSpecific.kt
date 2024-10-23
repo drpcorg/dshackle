@@ -55,8 +55,6 @@ object TonHttpSpecific : AbstractPollChainSpecific() {
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         val blockHeader = Global.objectMapper.readValue<TonMasterchainInfo>(data)
 
-
-
         return Mono.just(
             BlockContainer(
                 height = blockHeader.result.last.seqno,
