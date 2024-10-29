@@ -48,13 +48,14 @@ abstract class AbstractCallLimitValidator(
     private val upstream: Upstream,
     private val options: ChainOptions.Options,
 ) : CallLimitValidator {
-
     companion object {
         @JvmStatic
         val log: Logger = LoggerFactory.getLogger(AbstractCallLimitValidator::class.java)
     }
-    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
-        return upstream.getIngressReader()
+
+    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> =
+        upstream
+            .getIngressReader()
             .read(createRequest())
             .flatMap(ChainResponse::requireResult)
             .map { ValidateUpstreamSettingsResult.UPSTREAM_VALID }
@@ -69,20 +70,17 @@ abstract class AbstractCallLimitValidator(
                 } else {
                     Mono.error(it)
                 }
-            }
-            .timeout(
+            }.timeout(
                 Defaults.timeoutInternal,
-                Mono.fromCallable { log.error("No response for eth_call limit check from ${upstream.getId()}") }
+                Mono
+                    .fromCallable { log.error("No response for eth_call limit check from ${upstream.getId()}") }
                     .then(Mono.error(TimeoutException("Validation timeout for call limit"))),
-            )
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
+            ).retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
                     "error during validateCallLimit for ${upstream.getId()}, iteration ${ctx.iteration()}, " +
                         "message ${ctx.exception().message}",
                 )
-            }
-            .onErrorReturn(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
-    }
+            }.onErrorReturn(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
 
     abstract fun createRequest(): ChainRequest
 
@@ -96,52 +94,21 @@ class EthCallLimitValidator(
 ) : AbstractCallLimitValidator(upstream, options) {
     override fun isEnabled() = options.validateCallLimit && config.callLimitContract != null
 
-    override fun createRequest() = ChainRequest(
-        "eth_call",
-        ListParams(
-            TransactionCallJson(
-                Address.from(config.callLimitContract),
-                // contract like https://github.com/drpcorg/dshackle/pull/246
-                // meta + size in hex
-                HexData.from("0xd8a26e3a" + options.callLimitSize.toString(16).padStart(64, '0')),
+    override fun createRequest() =
+        ChainRequest(
+            "eth_call",
+            ListParams(
+                TransactionCallJson(
+                    Address.from(config.callLimitContract),
+                    // contract like https://github.com/drpcorg/dshackle/pull/246
+                    // meta + size in hex
+                    HexData.from("0xd8a26e3a" + options.callLimitSize.toString(16).padStart(64, '0')),
+                ),
+                "latest",
             ),
-            "latest",
-        ),
-    )
+        )
 
-    override fun isLimitError(err: Throwable): Boolean =
-        err.message != null && err.message!!.contains("rpc.returndata.limit")
-}
-
-class ZkSyncCallLimitValidator(
-    private val upstream: Upstream,
-    private val options: ChainOptions.Options,
-) : AbstractCallLimitValidator(upstream, options) {
-    private val method = "debug_traceBlockByNumber"
-
-    override fun isEnabled() =
-        options.validateCallLimit && upstream.getMethods().getSupportedMethods().contains(method)
-
-    override fun createRequest() = ChainRequest(
-        method,
-        ListParams("0x1b73b2b", mapOf("tracer" to "callTracer")),
-    )
-
-    override fun isLimitError(err: Throwable): Boolean =
-        err.message != null && err.message!!.contains("response size should not greater than")
-}
-
-fun callLimitValidatorFactory(
-    upstream: Upstream,
-    options: ChainOptions.Options,
-    config: ChainConfig,
-    chain: Chain,
-): CallLimitValidator {
-    return if (listOf(Chain.ZKSYNC__MAINNET).contains(chain)) {
-        ZkSyncCallLimitValidator(upstream, options)
-    } else {
-        EthCallLimitValidator(upstream, options, config)
-    }
+    override fun isLimitError(err: Throwable): Boolean = err.message != null && err.message!!.contains("rpc.returndata.limit")
 }
 
 class ChainIdValidator(
@@ -149,28 +116,31 @@ class ChainIdValidator(
     private val chain: Chain,
     private val customReader: ChainReader? = null,
 ) : SingleValidator<ValidateUpstreamSettingsResult> {
-    private val validatorReader: Supplier<ChainReader> = Supplier {
-        customReader ?: upstream.getIngressReader()
-    }
+    private val validatorReader: Supplier<ChainReader> =
+        Supplier {
+            customReader ?: upstream.getIngressReader()
+        }
 
     companion object {
         @JvmStatic
         val log: Logger = LoggerFactory.getLogger(ChainIdValidator::class.java)
     }
-    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
-        return Mono.zip(
-            chainId(),
-            netVersion(),
-        )
-            .map {
+
+    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> =
+        Mono
+            .zip(
+                chainId(),
+                netVersion(),
+            ).map {
                 var netver: BigInteger
                 if (it.t2.lowercase().contains("x")) {
                     netver = BigInteger(it.t2.lowercase().substringAfter("x"), 16)
                 } else {
                     netver = BigInteger(it.t2)
                 }
-                val isChainValid = chain.chainId.lowercase() == it.t1.lowercase() &&
-                    chain.netVersion == netver
+                val isChainValid =
+                    chain.chainId.lowercase() == it.t1.lowercase() &&
+                        chain.netVersion == netver
 
                 if (!isChainValid) {
                     val actualChain = Global.chainByChainId(it.t1).chainName
@@ -185,15 +155,14 @@ class ChainIdValidator(
                 } else {
                     ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
                 }
-            }
-            .onErrorResume {
+            }.onErrorResume {
                 log.error("Error during chain validation of upstream {}, reason - {}", upstream.getId(), it.message)
                 Mono.just(onError)
             }
-    }
 
-    private fun chainId(): Mono<String> {
-        return validatorReader.get()
+    private fun chainId(): Mono<String> =
+        validatorReader
+            .get()
             .read(ChainRequest("eth_chainId", ListParams()))
             .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
@@ -202,13 +171,12 @@ class ChainIdValidator(
                     ctx.iteration(),
                     ctx.exception().message,
                 )
-            }
-            .doOnError { log.error("Error during execution 'eth_chainId' - {} for {}", it.message, upstream.getId()) }
+            }.doOnError { log.error("Error during execution 'eth_chainId' - {} for {}", it.message, upstream.getId()) }
             .flatMap(ChainResponse::requireStringResult)
-    }
 
-    private fun netVersion(): Mono<String> {
-        return validatorReader.get()
+    private fun netVersion(): Mono<String> =
+        validatorReader
+            .get()
             .read(ChainRequest("net_version", ListParams()))
             .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
@@ -217,37 +185,34 @@ class ChainIdValidator(
                     ctx.iteration(),
                     ctx.exception().message,
                 )
-            }
-            .doOnError { log.error("Error during execution 'net_version' - {} for {}", it.message, upstream.getId()) }
+            }.doOnError { log.error("Error during execution 'net_version' - {} for {}", it.message, upstream.getId()) }
             .flatMap(ChainResponse::requireStringResult)
-    }
 }
 
 class OldBlockValidator(
     private val upstream: Upstream,
 ) : SingleValidator<ValidateUpstreamSettingsResult> {
-
     companion object {
         @JvmStatic
         val log: Logger = LoggerFactory.getLogger(OldBlockValidator::class.java)
     }
-    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
-        return EthereumArchiveBlockNumberReader(upstream.getIngressReader())
+
+    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> =
+        EthereumArchiveBlockNumberReader(upstream.getIngressReader())
             .readArchiveBlock()
             .flatMap {
-                upstream.getIngressReader()
+                upstream
+                    .getIngressReader()
                     .read(ChainRequest("eth_getBlockByNumber", ListParams(it, false)))
                     .flatMap(ChainResponse::requireResult)
-            }
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
+            }.retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
                     "error during old block retrieving for {}, iteration {}, reason - {}",
                     upstream.getId(),
                     ctx.iteration(),
                     ctx.exception().message,
                 )
-            }
-            .map { result ->
+            }.map { result ->
                 val receivedResult = result.isNotEmpty() && !Global.nullValue.contentEquals(result)
                 if (!receivedResult) {
                     log.warn(
@@ -255,28 +220,27 @@ class OldBlockValidator(
                     )
                 }
                 ValidateUpstreamSettingsResult.UPSTREAM_VALID
-            }
-            .onErrorResume {
+            }.onErrorResume {
                 log.warn("Error during old blocks validation of upstream {}, reason - {}", upstream.getId(), it.message)
                 Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
             }
-    }
 }
 
 class GasPriceValidator(
     private val upstream: Upstream,
     private val config: ChainConfig,
 ) : SingleValidator<ValidateUpstreamSettingsResult> {
-
     companion object {
         @JvmStatic
         val log: Logger = LoggerFactory.getLogger(GasPriceValidator::class.java)
     }
+
     override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
         if (!upstream.getMethods().isCallable("eth_gasPrice")) {
             return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
         }
-        return upstream.getIngressReader()
+        return upstream
+            .getIngressReader()
             .read(ChainRequest("eth_gasPrice", ListParams()))
             .flatMap(ChainResponse::requireStringResult)
             .map { result ->
@@ -290,8 +254,7 @@ class GasPriceValidator(
                 } else {
                     ValidateUpstreamSettingsResult.UPSTREAM_VALID
                 }
-            }
-            .onErrorResume { err ->
+            }.onErrorResume { err ->
                 log.warn("Error during gasPrice validation", err)
                 Mono.just(onError)
             }
