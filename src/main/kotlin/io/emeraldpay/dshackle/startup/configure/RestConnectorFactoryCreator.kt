@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.startup.configure
 
+import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.config.ChainsConfig
@@ -36,8 +37,8 @@ class RestConnectorFactoryCreator(
     ): ConnectorFactory? {
         val urls = ArrayList<URI>()
         val httpFactory = buildHttpFactory(conn.rpc, urls)
-        val tonV3HttpFactory = buildHttpFactory(conn.specialTonV3, urls)
-        val upstreamHttpFactory = if (httpFactory != null && chain == Chain.TON__MAINNET) {
+        val tonV3HttpFactory = buildHttpFactory(conn.getEndpointByTag("ton_v3")?.rpc, urls)
+        val upstreamHttpFactory = if (httpFactory != null && chain.type == BlockchainType.TON) {
             TonCompoundHttpFactory(httpFactory, tonV3HttpFactory)
         } else {
             httpFactory

@@ -156,7 +156,7 @@ class DefaultTonHttpMethods(
     private fun postMethod(method: String) = "POST#$method"
 
     private fun v3Methods(): Set<String> {
-        return if (upstreamConnection is UpstreamsConfig.RpcConnection && upstreamConnection.specialTonV3 != null) {
+        return if (upstreamConnection is UpstreamsConfig.RpcConnection && upstreamConnection.getEndpointByTag("ton_v3") != null) {
             indexerMethods
         } else {
             emptySet()
