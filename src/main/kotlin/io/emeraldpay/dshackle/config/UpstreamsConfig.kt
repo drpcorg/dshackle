@@ -73,6 +73,7 @@ data class UpstreamsConfig(
         var rpc: HttpEndpoint? = null,
         var ws: WsEndpoint? = null,
         var connectorMode: String? = null,
+        var specialTonV3: HttpEndpoint? = null,
     ) : UpstreamConnection() {
 
         fun resolveMode(): ConnectorMode {

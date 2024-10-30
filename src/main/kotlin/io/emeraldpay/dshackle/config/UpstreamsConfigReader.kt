@@ -16,7 +16,9 @@
  */
 package io.emeraldpay.dshackle.config
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.FileResolver
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
 import io.emeraldpay.dshackle.foundation.YamlConfigReader
@@ -89,7 +91,7 @@ class UpstreamsConfigReader(
             val connNode = getMapping(upNode, "connection")
             if (hasAny(connNode, "generic")) {
                 readUpstream(config, upNode) {
-                    readRpcConnection(getMapping(connNode, "generic")!!)
+                    readRpcConnection(getMapping(connNode, "generic")!!, it)
                 }
             } else if (hasAny(connNode, "ethereum")) {
                 readUpstream(config, upNode) {
@@ -166,8 +168,8 @@ class UpstreamsConfigReader(
         return connection
     }
 
-    private fun readRpcConfig(connConfigNode: MappingNode): UpstreamsConfig.HttpEndpoint? {
-        return getMapping(connConfigNode, "rpc")?.let { node ->
+    private fun readRpcConfig(connConfigNode: MappingNode, key: String = "rpc"): UpstreamsConfig.HttpEndpoint? {
+        return getMapping(connConfigNode, key)?.let { node ->
             getValueAsString(node, "url")?.let { url ->
                 val http = UpstreamsConfig.HttpEndpoint(URI(url))
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
@@ -188,9 +190,14 @@ class UpstreamsConfigReader(
         return connection
     }
 
-    private fun readRpcConnection(connConfigNode: MappingNode): UpstreamsConfig.RpcConnection {
+    private fun readRpcConnection(connConfigNode: MappingNode, chain: String? = null): UpstreamsConfig.RpcConnection {
         val connection = UpstreamsConfig.RpcConnection()
-            .apply { rpc = readRpcConfig(connConfigNode) }
+            .apply {
+                rpc = readRpcConfig(connConfigNode)
+                if (Global.chainById(chain) == Chain.TON__MAINNET) {
+                    specialTonV3 = readRpcConfig(connConfigNode, "rpc-ton-v3")
+                }
+            }
 
         getValueAsString(connConfigNode, "connector-mode")?.let {
             connection.connectorMode = it
@@ -230,14 +237,14 @@ class UpstreamsConfigReader(
     private fun <T : UpstreamsConfig.UpstreamConnection> readUpstream(
         config: UpstreamsConfig,
         upNode: MappingNode,
-        connFactory: () -> T,
+        connFactory: (String?) -> T,
     ) {
         val upstream = UpstreamsConfig.Upstream<T>()
         readUpstreamCommon(upNode, upstream)
         readUpstreamStandard(upNode, upstream)
         if (isValid(upstream)) {
             config.upstreams.add(upstream)
-            upstream.connection = connFactory()
+            upstream.connection = connFactory(upstream.chain)
         } else {
             log.error("Upstream at #0 has invalid configuration")
         }
