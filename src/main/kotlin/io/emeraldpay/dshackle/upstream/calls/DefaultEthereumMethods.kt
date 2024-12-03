@@ -722,6 +722,30 @@ class DefaultEthereumMethods(
 
             Chain.SEI__MAINNET, Chain.SEI__TESTNET, Chain.SEI__DEVNET -> seiMethods
 
+            Chain.CRONOS_ZKEVM__MAINNET, Chain.CRONOS_ZKEVM__TESTNET -> listOf(
+                "zk_estimateFee",
+                "zks_estimateGasL1ToL2",
+                "zks_getBridgehubContract",
+                "zks_getMainContract",
+                "zks_getTestnetPaymaster",
+                "zks_getBridgeContracts",
+                "zks_L1ChainId",
+                "zks_getBaseTokenL1Address",
+                "zks_getConfirmedTokens",
+                "zks_getAllAccountBalances",
+                "zks_getL2ToL1MsgProof",
+                "zks_getL2ToL1LogProof",
+                "zks_L1BatchNumber",
+                "zks_getBlockDetails",
+                "zks_getTransactionDetails",
+                "zks_getRawBlockTransactions",
+                "zks_getL1BatchDetails",
+                "zks_getL1BatchBlockRange",
+                "zks_getL1GasPrice",
+                "zks_getFeeParams",
+                "zks_getProtocolVersion",
+            )
+
             else -> emptyList()
         }
     }
