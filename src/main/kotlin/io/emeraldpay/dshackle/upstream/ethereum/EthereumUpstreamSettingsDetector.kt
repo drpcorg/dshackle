@@ -86,6 +86,7 @@ class EthereumUpstreamSettingsDetector(
             if (gaslimit.toLong() > 590_000_000L) {
                 labels.add(Pair("extra_gas_limit", 600_000_000.toString()))
             } else {
+                // disable extra gas
                 labels.add(Pair("extra_gas_limit", nodeGasLimit))
             }
             Flux.fromIterable(labels)
