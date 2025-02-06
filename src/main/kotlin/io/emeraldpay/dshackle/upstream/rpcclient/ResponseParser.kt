@@ -218,7 +218,7 @@ abstract class ResponseParser<T> {
 
         private val isResultSet = result != null || nullResult
 
-        val isRpcReady: Boolean = id != null &&
+        val isRpcReady: Boolean = // id != null &&
             (error != null || isResultSet)
 
         val isSubReady: Boolean = subId != null &&
