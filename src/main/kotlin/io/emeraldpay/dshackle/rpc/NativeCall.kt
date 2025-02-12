@@ -481,17 +481,23 @@ open class NativeCall(
             ReaderData(ctx.upstream, ctx.upstreamFilter, ctx.callQuorum, signer, tracer),
         )
         val counter = reader.attempts()
+        var streamRequest = ctx.streamRequest
+        if (ctx.upstream.getChain().id in listOf(Chain.RIPPLE__MAINNET.id, Chain.RIPPLE__TESTNET.id)) {
+            streamRequest = false
+        }
 
         return SpannedReader(reader, tracer, RPC_READER)
-            .read(ctx.payload.toChainRequest(ctx.nonce, ctx.forwardedSelector, ctx.streamRequest))
+            .read(ctx.payload.toChainRequest(ctx.nonce, ctx.forwardedSelector, streamRequest))
             .map {
                 val resolvedUpstreamData = it.resolvedUpstreamData.ifEmpty {
                     ctx.upstream.getUpstreamSettingsData()?.run { listOf(this) } ?: emptyList()
                 }
                 if (it.stream == null) {
-                    val bytes = ctx.resultDecorator.processResult(it)
-                    validateResult(bytes, "remote", ctx)
-                    CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, resolvedUpstreamData, ctx)
+                    if (ctx.upstream.getChain().id in listOf(Chain.RIPPLE__MAINNET.id, Chain.RIPPLE__TESTNET.id)) {
+                        callRippleResult(ctx, it, resolvedUpstreamData)
+                    } else {
+                        callResult(ctx, it, resolvedUpstreamData)
+                    }
                 } else {
                     CallResult.ok(ctx.id, ctx.nonce, ByteArray(0), it.signature, resolvedUpstreamData, ctx, it.stream)
                 }
@@ -513,6 +519,46 @@ open class NativeCall(
                     }
                 },
             )
+    }
+
+    private fun callResult(
+        ctx: ValidCallContext<ParsedCallDetails>,
+        it: RequestReader.Result,
+        resolvedUpstreamData: List<Upstream.UpstreamSettingsData>,
+    ): CallResult {
+        val bytes = ctx.resultDecorator.processResult(it)
+        validateResult(bytes, "remote", ctx)
+        return CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, resolvedUpstreamData, ctx)
+    }
+
+    private fun callRippleResult(
+        ctx: ValidCallContext<ParsedCallDetails>,
+        it: RequestReader.Result,
+        resolvedUpstreamData: List<Upstream.UpstreamSettingsData>,
+    ): CallResult {
+        return try {
+            val responseJson = Global.objectMapper.readTree(it.value)
+            if (responseJson.has("status") && responseJson.get("status").asText() != "success") {
+                val errorMessage = responseJson.get("result").get("error_message")?.asText() ?: "Ripple request failed"
+                return CallResult.fail(
+                    ctx.id, ctx.nonce,
+                    CallError(
+                        ctx.id,
+                        errorMessage,
+                        ChainCallError(
+                            RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE,
+                            errorMessage,
+                        ),
+                        null,
+                    ),
+                    ctx,
+                )
+            }
+            callResult(ctx, it, resolvedUpstreamData)
+        } catch (e: Exception) {
+            log.warn("Failed to parse Ripple response: ${e.message}")
+            callResult(ctx, it, resolvedUpstreamData)
+        }
     }
 
     private fun validateResult(bytes: ByteArray, origin: String, ctx: ValidCallContext<ParsedCallDetails>) {
