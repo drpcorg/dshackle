@@ -218,6 +218,7 @@ abstract class ResponseParser<T> {
 
         private val isResultSet = result != null || nullResult
 
+        // Ripple Response doesn't have `id` field
         val isRpcReady: Boolean = // id != null &&
             (error != null || isResultSet)
 

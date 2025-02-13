@@ -111,8 +111,6 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
     }
 
     fun validateSettings(data: ByteArray, chain: Chain): ValidateUpstreamSettingsResult {
-        val res = String(data)
-        log.warn("Validate setting Ripple chain: $res")
         val resp = Global.objectMapper.readValue(data, RippleState::class.java)
         return if (chain.chainId.isNotEmpty() && resp.state.networkId.toString() != chain.chainId.lowercase()) {
             ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
