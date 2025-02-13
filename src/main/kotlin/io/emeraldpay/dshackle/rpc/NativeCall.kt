@@ -540,7 +540,7 @@ open class NativeCall(
     ): CallResult {
         return try {
             val responseJson = Global.objectMapper.readTree(it.value)
-            if (!isSuccessfulRippleResponse(responseJson)) {
+            if (isRippleErrorResponse(responseJson)) {
                 return createRippleErrorResult(ctx, it, responseJson)
             }
             callResult(ctx, it, resolvedUpstreamData)
@@ -550,8 +550,8 @@ open class NativeCall(
         }
     }
 
-    private fun isSuccessfulRippleResponse(responseJson: JsonNode): Boolean =
-        !responseJson.has("status") || responseJson.get("status").asText() == "success"
+    private fun isRippleErrorResponse(responseJson: JsonNode): Boolean =
+        !responseJson.has("status") || responseJson.get("status").asText() == "error"
 
     private fun createRippleErrorResult(
         ctx: ValidCallContext<ParsedCallDetails>,
