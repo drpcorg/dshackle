@@ -482,8 +482,9 @@ open class NativeCall(
             ReaderData(ctx.upstream, ctx.upstreamFilter, ctx.callQuorum, signer, tracer),
         )
         val counter = reader.attempts()
+        val isRipple = ctx.upstream.getChain() in listOf(Chain.RIPPLE__MAINNET, Chain.RIPPLE__TESTNET)
         var streamRequest = ctx.streamRequest
-        if (ctx.upstream.getChain().id in listOf(Chain.RIPPLE__MAINNET.id, Chain.RIPPLE__TESTNET.id)) {
+        if (isRipple) {
             streamRequest = false
         }
 
@@ -494,7 +495,7 @@ open class NativeCall(
                     ctx.upstream.getUpstreamSettingsData()?.run { listOf(this) } ?: emptyList()
                 }
                 if (it.stream == null) {
-                    if (ctx.upstream.getChain().id in listOf(Chain.RIPPLE__MAINNET.id, Chain.RIPPLE__TESTNET.id)) {
+                    if (isRipple) {
                         callRippleResult(ctx, it, resolvedUpstreamData)
                     } else {
                         callResult(ctx, it, resolvedUpstreamData)
