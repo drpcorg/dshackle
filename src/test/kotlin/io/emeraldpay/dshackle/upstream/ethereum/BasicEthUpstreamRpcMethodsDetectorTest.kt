@@ -48,6 +48,15 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             null,
                         ),
                     )
+                on {
+                    read(ChainRequest("eth_simulateV1", ListParams(listOf(listOf<Any>()))))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            "[]".toByteArray(),
+                            null,
+                        ),
+                    )
             }
 
         val upstream =
