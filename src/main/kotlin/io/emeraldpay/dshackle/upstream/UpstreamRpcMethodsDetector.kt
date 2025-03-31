@@ -22,6 +22,11 @@ abstract class UpstreamRpcMethodsDetector(
             "The method ([A-Za-z0-9_]+) is not available",
         ).map { s -> s.toRegex() }
 
+    private val availableRegexps =
+        listOf(
+            "missing value for required argument ([0-9]+)",
+        ).map { s -> s.toRegex() }
+
     open fun detectRpcMethods(): Mono<Map<String, Boolean>> = detectByMagicMethod().switchIfEmpty(detectByMethod())
 
     protected fun detectByMethod(): Mono<Map<String, Boolean>> =
@@ -38,9 +43,14 @@ abstract class UpstreamRpcMethodsDetector(
                                 method to true
                             }
                             .onErrorResume { err ->
-                                val notAvailableError =
+                                val methodAvailableError =
+                                    availableRegexps.any { s -> s.containsMatchIn(err.message ?: "") }
+                                val methodNotAvailableError =
                                     notAvailableRegexps.any { s -> s.containsMatchIn(err.message ?: "") }
-                                if (notAvailableError) {
+
+                                if (methodAvailableError) {
+                                    Mono.just(method to true)
+                                } else if (methodNotAvailableError) {
                                     log.error("$method failed with ${err.message}, detect as false")
                                     Mono.just(method to false)
                                 } else {
