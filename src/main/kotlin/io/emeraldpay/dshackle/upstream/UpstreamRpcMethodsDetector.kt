@@ -18,7 +18,7 @@ abstract class UpstreamRpcMethodsDetector(
         listOf(
             "method ([A-Za-z0-9_]+) does not exist/is not available",
             "([A-Za-z0-9_]+) found but the containing module is disabled",
-            "Method not found",
+            "[Mm]ethod not found",
             "The method ([A-Za-z0-9_]+) is not available",
         ).map { s -> s.toRegex() }
 
