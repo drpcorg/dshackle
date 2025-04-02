@@ -50,6 +50,7 @@ abstract class UpstreamRpcMethodsDetector(
                                     notAvailableRegexps.any { s -> s.containsMatchIn(err.message ?: "") }
 
                                 if (methodAvailableError) {
+                                    log.error("$method failed with ${err.message}, detect as true")
                                     Mono.just(method to true)
                                 } else if (methodNotAvailableError) {
                                     log.error("$method failed with ${err.message}, detect as false")
