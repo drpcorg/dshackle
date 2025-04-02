@@ -10,6 +10,7 @@ import io.emeraldpay.dshackle.BlockchainType.RIPPLE
 import io.emeraldpay.dshackle.BlockchainType.SOLANA
 import io.emeraldpay.dshackle.BlockchainType.STARKNET
 import io.emeraldpay.dshackle.BlockchainType.TON
+import io.emeraldpay.dshackle.BlockchainType.KADENA
 import io.emeraldpay.dshackle.BlockchainType.UNKNOWN
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.config.UpstreamsConfig
@@ -54,6 +55,7 @@ class CallTargetsHolder {
             COSMOS -> DefaultCosmosMethods()
             TON -> DefaultTonHttpMethods(connection)
             RIPPLE -> DefaultRippleMethods()
+            KADENA  -> DefaultKadenaMethods()
             UNKNOWN -> throw IllegalArgumentException("unknown chain")
         }
         callTargets[chain] = created
