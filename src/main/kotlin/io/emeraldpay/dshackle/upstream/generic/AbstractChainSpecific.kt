@@ -129,7 +129,9 @@ abstract class AbstractChainSpecific : ChainSpecific {
 abstract class AbstractPollChainSpecific : AbstractChainSpecific() {
 
     override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
-        return api.read(latestBlockRequest()).flatMap {
+        var req = latestBlockRequest()
+        var g = api.read(req)
+        return g.flatMap {
             parseBlock(it.getResult(), upstreamId, api)
         }
     }

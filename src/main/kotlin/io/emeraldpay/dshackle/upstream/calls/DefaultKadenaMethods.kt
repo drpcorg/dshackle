@@ -1,42 +1,45 @@
 package io.emeraldpay.dshackle.upstream.calls
 
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
-import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
 class DefaultKadenaMethods : CallMethods {
 
-    private val all = setOf(
-        "query",
-        "EXPERIMENTAL_changes",
-        "block",
-        "chunk",
-        "EXPERIMENTAL_changes_in_block",
-        "gas_price",
-        "status",
-        "network_info",
-        "validators",
-        "tx",
-        "EXPERIMENTAL_tx_status",
-        "EXPERIMENTAL_receipt",
+    private val kadenaMethods = setOf(
+        getMethod("/cut"),
+        getMethod("/cut/peer"),
+        putMethod("/cut"),
+
+        getMethod("/chain/*/hash"),
+        postMethod("/chain/*/hash"),
+
+        getMethod("/chain/*/header"),
+        getMethod("/chain/*/header/*"),
+        postMethod("/chain/*/header/branch"),
+
+        getMethod("/chain/*/payload/*"),
+        postMethod("/chain/*/payload/batch"),
+        getMethod("/chain/*/payload/*/outputs"),
+
+        postMethod("/chain/*/payload/*/outputs/batch"),
+
+        getMethod("/chain/*/payload/*"),
     )
 
-    private val add = setOf(
-        "send_tx",
-    )
 
-    private val allowedMethods: Set<String> = all + add
+    private val allowedMethods: Set<String> = kadenaMethods
 
     override fun createQuorumFor(method: String): CallQuorum {
-        if (add.contains(method)) {
-            return BroadcastQuorum()
-        }
         return AlwaysQuorum()
     }
 
     override fun isCallable(method: String): Boolean {
         return allowedMethods.contains(method)
+    }
+
+    override fun getSupportedMethods(): Set<String> {
+        return allowedMethods.toSortedSet()
     }
 
     override fun isHardcoded(method: String): Boolean {
@@ -47,13 +50,16 @@ class DefaultKadenaMethods : CallMethods {
         throw RpcException(-32601, "Method not found")
     }
 
-    override fun getGroupMethods(groupName: String): Set<String> =
-        when (groupName) {
+    override fun getGroupMethods(groupName: String): Set<String> {
+        return when (groupName) {
             "default" -> getSupportedMethods()
             else -> emptyList()
         }.toSet()
-
-    override fun getSupportedMethods(): Set<String> {
-        return allowedMethods.toSortedSet()
     }
+
+    private fun getMethod(method: String) = "GET#$method"
+
+    private fun postMethod(method: String) = "POST#$method"
+
+    private fun putMethod(method: String) = "PUT#$method"
 }

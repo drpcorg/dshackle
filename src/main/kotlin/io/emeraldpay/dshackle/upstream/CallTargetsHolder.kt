@@ -20,6 +20,7 @@ import io.emeraldpay.dshackle.upstream.calls.DefaultBeaconChainMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultBitcoinMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultCosmosMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
+import io.emeraldpay.dshackle.upstream.calls.DefaultKadenaMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultNearMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultPolkadotMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultRippleMethods
