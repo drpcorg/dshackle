@@ -77,7 +77,7 @@ object KadenaChainSpecific : AbstractPollChainSpecific() {
                 } else {
                     UpstreamAvailability.UNAVAILABLE
                 }
-              },
+            },
         )
 
         return validators
@@ -95,7 +95,6 @@ object KadenaChainSpecific : AbstractPollChainSpecific() {
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
         return KadenaLowerBoundService(chain, upstream)
     }
-
 
     override fun upstreamSettingsDetector(chain: Chain, upstream: Upstream): UpstreamSettingsDetector {
         return KadenaUpstreamSettingsDetector(upstream)

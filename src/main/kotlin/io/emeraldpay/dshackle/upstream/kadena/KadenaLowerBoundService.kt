@@ -6,10 +6,10 @@ import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundDetector
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
 
 class KadenaLowerBoundService(
-    chain: Chain,
-    private val upstream: Upstream,
+    private val chain: Chain,
+    upstream: Upstream,
 ) : LowerBoundService(chain, upstream) {
     override fun detectors(): List<LowerBoundDetector> {
-        return listOf(KadenaLowerBoundStateDetector(upstream))
+        return listOf(KadenaLowerBoundStateDetector(chain))
     }
 }

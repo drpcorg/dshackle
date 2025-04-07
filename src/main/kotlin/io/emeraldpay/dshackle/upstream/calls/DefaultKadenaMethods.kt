@@ -7,26 +7,23 @@ import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 class DefaultKadenaMethods : CallMethods {
 
     private val kadenaMethods = setOf(
-        getMethod("/cut"),
-        getMethod("/cut/peer"),
-        putMethod("/cut"),
-
         getMethod("/chain/*/hash"),
         postMethod("/chain/*/hash"),
-
         getMethod("/chain/*/header"),
         getMethod("/chain/*/header/*"),
         postMethod("/chain/*/header/branch"),
-
         getMethod("/chain/*/payload/*"),
         postMethod("/chain/*/payload/batch"),
         getMethod("/chain/*/payload/*/outputs"),
-
         postMethod("/chain/*/payload/*/outputs/batch"),
-
         getMethod("/chain/*/payload/*"),
+        postMethod("/chain/*/pact/local"),
+        postMethod("/chain/*/pact/send"),
+        postMethod("/chain/*/pact/poll"),
+        postMethod("/chain/*/pact/listen"),
+        postMethod("/chain/*/pact/private"),
+        postMethod("/chain/*/pact/spv"),
     )
-
 
     private val allowedMethods: Set<String> = kadenaMethods
 

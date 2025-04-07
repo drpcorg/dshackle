@@ -11,7 +11,7 @@ import org.mockito.kotlin.mock
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 
-class KadenaUpstreamSettingsDetectorTest {
+class NearUpstreamSettingsDetectorTest {
 
     @Test
     fun `detect client version`() {
