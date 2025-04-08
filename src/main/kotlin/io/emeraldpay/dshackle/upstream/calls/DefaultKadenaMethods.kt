@@ -23,6 +23,10 @@ class DefaultKadenaMethods : CallMethods {
         postMethod("/chain/*/pact/listen"),
         postMethod("/chain/*/pact/private"),
         postMethod("/chain/*/pact/spv"),
+        postMethod("/chain/*/mempool/getPending"),
+        postMethod("/chain/*/mempool/member"),
+        postMethod("/chain/*/mempool/lookup"),
+        putMethod("/chain/*/mempool/insert"),
     )
 
     private val allowedMethods: Set<String> = kadenaMethods
