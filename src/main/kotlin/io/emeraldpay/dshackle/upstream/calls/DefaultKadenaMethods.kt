@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.calls
 
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
+import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
@@ -26,12 +27,18 @@ class DefaultKadenaMethods : CallMethods {
         postMethod("/chain/*/mempool/getPending"),
         postMethod("/chain/*/mempool/member"),
         postMethod("/chain/*/mempool/lookup"),
+    )
+
+    private val insert = setOf(
         putMethod("/chain/*/mempool/insert"),
     )
 
-    private val allowedMethods: Set<String> = kadenaMethods
+    private val allowedMethods: Set<String> = kadenaMethods + insert
 
     override fun createQuorumFor(method: String): CallQuorum {
+        if (insert.contains(method)) {
+            return BroadcastQuorum()
+        }
         return AlwaysQuorum()
     }
 
