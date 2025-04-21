@@ -53,15 +53,6 @@ class EthereumLowerBoundProofDetector(
                             throw IllegalStateException(NO_PROOF_DATA)
                         }
                     }
-                    .onErrorResume { error ->
-                        val msg = error.message ?: ""
-                        // error be like "requested block is too old, block must be within 100000 blocks of the head block number (currently 22315752)"
-                        if (msg.startsWith(TOO_OLD_BLOCK, true)) {
-                            Mono.just(ChainResponse(ByteArray(0), null))
-                        } else {
-                            Mono.error(error)
-                        }
-                    }
             }
         }.flatMap {
             Flux.just(it, lowerBoundFrom(it, LowerBoundType.PROOF))
