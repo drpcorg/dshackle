@@ -18,16 +18,12 @@ class EthereumLowerBoundProofDetector(
 ) : LowerBoundDetector(upstream.getChain()) {
     companion object {
         private const val NO_PROOF_DATA = "distance to target block exceeds maximum proof window"
-        private const val TOO_OLD_BLOCK = "requested block is too old"
 
-        // todo: use it for set lower bound to latest block
-        val SHORTCUT_ERRORS = setOf(
-            "proofs are available only for the 'latest' block",
-        )
         val NO_PROOF_ERRORS = setOf(
             NO_PROOF_DATA,
-            TOO_OLD_BLOCK,
+            "requested block is too old",
             "block not found",
+            "proofs are available only for the 'latest' block",
         )
     }
 
