@@ -24,6 +24,7 @@ class EthereumLowerBoundProofDetector(
             "requested block is too old",
             "block not found",
             "proofs are available only for the 'latest' block",
+            "missing trie node",
         )
     }
 
