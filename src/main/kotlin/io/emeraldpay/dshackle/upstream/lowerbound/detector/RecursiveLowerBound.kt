@@ -32,7 +32,17 @@ class RecursiveLowerBound(
 
                     if (data.left > data.right) {
                         val current = if (data.current == 0L) 1 else data.current
-                        Mono.just(LowerBoundBinarySearchData(current, true))
+                        hasData(current)
+                            .retryWhen(retrySpec(middle, nonRetryableErrors))
+                            .flatMap(ChainResponse::requireResult)
+                            .map { LowerBoundBinarySearchData(current, true) }
+                            .onErrorResume {
+                                if (current == 1L && data.right > 10) {
+                                    Mono.empty() // Couldn't detect bound: data.right is chain height here and current wasn't set because we got errors all the time
+                                } else {
+                                    Mono.just(LowerBoundBinarySearchData(current, true)) // if we approached left bound(1) or node have just pruned data.current due to long bound calculation, return data.current as is
+                                }
+                            }
                     } else {
                         hasData(middle)
                             .retryWhen(retrySpec(middle, nonRetryableErrors))
@@ -75,7 +85,17 @@ class RecursiveLowerBound(
 
                             if (data.left > data.right) {
                                 val current = if (data.current == 0L) 1 else data.current
-                                Mono.just(LowerBoundBinarySearchData(current, true))
+                                hasData(current)
+                                    .retryWhen(retrySpec(middle, nonRetryableErrors))
+                                    .flatMap(ChainResponse::requireResult)
+                                    .map { LowerBoundBinarySearchData(current, true) }
+                                    .onErrorResume {
+                                        if (current == 1L && data.right > 10) {
+                                            Mono.empty() // Couldn't detect bound: data.right is chain height here and current wasn't set because we got errors all the time
+                                        } else {
+                                            Mono.just(LowerBoundBinarySearchData(current, true)) // if we approached left bound(1) or node have just pruned data.current due to long bound calculation, return data.current as is
+                                        }
+                                    }
                             } else {
                                 hasData(middle)
                                     .retryWhen(retrySpec(middle, nonRetryableErrors))
