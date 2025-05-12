@@ -3,7 +3,6 @@ package io.emeraldpay.dshackle.upstream.starknet
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
-import io.emeraldpay.dshackle.upstream.UNKNOWN_CLIENT_VERSION
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
@@ -25,12 +24,12 @@ class StarknetUpstreamSettingsDetector(
             .read(pathfinderVersionRequest())
             .flatMap(ChainResponse::requireResult)
             .flatMapMany { data ->
-                val version = parsePathfinderClientVersion(data)
+                val version = parseClientVersion(data)
                 if (version.isEmpty()) {
                     throw Exception()
                 }
                 val labels =
-                    mutableListOf<Pair<String, String>>("client_type" to "pathfinder", "client_version" to version)
+                    mutableListOf("client_type" to "pathfinder", "client_version" to version)
                 Flux.fromIterable(labels)
             }.onErrorResume {
                 upstream
@@ -43,8 +42,8 @@ class StarknetUpstreamSettingsDetector(
                             throw Exception()
                         }
                         val labels =
-                            mutableListOf<Pair<String, String>>(
-                                "client_type" to UNKNOWN_CLIENT_VERSION,
+                            mutableListOf(
+                                "client_type" to "juno",
                                 "client_version" to version,
                             )
                         Flux.fromIterable(labels)
@@ -59,22 +58,17 @@ class StarknetUpstreamSettingsDetector(
             }
     }
 
-    override fun clientVersionRequest(): ChainRequest = ChainRequest("starknet_specVersion", ListParams())
+    override fun clientVersionRequest(): ChainRequest = ChainRequest("juno_version", ListParams())
 
     private fun pathfinderVersionRequest() = ChainRequest("pathfinder_version", ListParams())
 
     override fun parseClientVersion(data: ByteArray): String {
-        val version = String(data)
+        var version = String(data)
         if (version.startsWith("\"") && version.endsWith("\"")) {
-            return version.substring(1, version.length - 1)
+            version = version.substring(1, version.length - 1)
         }
-        return version
-    }
-
-    private fun parsePathfinderClientVersion(data: ByteArray): String {
-        val version = parseClientVersion(data)
         if (version.startsWith("v")) {
-            return version.substring(1, version.length)
+            version = version.substring(1, version.length)
         }
         return version
     }
