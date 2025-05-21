@@ -323,24 +323,24 @@ open class GenericUpstream(
                     ?.subscribe(this::setStatus),
             )
         }
-        livenessSubscription.set(
-            connector.headLivenessEvents().subscribe(
-                {
-                    val hasSub = it == HeadLivenessState.OK
-                    if (!getOptions().disableLivenessSubscriptionValidation) {
+        if (!getOptions().disableLivenessSubscriptionValidation) {
+            livenessSubscription.set(
+                connector.headLivenessEvents().subscribe(
+                    {
+                        val hasSub = it == HeadLivenessState.OK
                         hasLiveSubscriptionHead.set(hasSub)
-                    }
-                    if (it == HeadLivenessState.FATAL_ERROR) {
-                        headLivenessState.emitNext(UPSTREAM_FATAL_SETTINGS_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
-                    } else {
-                        sendUpstreamStateEvent(UPDATED)
-                    }
-                },
-                {
-                    log.debug("Error while checking live subscription for ${getId()}", it)
-                },
-            ),
-        )
+                        if (it == HeadLivenessState.FATAL_ERROR) {
+                            headLivenessState.emitNext(UPSTREAM_FATAL_SETTINGS_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                        } else {
+                            sendUpstreamStateEvent(UPDATED)
+                        }
+                    },
+                    {
+                        log.debug("Error while checking live subscription for ${getId()}", it)
+                    },
+                ),
+            )
+        }
         detectSettings()
 
         detectLowerBlock()
