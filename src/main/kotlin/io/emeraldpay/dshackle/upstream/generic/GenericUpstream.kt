@@ -104,7 +104,7 @@ open class GenericUpstream(
     private val lowerBlockDetectorSubscription = AtomicReference<Disposable?>()
     private val settingsDetectorSubscription = AtomicReference<Disposable?>()
 
-    private val hasLiveSubscriptionHead: AtomicBoolean = AtomicBoolean(true)
+    private val hasLiveSubscriptionHead: AtomicBoolean = AtomicBoolean(getOptions().disableLivenessSubscriptionValidation)
     protected val connector: GenericConnector = connectorFactory.create(this, chain)
     private val livenessSubscription = AtomicReference<Disposable?>()
     private val settingsDetector = upstreamSettingsDetectorBuilder(chain, this)
