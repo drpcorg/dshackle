@@ -116,6 +116,7 @@ class WebsocketHandler(
         return requests.flatMap { call ->
             val method = call.method
 
+            // todo: !!!
             if (method == "eth_subscribe") {
                 val methodParams = splitMethodParams(call.params)
                 if (methodParams != null) {
@@ -135,18 +136,50 @@ class WebsocketHandler(
                         it.id = call.id
                         it.result = subscriptionId
                     }
-                    // produce actual responses
-                    val responses = nativeSubscribe
-                        .subscribe(blockchain, methodParams.first, methodParams.second, io.emeraldpay.dshackle.upstream.Selector.empty)
-                        .map { event ->
-                            val data = if (event is ByteArray) {
-                                Global.objectMapper.readTree(event)
-                            } else {
-                                event
+
+                    // Custom handler for newPendingTransactionsWithBody
+                    val responses = if (methodParams.first == "newPendingTransactionsWithBody") {
+                        // Subscribe to newPendingTransactions
+                        nativeSubscribe
+                            .subscribe(blockchain, "newPendingTransactions", null, io.emeraldpay.dshackle.upstream.Selector.empty)
+                            .map { event ->
+                                val txHash = if (event is ByteArray) {
+                                    Global.objectMapper.readTree(event).asText()
+                                } else {
+                                    event.toString()
+                                }
+                                // For each transaction hash, fetch the full transaction
+                                val txRequest = RequestJson<Any>("eth_getTransactionByHash", listOf(txHash), null)
+                                val proxyCall = readRpcJson.convertToNativeCall(ProxyCall.RpcType.SINGLE, listOf(txRequest))
+                                Mono.from(execute(blockchain, proxyCall, eventHandlerFactory.call()))
+                                    .map { response ->
+                                        val txData = response.toString()
+                                        log.warn("---- eth_getTransactionByHash: ${txData} ")
+
+//                                            if (response. is ByteArray) {
+//                                            Global.objectMapper.readTree(response.result)
+//                                        } else {
+//                                            response.result
+//                                        }
+                                        WsSubscriptionResponse(params = WsSubscriptionData(txData, subscriptionId))
+                                    }// .doFinally { eventHandler.close() }
                             }
-                            WsSubscriptionResponse(params = WsSubscriptionData(data, subscriptionId))
-                        }
-                        .takeUntilOther(currentControl.asMono())
+                            .takeUntilOther(currentControl.asMono())
+                    } else {
+                        // Standard subscription handling
+                        nativeSubscribe
+                            .subscribe(blockchain, methodParams.first, methodParams.second, io.emeraldpay.dshackle.upstream.Selector.empty)
+                            .map { event ->
+                                val data = if (event is ByteArray) {
+                                    Global.objectMapper.readTree(event)
+                                } else {
+                                    event
+                                }
+                                WsSubscriptionResponse(params = WsSubscriptionData(data, subscriptionId))
+                            }
+                            .takeUntilOther(currentControl.asMono())
+                    }
+
                     Flux.concat(Mono.just(start), responses)
                         .map { Global.objectMapper.writeValueAsString(it) }
                         .doOnNext {
