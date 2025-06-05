@@ -111,8 +111,13 @@ open class EthereumEgressSubscription(
                     .flatMap { currentUpstream ->
                         currentUpstream.getIngressReader().read(request)
                             .timeout(Defaults.internalCallsTimeout)
-                            .map { response ->
-                                Global.objectMapper.readValue(response.getResult(), Transaction::class.java)
+                            .flatMap { response ->
+                                val result = response.getResult()
+                                if (result.isEmpty()) {
+                                    Mono.empty()
+                                } else {
+                                    Mono.just(Global.objectMapper.readValue(result, Transaction::class.java))
+                                }
                             }
                             .doOnError { err ->
                                 log.debug("Failed to get response from upstream ${currentUpstream.getId()} tx: $txHash: ${err.message}")
