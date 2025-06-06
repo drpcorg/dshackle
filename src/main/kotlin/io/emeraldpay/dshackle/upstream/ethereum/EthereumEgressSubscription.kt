@@ -56,7 +56,7 @@ open class EthereumEgressSubscription(
         const val METHOD_NEW_HEADS = "newHeads"
         const val METHOD_LOGS = "logs"
         const val METHOD_PENDING_TXES = "newPendingTransactions"
-        const val METHOD_PENDING_TXES_WITH_BODY = "newPendingTransactionsWithBody"
+        const val METHOD_DRPC_PENDING_TXES = "drpc_pendingTransactions"
     }
 
     private val newHeads = ConnectNewHeads(upstream, scheduler)
@@ -73,7 +73,7 @@ open class EthereumEgressSubscription(
             listOf()
         }
         return if (pendingTxesSource != null) {
-            subs.plus(listOf(METHOD_PENDING_TXES, METHOD_PENDING_TXES_WITH_BODY))
+            subs.plus(listOf(METHOD_PENDING_TXES, METHOD_DRPC_PENDING_TXES))
         } else {
             subs
         }
@@ -98,7 +98,7 @@ open class EthereumEgressSubscription(
         }
         if (topic == METHOD_PENDING_TXES) {
             return pendingTxesSource?.connect(matcher) ?: Flux.empty()
-        } else if (topic == METHOD_PENDING_TXES_WITH_BODY) {
+        } else if (topic == METHOD_DRPC_PENDING_TXES) {
             return pendingTxesSource?.connect(matcher)?.flatMap { txHash ->
                 // Create request to get full transaction
                 val request = ChainRequest(
