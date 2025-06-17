@@ -26,6 +26,8 @@ class EthereumLowerBoundProofDetector(
             "proofs are available only for the 'latest' block",
             "missing trie node",
             "cannot find EVM IAVL store",
+            "old data not available due to pruning",
+            "no historical RPC is available",
         )
     }
 

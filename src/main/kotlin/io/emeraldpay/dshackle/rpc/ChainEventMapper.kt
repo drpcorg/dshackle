@@ -150,6 +150,7 @@ class ChainEventMapper {
             LowerBoundType.PROOF -> BlockchainOuterClass.LowerBoundType.LOWER_BOUND_PROOF
             LowerBoundType.BLOB -> BlockchainOuterClass.LowerBoundType.LOWER_BOUND_BLOB
             LowerBoundType.EPOCH -> BlockchainOuterClass.LowerBoundType.LOWER_BOUND_EPOCH
+            LowerBoundType.RECEIPTS -> BlockchainOuterClass.LowerBoundType.LOWER_BOUND_RECEIPTS
         }
     }
 }
