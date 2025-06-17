@@ -18,17 +18,17 @@ class EthereumLowerBoundReceiptsDetector(
 
     companion object {
         const val MAX_OFFSET = 20
-        private const val NO_TX_DATA = "No tx data"
+        private const val NO_RECEIPTS_DATA = "No receipts data"
 
-        private val NO_TX_ERRORS = setOf(
-            NO_TX_DATA,
+        private val NO_RECEIPTS_ERRORS = setOf(
+            NO_RECEIPTS_DATA,
             "block not found with number",
             "requested epoch was a null round",
             "missing trie node",
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
-    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.RECEIPTS, NO_TX_ERRORS, lowerBounds)
+    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.RECEIPTS, NO_RECEIPTS_ERRORS, lowerBounds)
 
     override fun period(): Long {
         return 3
@@ -43,13 +43,13 @@ class EthereumLowerBoundReceiptsDetector(
                 .timeout(Defaults.internalCallsTimeout)
                 .doOnNext {
                     if (it.hasResult() && it.getResult().contentEquals("null".toByteArray())) {
-                        throw IllegalStateException(NO_TX_DATA)
+                        throw IllegalStateException(NO_RECEIPTS_DATA)
                     }
                 }
                 .handle { it, sink ->
                     val blockJson = BlockContainer.fromEthereumJson(it.getResult(), upstream.getId())
                     if (blockJson.transactions.isEmpty()) {
-                        sink.error(IllegalStateException(NO_TX_DATA))
+                        sink.error(IllegalStateException(NO_RECEIPTS_DATA))
                         return@handle
                     }
                     sink.next(blockJson.transactions[0].toHexWithPrefix())
@@ -62,7 +62,7 @@ class EthereumLowerBoundReceiptsDetector(
                         .timeout(Defaults.internalCallsTimeout)
                         .doOnNext {
                             if (it.hasResult() && it.getResult().contentEquals("null".toByteArray())) {
-                                throw IllegalStateException(NO_TX_DATA)
+                                throw IllegalStateException(NO_RECEIPTS_DATA)
                             }
                         }
                 }
