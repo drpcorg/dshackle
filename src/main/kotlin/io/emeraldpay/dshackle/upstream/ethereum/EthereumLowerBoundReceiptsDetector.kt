@@ -25,6 +25,7 @@ class EthereumLowerBoundReceiptsDetector(
             "block not found with number",
             "requested epoch was a null round",
             "missing trie node",
+            "old data not available due to pruning",
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
