@@ -343,7 +343,9 @@ open class GenericUpstream(
         }
         detectSettings()
 
-        detectLowerBlock()
+        if (!getOptions().disableBoundValidation) {
+            detectLowerBlock()
+        }
 
         detectFinalization()
     }

@@ -55,6 +55,9 @@ class ChainOptionsReader : YamlConfigReader<ChainOptions.PartialOptions>() {
         getValueAsBool(values, "disable-liveness-subscription-validation")?.let {
             options.disableLivenessSubscriptionValidation = it
         }
+        getValueAsBool(values, "disable-bound-validation")?.let {
+            options.disableBoundValidation = it
+        }
         return options
     }
 }
