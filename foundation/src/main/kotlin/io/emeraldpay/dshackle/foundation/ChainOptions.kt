@@ -17,6 +17,7 @@ class ChainOptions {
         val validateChain: Boolean,
         val callLimitSize: Int,
         val disableLivenessSubscriptionValidation: Boolean,
+        val disableBoundValidation: Boolean = false,
     )
 
     data class DefaultOptions(
@@ -38,6 +39,7 @@ class ChainOptions {
         var validateChain: Boolean? = null,
         var callLimitSize: Int? = null,
         var disableLivenessSubscriptionValidation: Boolean? = null,
+        var disableBoundValidation: Boolean? = null,
     ) {
         companion object {
             @JvmStatic
@@ -67,6 +69,7 @@ class ChainOptions {
                 overwrites.disableUpstreamValidation ?: this.disableUpstreamValidation
             copy.callLimitSize = overwrites.callLimitSize ?: this.callLimitSize
             copy.disableLivenessSubscriptionValidation = overwrites.disableLivenessSubscriptionValidation ?: this.disableLivenessSubscriptionValidation
+            copy.disableBoundValidation = overwrites.disableBoundValidation ?: this.disableBoundValidation
             return copy
         }
 
@@ -85,6 +88,7 @@ class ChainOptions {
                 this.validateChain ?: true,
                 this.callLimitSize ?: 1_000_000,
                 this.disableLivenessSubscriptionValidation ?: false,
+                this.disableBoundValidation ?: false,
             )
     }
 }
