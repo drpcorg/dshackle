@@ -26,6 +26,7 @@ class EthereumLowerBoundReceiptsDetector(
             "requested epoch was a null round",
             "missing trie node",
             "old data not available due to pruning",
+            "Unexpected error", // hyperliquid
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 

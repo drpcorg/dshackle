@@ -27,6 +27,7 @@ class EthereumLowerBoundBlockDetector(
             "Block with such an ID is pruned", // zksync
             "height is not available", // sei
             "method handler crashed", // sei
+            "Unexpected error", // hyperliquid
         )
     }
 
