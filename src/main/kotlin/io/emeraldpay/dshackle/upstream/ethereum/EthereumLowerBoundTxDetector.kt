@@ -22,6 +22,7 @@ class EthereumLowerBoundTxDetector(
 
         private val NO_TX_ERRORS = setOf(
             NO_TX_DATA,
+            "Unexpected error", // hyperliquid
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
