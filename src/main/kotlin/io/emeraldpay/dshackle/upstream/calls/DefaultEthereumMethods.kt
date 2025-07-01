@@ -79,6 +79,7 @@ class DefaultEthereumMethods(
             "debug_traceCall",
             "debug_traceCallMany",
             "debug_traceTransaction",
+            "debug_getRawHeader",
         )
     }
 
