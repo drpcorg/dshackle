@@ -47,9 +47,9 @@ class GenericSubscriptionConnect(
         return conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
             .data
             .timeout(
-                Duration.ofSeconds(60),
+                Duration.ofSeconds(85),
                 Mono.empty<ByteArray?>().doOnEach {
-                    log.warn("Timeout during subscription to $topic")
+                    log.warn("Timeout during subscription to $topic after 85 seconds")
                 },
             )
             .onErrorResume {

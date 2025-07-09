@@ -37,7 +37,7 @@ class WebsocketPendingTxes(
     override fun createConnection(): Flux<TransactionId> {
         return wsSubscriptions.subscribe(ChainRequest("eth_subscribe", ListParams(EthereumEgressSubscription.METHOD_PENDING_TXES)))
             .data
-            .timeout(Duration.ofSeconds(60), Mono.empty())
+            .timeout(Duration.ofSeconds(85), Mono.empty())
             .map {
                 // comes as a JS string, i.e., within quotes
                 val value = ByteArray(it.size - 2)
