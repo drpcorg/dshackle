@@ -21,18 +21,12 @@ import io.emeraldpay.dshackle.data.TxId
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
-import io.emeraldpay.dshackle.upstream.Head
-import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
-import io.emeraldpay.dshackle.upstream.ethereum.hex.HexQuantity
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
-import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
-import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.switchIfEmpty
-import java.math.BigInteger
 
 /**
  * Reader for JSON RPC requests. Verifies if the method is allowed, transforms if necessary, and calls EthereumReader for data.
@@ -44,7 +38,6 @@ import java.math.BigInteger
 class EthereumLocalReader(
     private val reader: EthereumCachingReader,
     private val methods: CallMethods,
-    private val head: Head,
 ) : ChainReader {
 
     override fun read(key: ChainRequest): Mono<ChainResponse> {
@@ -111,10 +104,6 @@ class EthereumLocalReader(
                     }
                 }
 
-                method == "eth_getBlockByNumber" -> {
-                    getBlockByNumber(params.list, key.upstreamFilter)
-                }
-
                 method == "eth_getTransactionReceipt" -> {
                     if (params.list.size != 1) {
                         throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "Must provide 1 parameter")
@@ -134,57 +123,5 @@ class EthereumLocalReader(
             }
         }
         return null
-    }
-
-    fun getBlockByNumber(params: List<Any?>, upstreamFilter: Selector.UpstreamFilter): Mono<ChainResponse>? {
-        if (params.size != 2 || params[0] == null || params[1] == null) {
-            throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "Must provide 2 parameters")
-        }
-        val number: Long
-        val withTx = params[1].toString().toBoolean()
-        if (withTx) {
-            // with Tx request much more efficient in remote call
-            return null
-        }
-        try {
-            val blockRef = params[0].toString()
-            when {
-                blockRef.startsWith("0x") -> {
-                    val quantity = HexQuantity.from(blockRef) ?: throw IllegalArgumentException()
-                    number = quantity.value.let {
-                        if (it < BigInteger.valueOf(Long.MAX_VALUE) && it >= BigInteger.ZERO) {
-                            it.toLong()
-                        } else {
-                            throw IllegalArgumentException()
-                        }
-                    }
-                }
-                blockRef == "latest" -> {
-                    number = head.getCurrentHeight() ?: return null
-                }
-                blockRef == "earliest" -> {
-                    number = 0
-                }
-                blockRef == "pending" -> {
-                    return null
-                }
-                blockRef == "finalized" || blockRef == "safe" -> {
-                    val type = FinalizationType.fromBlockRef(blockRef)
-                    return reader
-                        .blockByFinalization().read(type)
-                        .map {
-                            ChainResponse(it.data.json, it.resolvedUpstreamData, FinalizationData(it.data.height, type))
-                        }
-                }
-                else -> {
-                    throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "Block number is invalid")
-                }
-            }
-        } catch (e: IllegalArgumentException) {
-            throw RpcException(RpcResponseError.CODE_INVALID_METHOD_PARAMS, "[0] must be a block number")
-        }
-
-        return reader.blocksByHeightAsCont(upstreamFilter)
-            .read(number).map { ChainResponse(it.data.json, null, it.resolvedUpstreamData) }
     }
 }

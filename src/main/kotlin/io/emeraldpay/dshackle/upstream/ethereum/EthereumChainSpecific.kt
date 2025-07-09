@@ -65,7 +65,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         methods: CallMethods,
         head: Head,
     ): Mono<ChainReader> {
-        return Mono.just(EthereumLocalReader(cachingReader as EthereumCachingReader, methods, head))
+        return Mono.just(EthereumLocalReader(cachingReader as EthereumCachingReader, methods))
     }
 
     override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {
