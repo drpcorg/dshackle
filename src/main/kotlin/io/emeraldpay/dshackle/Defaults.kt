@@ -23,7 +23,7 @@ class Defaults {
     companion object {
         const val maxMessageSize: Int = 32 * 1024 * 1024
         const val maxMetadataSize = 16384
-        val timeout: Duration = Duration.ofSeconds(60)
+        val timeout: Duration = Duration.ofSeconds(85)
         val timeoutInternal: Duration = timeout.dividedBy(4)
         val internalCallsTimeout = Duration.ofSeconds(5)
         val retryConnection: Duration = Duration.ofSeconds(10)
