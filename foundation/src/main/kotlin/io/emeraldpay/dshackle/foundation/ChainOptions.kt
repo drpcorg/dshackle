@@ -18,6 +18,7 @@ class ChainOptions {
         val callLimitSize: Int,
         val disableLivenessSubscriptionValidation: Boolean,
         val disableBoundValidation: Boolean = false,
+        val valdateErigonBug: Boolean,
     )
 
     data class DefaultOptions(
@@ -40,6 +41,7 @@ class ChainOptions {
         var callLimitSize: Int? = null,
         var disableLivenessSubscriptionValidation: Boolean? = null,
         var disableBoundValidation: Boolean? = null,
+        var validateErigonBug: Boolean? = null
     ) {
         companion object {
             @JvmStatic
@@ -70,6 +72,7 @@ class ChainOptions {
             copy.callLimitSize = overwrites.callLimitSize ?: this.callLimitSize
             copy.disableLivenessSubscriptionValidation = overwrites.disableLivenessSubscriptionValidation ?: this.disableLivenessSubscriptionValidation
             copy.disableBoundValidation = overwrites.disableBoundValidation ?: this.disableBoundValidation
+            copy.validateErigonBug = overwrites.validateErigonBug ?: this.validateErigonBug
             return copy
         }
 
@@ -89,6 +92,7 @@ class ChainOptions {
                 this.callLimitSize ?: 1_000_000,
                 this.disableLivenessSubscriptionValidation ?: false,
                 this.disableBoundValidation ?: false,
+                this.validateErigonBug ?: true,
             )
     }
 }
