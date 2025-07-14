@@ -30,7 +30,6 @@ open class ConnectLogs(
     upstream: Multistream,
     private val connectBlockUpdates: ConnectBlockUpdates,
 ) {
-
     companion object {
         private val ADDR_COMPARATOR = HexDataComparator()
         private val TOPIC_COMPARATOR = HexDataComparator()
@@ -44,33 +43,44 @@ open class ConnectLogs(
         return produceLogs.produce(connectBlockUpdates.connect(matcher))
     }
 
-    open fun create(addresses: List<Address>, topics: List<Hex32?>): SubscriptionConnect<LogMessage> {
+    open fun create(addresses: List<Address>, topics: List<List<Hex32>?>): SubscriptionConnect<LogMessage> {
         return object : SubscriptionConnect<LogMessage> {
             override fun connect(matcher: Selector.Matcher): Flux<LogMessage> {
-                // shortcut to the whole output if we don't have any filters
                 if (addresses.isEmpty() && topics.isEmpty()) {
                     return start(matcher)
                 }
-                // filtered output
                 return start(matcher)
                     .transform(filtered(addresses, topics))
             }
         }
     }
 
-    fun filtered(addresses: List<Address>, selectedTopics: List<Hex32?>): Function<Flux<LogMessage>, Flux<LogMessage>> {
-        // sort search criteria to use binary search later
+    fun filtered(addresses: List<Address>, selectedTopics: List<List<Hex32>?>): Function<Flux<LogMessage>, Flux<LogMessage>> {
         val sortedAddresses: List<Address> = addresses.sortedWith(ADDR_COMPARATOR)
+        val sortedTopics: List<List<Hex32>?> = selectedTopics.map { topicsOrNull ->
+            topicsOrNull?.sortedWith(TOPIC_COMPARATOR)
+        }
+
         return Function { logs ->
-            logs.filter {
-                val goodAddress =
-                    sortedAddresses.isEmpty() || sortedAddresses.binarySearch(it.address, ADDR_COMPARATOR) >= 0
-                val goodTopic = when {
-                    selectedTopics.isEmpty() -> true
-                    it.topics.size < selectedTopics.size -> false
-                    else -> selectedTopics.zip(it.topics).all { (selectedTopic, logTopic) -> selectedTopic == null || selectedTopic == logTopic }
+            logs.filter { log ->
+                val goodAddress = sortedAddresses.isEmpty() || sortedAddresses.binarySearch(log.address, ADDR_COMPARATOR) >= 0
+
+                val goodTopics = if (sortedTopics.isEmpty()) {
+                    true
+                } else if (log.topics.size < sortedTopics.size) {
+                    false
+                } else {
+                    sortedTopics.withIndex().all { (idx, wantedTopics) ->
+                        if (wantedTopics == null) {
+                            true
+                        } else {
+                            val logTopic = log.topics[idx]
+                            wantedTopics.binarySearch(logTopic, TOPIC_COMPARATOR) >= 0
+                        }
+                    }
                 }
-                goodAddress && goodTopic
+
+                goodAddress && goodTopics
             }
         }
     }
