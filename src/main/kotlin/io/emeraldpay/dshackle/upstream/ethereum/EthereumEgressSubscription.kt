@@ -163,6 +163,12 @@ open class EthereumEgressSubscription(
 
         val topics: List<List<Hex32>?> = if (params.containsKey("topics")) {
             when (val rawTopics = params["topics"]) {
+                is String -> try {
+                    listOf(listOf(Hex32.from(rawTopics)))
+                } catch (t: Throwable) {
+                    log.debug("Ignore invalid topic: $rawTopics with error ${t.message}")
+                    emptyList()
+                }
                 is Collection<*> -> rawTopics.map { topicItem ->
                     when (topicItem) {
                         null -> null

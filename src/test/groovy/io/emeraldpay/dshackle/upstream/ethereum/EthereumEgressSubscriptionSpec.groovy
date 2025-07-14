@@ -103,7 +103,7 @@ class EthereumEgressSubscriptionSpec extends Specification {
         then:
         act.address == []
         act.topics == [
-                Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+                [Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")]
         ]
 
         when:
@@ -113,7 +113,7 @@ class EthereumEgressSubscriptionSpec extends Specification {
         then:
         act.address == []
         act.topics == [
-                Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+                [Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")]
         ]
     }
 
@@ -124,7 +124,7 @@ class EthereumEgressSubscriptionSpec extends Specification {
         def act = ethereumSubscribe.readLogsRequest([
                 topics: [
                         "0x401d083b33d092293333a83829bd824b016326a0",
-                        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+                        234234
                 ]
         ])
 
@@ -146,8 +146,8 @@ class EthereumEgressSubscriptionSpec extends Specification {
         then:
         act.address == []
         act.topics == [
-                Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
-                Hex32.from("0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925")
+                [Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")],
+                [Hex32.from("0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925")]
         ]
     }
 
@@ -168,8 +168,8 @@ class EthereumEgressSubscriptionSpec extends Specification {
                 Address.from("0x298d492e8c1d909d3f63bc4a36c66c64acb3d695")
         ]
         act.topics == [
-                Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
-                Hex32.from("0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925")
+                [Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")],
+                [Hex32.from("0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925")]
         ]
     }
 
@@ -191,9 +191,9 @@ class EthereumEgressSubscriptionSpec extends Specification {
                 Address.from("0x298d492e8c1d909d3f63bc4a36c66c64acb3d695")
         ]
         act.topics == [
-                Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
+                [Hex32.from("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")],
                 null,
-                Hex32.from("0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925")
+                [Hex32.from("0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925")]
         ]
     }
 
