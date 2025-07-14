@@ -226,3 +226,90 @@ class GasPriceValidator(
             }
     }
 }
+
+class ErigonBuggedValidator(
+    private val upstream: Upstream,
+) : SingleValidator<ValidateUpstreamSettingsResult> {
+
+    companion object {
+        @JvmStatic
+        val log: Logger = LoggerFactory.getLogger(ErigonBuggedValidator::class.java)
+
+        private const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+        private val FIVE_THOUSAND = BigInteger.valueOf(5_000)
+    }
+
+    override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
+        return isErigon().flatMap { isErigon ->
+            if (!isErigon) {
+                Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            } else {
+                latestBlockNumber().flatMap { latest ->
+                    val pastBlock = latest.subtract(FIVE_THOUSAND).max(BigInteger.ZERO)
+
+                    Mono.zip(
+                        balanceOkAt(pastBlock),   // must succeed
+                        balanceOkAt(BigInteger.ONE) // must fail
+                    ).map { checks ->
+                        val isBugged = checks.t1 && !checks.t2
+                        if (isBugged) {
+                            log.warn(
+                                "Erigon balance-bug detected on upstream {}: ok @ {}, error @ 0x1",
+                                upstream.getId(), pastBlock
+                            )
+                            ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
+                        } else {
+                            ValidateUpstreamSettingsResult.UPSTREAM_VALID
+                        }
+                    }
+                }
+            }
+        }.onErrorResume { ex ->
+            log.error(
+                "Irrecoverable error during Erigon bug validation for {}, reason - {}",
+                upstream.getId(), ex.message
+            )
+            Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+        }
+    }
+
+    private fun isErigon(): Mono<Boolean> =
+        upstream.getIngressReader()
+            .read(ChainRequest("web3_clientVersion", ListParams()))
+            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
+                log.warn(
+                    "error during clientVersion retrieving for {}, iteration {}, reason - {}",
+                    upstream.getId(), ctx.iteration(), ctx.exception().message
+                )
+            }
+            .flatMap(ChainResponse::requireStringResult)
+            .map { it.lowercase().contains("erigon") }
+            .doOnError { log.error("Error during execution 'web3_clientVersion' - {} for {}", it.message, upstream.getId()) }
+
+    private fun latestBlockNumber(): Mono<BigInteger> =
+        upstream.getIngressReader()
+            .read(ChainRequest("eth_blockNumber", ListParams()))
+            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
+                log.warn(
+                    "error during blockNumber retrieving for {}, iteration {}, reason - {}",
+                    upstream.getId(), ctx.iteration(), ctx.exception().message
+                )
+            }
+            .flatMap(ChainResponse::requireStringResult)
+            .map { BigInteger(it.removePrefix("0x"), 16) }
+            .doOnError { log.error("Error during execution 'eth_blockNumber' - {} for {}", it.message, upstream.getId()) }
+
+    private fun balanceOkAt(blockNumber: BigInteger): Mono<Boolean> {
+        val tag = "0x${blockNumber.toString(16)}"
+        return upstream.getIngressReader()
+            .read(ChainRequest("eth_getBalance", ListParams(ZERO_ADDRESS, tag)))
+            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
+                log.warn(
+                    "error during balance retrieving for {}, block {}, iteration {}, reason - {}",
+                    upstream.getId(), tag, ctx.iteration(), ctx.exception().message
+                )
+            }
+            .flatMap { resp -> resp.requireStringResult().map { true } }
+            .onErrorResume { Mono.just(false) }
+    }
+}

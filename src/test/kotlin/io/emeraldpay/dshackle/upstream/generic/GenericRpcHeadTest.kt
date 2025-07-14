@@ -210,7 +210,7 @@ class GenericRpcHeadTest {
         val upstream = mock<DefaultUpstream> {
             on { getIngressReader() } doReturn reader
             on { getChain() } doReturn Chain.ETHEREUM__MAINNET
-            on { getOptions() } doReturn ChainOptions.PartialOptions().buildOptions()
+            on { getOptions() } doReturn ChainOptions.PartialOptions().apply { this.validateErigonBug = false }.buildOptions()
         }
         val head = GenericRpcHead(
             reader,

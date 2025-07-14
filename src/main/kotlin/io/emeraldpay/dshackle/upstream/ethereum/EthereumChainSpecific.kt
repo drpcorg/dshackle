@@ -157,6 +157,9 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         val validators = mutableListOf<SingleValidator<ValidateUpstreamSettingsResult>>(
             ChainIdValidator(upstream, chain),
         )
+        if (options.valdateErigonBug) {
+            validators.add(ErigonBuggedValidator(upstream))
+        }
         val limitValidator = EthCallLimitValidator(upstream, options, config)
         if (limitValidator.isEnabled()) {
             validators.add(limitValidator)
