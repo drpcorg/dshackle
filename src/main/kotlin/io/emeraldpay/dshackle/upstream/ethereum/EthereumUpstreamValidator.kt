@@ -248,14 +248,15 @@ class ErigonBuggedValidator(
                     val pastBlock = latest.subtract(FIVE_THOUSAND).max(BigInteger.ZERO)
 
                     Mono.zip(
-                        balanceOkAt(pastBlock),   // must succeed
-                        balanceOkAt(BigInteger.ONE) // must fail
+                        balanceOkAt(pastBlock), // must succeed
+                        balanceOkAt(BigInteger.ONE), // must fail
                     ).map { checks ->
                         val isBugged = checks.t1 && !checks.t2
                         if (isBugged) {
                             log.warn(
                                 "Erigon balance-bug detected on upstream {}: ok @ {}, error @ 0x1",
-                                upstream.getId(), pastBlock
+                                upstream.getId(),
+                                pastBlock,
                             )
                             ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
                         } else {
@@ -267,7 +268,8 @@ class ErigonBuggedValidator(
         }.onErrorResume { ex ->
             log.error(
                 "Irrecoverable error during Erigon bug validation for {}, reason - {}",
-                upstream.getId(), ex.message
+                upstream.getId(),
+                ex.message,
             )
             Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
         }
@@ -279,7 +281,9 @@ class ErigonBuggedValidator(
             .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
                     "error during clientVersion retrieving for {}, iteration {}, reason - {}",
-                    upstream.getId(), ctx.iteration(), ctx.exception().message
+                    upstream.getId(),
+                    ctx.iteration(),
+                    ctx.exception().message,
                 )
             }
             .flatMap(ChainResponse::requireStringResult)
@@ -292,7 +296,9 @@ class ErigonBuggedValidator(
             .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
                     "error during blockNumber retrieving for {}, iteration {}, reason - {}",
-                    upstream.getId(), ctx.iteration(), ctx.exception().message
+                    upstream.getId(),
+                    ctx.iteration(),
+                    ctx.exception().message,
                 )
             }
             .flatMap(ChainResponse::requireStringResult)
@@ -306,7 +312,10 @@ class ErigonBuggedValidator(
             .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
                 log.warn(
                     "error during balance retrieving for {}, block {}, iteration {}, reason - {}",
-                    upstream.getId(), tag, ctx.iteration(), ctx.exception().message
+                    upstream.getId(),
+                    tag,
+                    ctx.iteration(),
+                    ctx.exception().message,
                 )
             }
             .flatMap { resp -> resp.requireStringResult().map { true } }
