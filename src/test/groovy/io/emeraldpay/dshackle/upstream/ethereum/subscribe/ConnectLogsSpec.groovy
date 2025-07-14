@@ -161,7 +161,7 @@ class ConnectLogsSpec extends Specification {
         def input = Flux.fromIterable([
                 log1, log2, log3, log4
         ])
-        def act = input.transform(connectLogs.filtered([], [Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")]))
+        def act = input.transform(connectLogs.filtered([], [[Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")]]))
                 .collectList().block()
 
         then:
@@ -178,7 +178,7 @@ class ConnectLogsSpec extends Specification {
         def input = Flux.fromIterable([
                 log1, log2, log3, log4
         ])
-        def act = input.transform(connectLogs.filtered([Address.from("0x63bc4a36c66c64acb3d695298d492e8c1d909d3f")], [Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")]))
+        def act = input.transform(connectLogs.filtered([Address.from("0x63bc4a36c66c64acb3d695298d492e8c1d909d3f")], [[Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")]]))
                 .collectList().block()
 
         then:
@@ -197,8 +197,8 @@ class ConnectLogsSpec extends Specification {
         def act = input.transform(connectLogs.filtered(
                 [Address.from("0x63bc4a36c66c64acb3d695298d492e8c1d909d3f")],
                 [
-                        Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa"),
-                        Hex32.from("0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5640"),
+                        [Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")], // позиция 0
+                        [Hex32.from("0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5640")] // позиция 1
                 ]
         ))
                 .collectList().block()
@@ -220,9 +220,9 @@ class ConnectLogsSpec extends Specification {
         def act = input.transform(connectLogs.filtered(
                 [Address.from("0x63bc4a36c66c64acb3d695298d492e8c1d909d3f")],
                 [
-                        Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa"),
+                        [Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")],
                         null,
-                        Hex32.from("0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5641"),
+                        [Hex32.from("0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5641")],
                 ]
         ))
                 .collectList().block()
@@ -231,4 +231,34 @@ class ConnectLogsSpec extends Specification {
         act.size() == 1
         act[0] == log6
     }
+
+    def "Filter by topics with OR logic"() {
+        setup:
+        def connectLogs = new ConnectLogs(TestingCommons.emptyMultistream(), Schedulers.boundedElastic())
+        def topicA = Hex32.from("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa")
+        def topicB = Hex32.from("0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5640")
+
+        when:
+        def input = Flux.fromIterable([
+                log3, // has topicA
+                log5, // has topicA + topicB
+                log6, // has topicA + topicB + other
+                log1, // has only different topic
+                log4  // has only topicA
+        ])
+
+        def act = input.transform(connectLogs.filtered(
+                [],
+                [
+                        [topicA, topicB], // first topic: topicA OR topicB
+                        null               // second topic: anything
+                ]
+        ))
+                .collectList().block()
+
+        then:
+        act.size() == 2
+        act.containsAll([ log5, log6])
+    }
+
 }
