@@ -22,6 +22,7 @@ class EthereumLowerBoundStateDetector(
     companion object {
         val stateErrors = setOf(
             "No state available for block", // nethermind
+            "cant get a balance for account ",
             "missing trie node", // geth
             "header not found", // optimism, bsc, avalanche
             "Node state is pruned", // kava
