@@ -35,6 +35,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
                                             "code": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c806351be4eaa14602d575b600080fd5b60336047565b604051603e91906066565b60405180910390f35b60005a905090565b6000819050919050565b606081604f565b82525050565b6000602082019050607960008301846059565b9291505056fea26469706673582212201c0202887c1afe66974b06ee355dee07542bbc424cf4d1659c91f56c08c3dcc064736f6c63430008130033",
                                     ],
                             ]], gas)
+                    answer("eth_getBlockByNumber", ["pending", false], null)
                 }
         )
         def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
@@ -52,6 +53,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         if (extragas != null) {
             result.expectNext(new Pair<String, String>("extra_gas_limit", extragas))
         }
+        result.expectNext(new Pair<String, String>("flashblocks", "false"))
         result.expectComplete().verify(Duration.ofSeconds(1))
         where:
         response                                              | gas         | gasv        | extragas    | clientType      |  version
@@ -69,6 +71,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
                     answer("eth_blockNumber", [], "0x10df3e5")
                     answer("eth_getBalance", ["0x0000000000000000000000000000000000000000", "0x10dccd5"], "")
                     answer("eth_getBalance", ["0x0000000000000000000000000000000000000000", "0x2710"], null)
+                    answer("eth_getBlockByNumber", ["pending", false], null)
                 }
         )
         def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
@@ -82,6 +85,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
                         new Pair<String, String>("client_version", "v0.4.0"),
                         new Pair<String, String>("archive", "false")
                 )
+                .expectNext(new Pair<String, String>("flashblocks", "false"))
                 .expectComplete()
                 .verify(Duration.ofSeconds(1))
     }
@@ -112,7 +116,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
     def "Only default label"() {
         setup:
         def up = Mock(DefaultUpstream) {
-            5 * getIngressReader() >> Mock(Reader) {
+            6 * getIngressReader() >> Mock(Reader) {
                 1 * read(new ChainRequest("web3_clientVersion", new ListParams())) >>
                         Mono.just(new ChainResponse('no/v1.19.3+e8ac1da4/linux-x64/dotnet7.0.8'.getBytes(), null))
                 1 * read(new ChainRequest("eth_blockNumber", new ListParams())) >>
@@ -133,6 +137,8 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
                         ],
                 ))) >>
                         Mono.just(new ChainResponse("".getBytes(), null))
+                1 * read(new ChainRequest("eth_getBlockByNumber", new ListParams(["pending", false]))) >>
+                        Mono.just(new ChainResponse("{}".getBytes(), null))
             }
             getLabels() >> []
         }
@@ -142,6 +148,7 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         then:
         StepVerifier.create(act)
             .expectNext(new Pair<String, String>("archive", "false"))
+            .expectNext(new Pair<String, String>("flashblocks", "false"))
             .expectComplete()
             .verify(Duration.ofSeconds(1))
     }

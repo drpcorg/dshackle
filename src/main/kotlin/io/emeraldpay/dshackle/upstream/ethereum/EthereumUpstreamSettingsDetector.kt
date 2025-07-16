@@ -28,7 +28,32 @@ class EthereumUpstreamSettingsDetector(
             detectNodeType(),
             detectArchiveNode(notArchived),
             detectGasLabels(),
+            detectFlashBlocks(),
         )
+    }
+
+    private fun detectFlashBlocks(): Mono<Pair<String, String>>? {
+        return upstream.getIngressReader().read(
+            ChainRequest(
+                "eth_getBlockByNumber",
+                ListParams(
+                    "pending",
+                    false,
+                ),
+            ),
+        ).flatMap {
+            it.requireResult()
+        }.flatMap {
+            val json = Global.objectMapper.readValue(it, JsonNode::class.java)
+            if (json.get("stateRoot")?.asText() == "0x0000000000000000000000000000000000000000000000000000000000000000") {
+                Mono.just(Pair("flashblocks", "true"))
+            } else {
+                Mono.just(Pair("flashblocks", "false"))
+            }
+        }.onErrorResume {
+            log.error("Error during flashblocks detection", it)
+            Mono.empty()
+        }
     }
 
     override fun mapping(node: JsonNode): String {
