@@ -13,22 +13,89 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.log
 
-class GenericIngressSubscription(val conn: WsSubscriptions, val methods: List<String>) : IngressSubscription {
+class GenericIngressSubscription(
+    val conn: WsSubscriptions,
+    val methods: List<String>,
+) : IngressSubscription, SubscriptionCleanup {
+
+    companion object {
+        private val log = LoggerFactory.getLogger(GenericIngressSubscription::class.java)
+    }
+
     override fun getAvailableTopics(): List<String> {
         return methods
     }
 
-    private val holders = ConcurrentHashMap<Pair<String, Any?>, SubscriptionConnect<out Any>>()
+    private val holders = ConcurrentHashMap<Pair<String, Any?>, SubscriptionHolder<out Any>>()
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(topic: String, params: Any?): SubscriptionConnect<T> {
-        return holders.computeIfAbsent(topic to params) { key ->
-            GenericSubscriptionConnect(
-                conn,
-                key.first,
-                key.second,
+        val key = topic to params
+        val holder = holders.computeIfAbsent(key) {
+            log.debug("Creating new subscription holder for {}:{}", topic, params)
+            SubscriptionHolder(
+                GenericSubscriptionConnect(conn, topic, params, this),
+                topic,
+                params,
             )
-        } as SubscriptionConnect<T>
+        } as SubscriptionHolder<T>
+
+        return holder.addRef()
+    }
+
+    /**
+     * Release a reference to a subscription. Called when a client disconnects.
+     */
+    fun releaseSubscription(topic: String, params: Any?) {
+        val key = topic to params
+        holders.computeIfPresent(key) { _, holder ->
+            if (holder.removeRef()) {
+                log.info("Last reference removed for subscription {}:{}, cleaning up", topic, params)
+                // Cleanup will be handled by the connection itself
+                null // Remove from map
+            } else {
+                holder // Keep if still has references
+            }
+        }
+    }
+
+    override fun cleanupSubscription(topic: String, params: Any?, subscriptionId: String?) {
+        log.info("Cleaning up subscription {}:{} with ID: {}", topic, params, subscriptionId)
+
+        if (subscriptionId.isNullOrEmpty()) {
+            log.warn("Cannot cleanup subscription {}:{} - no subscription ID", topic, params)
+            return
+        }
+
+        // Determine unsubscribe method based on topic
+        val unsubscribeMethod = getUnsubscribeMethod(topic)
+        if (unsubscribeMethod != null) {
+            val unsubscribeRequest = ChainRequest(unsubscribeMethod, ListParams(subscriptionId))
+            conn.unsubscribe(unsubscribeRequest)
+                .doOnSuccess {
+                    log.info("Successfully unsubscribed from {}:{}", topic, params)
+                }
+                .doOnError { error ->
+                    log.warn("Failed to unsubscribe from {}:{}: {}", topic, params, error.message)
+                }
+                .subscribe()
+        } else {
+            log.warn("No unsubscribe method found for topic: {}", topic)
+        }
+    }
+
+    private fun getUnsubscribeMethod(subscribeMethod: String): String? {
+        return when (subscribeMethod) {
+            "accountSubscribe" -> "accountUnsubscribe"
+            "blockSubscribe" -> "blockUnsubscribe"
+            "logsSubscribe" -> "logsUnsubscribe"
+            "programSubscribe" -> "programUnsubscribe"
+            "signatureSubscribe" -> "signatureUnsubscribe"
+            "slotSubscribe" -> "slotUnsubscribe"
+            // Ethereum methods
+            "eth_subscribe" -> "eth_unsubscribe"
+            else -> null
+        }
     }
 }
 
@@ -36,16 +103,27 @@ class GenericSubscriptionConnect(
     val conn: WsSubscriptions,
     val topic: String,
     val params: Any?,
+    val cleanup: SubscriptionCleanup,
 ) : GenericPersistentConnect() {
 
     companion object {
         private val log = LoggerFactory.getLogger(GenericSubscriptionConnect::class.java)
     }
 
+    private var subscriptionId: String? = null
+
     @Suppress("UNCHECKED_CAST")
     override fun createConnection(): Flux<Any> {
-        return conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
-            .data
+        val subscribeData = conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
+
+        return subscribeData.data
+            .doOnNext { _ ->
+                // Store subscription ID when first message arrives (ID should be available by then)
+                if (subscriptionId == null) {
+                    subscriptionId = subscribeData.subId.get()
+                    log.debug("Subscription ID set for {}:{} -> {}", topic, params, subscriptionId)
+                }
+            }
             .timeout(
                 Duration.ofSeconds(85),
                 Mono.empty<ByteArray?>().doOnEach {
@@ -55,6 +133,11 @@ class GenericSubscriptionConnect(
             .onErrorResume {
                 log.error("Error during subscription to $topic", it)
                 Mono.empty()
+            }
+            .doFinally {
+                // Trigger cleanup when connection ends
+                log.debug("Connection ended for subscription {}:{}", topic, params)
+                cleanup.cleanupSubscription(topic, params, subscriptionId)
             } as Flux<Any>
     }
 
