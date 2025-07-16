@@ -30,6 +30,15 @@ class GenericIngressSubscription(
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(topic: String, params: Any?): SubscriptionConnect<T> {
+        // Generate a unique client ID for this subscription request
+        val clientId = generateClientId()
+        return getForClient(topic, params, clientId)
+    }
+
+    /**
+     * Get a subscription for a specific client
+     */
+    fun <T> getForClient(topic: String, params: Any?, clientId: String): SubscriptionConnect<T> {
         val key = topic to params
         val holder = holders.computeIfAbsent(key) {
             log.debug("Creating new subscription holder for {}:{}", topic, params)
@@ -40,23 +49,35 @@ class GenericIngressSubscription(
             )
         } as SubscriptionHolder<T>
 
-        return holder.addRef()
+        // Create client with disconnect callback
+        val client = DefaultSubscriptionClient(clientId) {
+            releaseSubscription(topic, params, clientId)
+        }
+
+        return holder.addClient(client)
     }
 
     /**
-     * Release a reference to a subscription. Called when a client disconnects.
+     * Release a client's subscription. Called when a client disconnects.
      */
-    fun releaseSubscription(topic: String, params: Any?) {
+    fun releaseSubscription(topic: String, params: Any?, clientId: String) {
         val key = topic to params
         holders.computeIfPresent(key) { _, holder ->
-            if (holder.removeRef()) {
-                log.info("Last reference removed for subscription {}:{}, cleaning up", topic, params)
+            if (holder.removeClient(clientId)) {
+                log.info("Last client removed for subscription {}:{}, cleaning up", topic, params)
                 // Cleanup will be handled by the connection itself
                 null // Remove from map
             } else {
-                holder // Keep if still has references
+                holder // Keep if still has clients
             }
         }
+    }
+
+    /**
+     * Generate a unique client ID
+     */
+    private fun generateClientId(): String {
+        return "client-${System.currentTimeMillis()}-${Thread.currentThread().id}-${(Math.random() * 10000).toInt()}"
     }
 
     override fun cleanupSubscription(topic: String, params: Any?, subscriptionId: String?) {
