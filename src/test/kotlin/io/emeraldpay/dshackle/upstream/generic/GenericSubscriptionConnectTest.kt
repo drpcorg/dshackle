@@ -24,7 +24,8 @@ class GenericSubscriptionConnectTest {
                 WsSubscriptions.SubscribeData(Flux.just(response), "", AtomicReference(""))
         }
 
-        val genericSubscriptionConnect = GenericSubscriptionConnect(ws, topic, param)
+        val cleanup = mock<SubscriptionCleanup>()
+        val genericSubscriptionConnect = GenericSubscriptionConnect(ws, topic, param, cleanup)
 
         StepVerifier.create(genericSubscriptionConnect.createConnection())
             .expectNext(response)
