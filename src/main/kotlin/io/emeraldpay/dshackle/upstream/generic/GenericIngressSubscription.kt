@@ -80,6 +80,33 @@ class GenericIngressSubscription(
         return "client-${System.currentTimeMillis()}-${Thread.currentThread().id}-${(Math.random() * 10000).toInt()}"
     }
 
+    /**
+     * Get subscription statistics for monitoring
+     */
+    fun getSubscriptionStats(): Map<String, Any> {
+        val stats = mutableMapOf<String, Any>()
+        stats["totalSubscriptions"] = holders.size
+        stats["subscriptions"] = holders.map { (key, holder) ->
+            mapOf(
+                "topic" to key.first,
+                "params" to (key.second?.toString() ?: "null"),
+                "clientCount" to holder.getClientCount(),
+                "clients" to holder.getClientIds(),
+            )
+        }
+        return stats
+    }
+
+    /**
+     * Force cleanup of a specific subscription (for testing/admin purposes)
+     */
+    fun forceCleanupSubscription(topic: String, params: Any?) {
+        val key = topic to params
+        holders.remove(key)?.let { holder ->
+            log.info("Force cleaned up subscription {}:{} with {} clients", topic, params, holder.getClientCount())
+        }
+    }
+
     override fun cleanupSubscription(topic: String, params: Any?, subscriptionId: String?) {
         log.info("Cleaning up subscription {}:{} with ID: {}", topic, params, subscriptionId)
 
