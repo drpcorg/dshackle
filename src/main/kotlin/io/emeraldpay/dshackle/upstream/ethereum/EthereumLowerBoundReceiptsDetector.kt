@@ -5,7 +5,6 @@ import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
-import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundDetector
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import io.emeraldpay.dshackle.upstream.lowerbound.detector.RecursiveLowerBound
 import io.emeraldpay.dshackle.upstream.lowerbound.toHex
@@ -14,7 +13,7 @@ import reactor.core.publisher.Flux
 
 class EthereumLowerBoundReceiptsDetector(
     private val upstream: Upstream,
-) : LowerBoundDetector(upstream.getChain()) {
+) : EthereumLowerBoundDetectorBase(upstream.getChain()) {
 
     companion object {
         const val MAX_OFFSET = 20
@@ -30,7 +29,7 @@ class EthereumLowerBoundReceiptsDetector(
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
-    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.RECEIPTS, NO_RECEIPTS_ERRORS, lowerBounds)
+    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.RECEIPTS, NO_RECEIPTS_ERRORS, lowerBounds, commonErrorPatterns)
 
     override fun period(): Long {
         return 3
