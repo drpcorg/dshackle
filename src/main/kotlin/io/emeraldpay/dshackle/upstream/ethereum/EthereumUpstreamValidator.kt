@@ -234,36 +234,22 @@ class ErigonBuggedValidator(
     companion object {
         @JvmStatic
         val log: Logger = LoggerFactory.getLogger(ErigonBuggedValidator::class.java)
-
-        private const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-        private val FIVE_THOUSAND = BigInteger.valueOf(5_000)
     }
 
+    private var callCount: Int = 0
+
     override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
+        if (callCount % 10 != 0) {
+            callCount++
+            return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+        }
+        callCount++
+
         return isErigon().flatMap { isErigon ->
             if (!isErigon) {
                 Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
             } else {
-                latestBlockNumber().flatMap { latest ->
-                    val pastBlock = latest.subtract(FIVE_THOUSAND).max(BigInteger.ZERO)
-
-                    Mono.zip(
-                        balanceOkAt(pastBlock), // must succeed
-                        balanceOkAt(BigInteger.ONE), // must fail
-                    ).map { checks ->
-                        val isBugged = checks.t1 && !checks.t2
-                        if (isBugged) {
-                            log.warn(
-                                "Erigon balance-bug detected on upstream {}: ok @ {}, error @ 0x1",
-                                upstream.getId(),
-                                pastBlock,
-                            )
-                            ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
-                        } else {
-                            ValidateUpstreamSettingsResult.UPSTREAM_VALID
-                        }
-                    }
-                }
+                performErigonBugCheck()
             }
         }.onErrorResume { ex ->
             log.error(
@@ -290,35 +276,90 @@ class ErigonBuggedValidator(
             .map { it.lowercase().contains("erigon") }
             .doOnError { log.error("Error during execution 'web3_clientVersion' - {} for {}", it.message, upstream.getId()) }
 
-    private fun latestBlockNumber(): Mono<BigInteger> =
-        upstream.getIngressReader()
-            .read(ChainRequest("eth_blockNumber", ListParams()))
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
-                log.warn(
-                    "error during blockNumber retrieving for {}, iteration {}, reason - {}",
-                    upstream.getId(),
-                    ctx.iteration(),
-                    ctx.exception().message,
-                )
+    private fun performErigonBugCheck(): Mono<ValidateUpstreamSettingsResult> {
+        return getLatestBlockNumber()
+            .flatMap { latestBlock ->
+                binarySearchForBug(BigInteger.ONE, latestBlock, 0)
             }
+            .timeout(Duration.ofSeconds(10))
+            .onErrorReturn(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+    }
+
+    private fun getLatestBlockNumber(): Mono<BigInteger> {
+        return upstream.getIngressReader()
+            .read(ChainRequest("eth_blockNumber", ListParams()))
             .flatMap(ChainResponse::requireStringResult)
             .map { BigInteger(it.removePrefix("0x"), 16) }
-            .doOnError { log.error("Error during execution 'eth_blockNumber' - {} for {}", it.message, upstream.getId()) }
+            .timeout(Duration.ofSeconds(1))
+            .onErrorReturn(BigInteger.valueOf(1000000))
+    }
 
-    private fun balanceOkAt(blockNumber: BigInteger): Mono<Boolean> {
-        val tag = "0x${blockNumber.toString(16)}"
-        return upstream.getIngressReader()
-            .read(ChainRequest("eth_getBalance", ListParams(ZERO_ADDRESS, tag)))
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
-                log.warn(
-                    "error during balance retrieving for {}, block {}, iteration {}, reason - {}",
-                    upstream.getId(),
-                    tag,
-                    ctx.iteration(),
-                    ctx.exception().message,
-                )
+    private fun binarySearchForBug(start: BigInteger, end: BigInteger, depth: Int): Mono<ValidateUpstreamSettingsResult> {
+        if (start >= end || depth > 20) {
+            return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+        }
+
+        val mid = start.add(end).divide(BigInteger.valueOf(2))
+
+        return testBlockForBug(mid)
+            .flatMap { result ->
+                when (result) {
+                    TestResult.BUG_DETECTED -> {
+                        log.warn(
+                            "Erigon balance-bug detected on upstream {} at block {}",
+                            upstream.getId(),
+                            mid,
+                        )
+                        Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+                    }
+                    TestResult.VALID_RESPONSE -> {
+                        // Go left (earlier blocks)
+                        binarySearchForBug(start, mid, depth + 1)
+                    }
+                    TestResult.ERROR -> {
+                        // Go right (later blocks)
+                        binarySearchForBug(mid.add(BigInteger.ONE), end, depth + 1)
+                    }
+                    null -> Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+                }
             }
-            .flatMap { resp -> resp.requireStringResult().map { true } }
-            .onErrorResume { Mono.just(false) }
+    }
+
+    private fun testBlockForBug(blockNumber: BigInteger): Mono<TestResult> {
+        val blockTag = "0x${blockNumber.toString(16)}"
+        val request = ChainRequest(
+            "eth_call",
+            ListParams(
+                mapOf(
+                    "to" to "0x1111111111111111111111111111111111111111",
+                    "data" to "0x1eaf190c",
+                ),
+                blockTag,
+                mapOf(
+                    "0x1111111111111111111111111111111111111111" to mapOf(
+                        "code" to "0x6080604052348015600e575f5ffd5b50600436106026575f3560e01c80631eaf190c14602a575b5f5ffd5b60306044565b604051603b91906078565b60405180910390f35b5f5f73ffffffffffffffffffffffffffffffffffffffff1631905090565b5f819050919050565b6072816062565b82525050565b5f60208201905060895f830184606b565b9291505056fea2646970667358221220251f5b4d2ed1abe77f66fde198a57ada08562dc3b0afbc6bac0261d1bf516b5d64736f6c634300081e0033",
+                    ),
+                ),
+            ),
+        )
+
+        return upstream.getIngressReader()
+            .read(request)
+            .flatMap(ChainResponse::requireStringResult)
+            .map { result ->
+                when {
+                    result == "0x" -> TestResult.BUG_DETECTED
+                    result.startsWith("0x") && result.length > 2 -> TestResult.VALID_RESPONSE
+                    else -> TestResult.ERROR
+                }
+            }
+            .timeout(Duration.ofSeconds(1))
+            .onErrorReturn(TestResult.ERROR)
+    }
+
+    private enum class TestResult {
+        BUG_DETECTED,
+        VALID_RESPONSE,
+        ERROR,
     }
 }

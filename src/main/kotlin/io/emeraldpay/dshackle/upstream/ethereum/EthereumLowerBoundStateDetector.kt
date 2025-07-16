@@ -6,7 +6,6 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
-import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundDetector
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import io.emeraldpay.dshackle.upstream.lowerbound.detector.RecursiveLowerBound
 import io.emeraldpay.dshackle.upstream.lowerbound.toHex
@@ -16,8 +15,8 @@ import reactor.core.publisher.Mono
 
 class EthereumLowerBoundStateDetector(
     private val upstream: Upstream,
-) : LowerBoundDetector(upstream.getChain()) {
-    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.STATE, stateErrors, lowerBounds)
+) : EthereumLowerBoundDetectorBase(upstream.getChain()) {
+    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.STATE, stateErrors, lowerBounds, commonErrorPatterns)
 
     companion object {
         val stateErrors = setOf(
@@ -57,6 +56,9 @@ class EthereumLowerBoundStateDetector(
             "Access to archival, debug, or trace data is not included in your current plan", // chainstack
             "empty reader set", // strange bsc geth error
             "Request might be querying historical state that is not available", // monad
+            "No receipts data",
+            "No tx data",
+            "No block data",
         )
     }
 

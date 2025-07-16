@@ -19,6 +19,7 @@ open class RecursiveLowerBound(
     protected val type: LowerBoundType,
     protected val nonRetryableErrors: Set<String>,
     protected val lowerBounds: LowerBounds,
+    protected val nonRetryableErrorPatters: Set<Regex> = setOf(),
 ) {
     protected val log = LoggerFactory.getLogger(this::class.java)
 
@@ -187,7 +188,8 @@ open class RecursiveLowerBound(
         )
             .maxBackoff(Duration.ofMinutes(3))
             .filter {
-                !nonRetryableErrors.any { err -> it.message?.contains(err, true) ?: false }
+                !nonRetryableErrors.any { err -> it.message?.contains(err, true) ?: false } &&
+                    !nonRetryableErrorPatters.any { err -> it.message?.matches(err) ?: false }
             }
             .doAfterRetry {
                 if (it.totalRetries() > 30) {
