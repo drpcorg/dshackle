@@ -57,26 +57,22 @@ open class ConnectLogs(
 
     fun filtered(addresses: List<Address>, selectedTopics: List<List<Hex32>?>): Function<Flux<LogMessage>, Flux<LogMessage>> {
         val sortedAddresses: List<Address> = addresses.sortedWith(ADDR_COMPARATOR)
-        val sortedTopics: List<List<Hex32>?> = selectedTopics.map { topicsOrNull ->
-            topicsOrNull?.sortedWith(TOPIC_COMPARATOR)
+        val topicSets: List<Set<Hex32>?> = selectedTopics.map { topicsOrNull ->
+            topicsOrNull?.toSet()
         }
 
         return Function { logs ->
             logs.filter { log ->
-                val goodAddress = sortedAddresses.isEmpty() || sortedAddresses.binarySearch(log.address, ADDR_COMPARATOR) >= 0
+                val goodAddress = sortedAddresses.isEmpty() ||
+                    sortedAddresses.binarySearch(log.address, ADDR_COMPARATOR) >= 0
 
-                val goodTopics = if (sortedTopics.isEmpty()) {
+                val goodTopics = if (topicSets.isEmpty()) {
                     true
-                } else if (log.topics.size < sortedTopics.size) {
+                } else if (log.topics.size < topicSets.size) {
                     false
                 } else {
-                    sortedTopics.withIndex().all { (idx, wantedTopics) ->
-                        if (wantedTopics == null) {
-                            true
-                        } else {
-                            val logTopic = log.topics[idx]
-                            wantedTopics.binarySearch(logTopic, TOPIC_COMPARATOR) >= 0
-                        }
+                    topicSets.zip(log.topics).all { (wantedTopics, logTopic) ->
+                        wantedTopics == null || logTopic in wantedTopics
                     }
                 }
 
