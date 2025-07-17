@@ -4,15 +4,27 @@ import com.google.common.util.concurrent.AtomicDouble
 import io.emeraldpay.dshackle.Chain
 import org.apache.commons.math3.stat.regression.SimpleRegression
 import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 import kotlin.math.roundToLong
 
 class LowerBounds(
-    chain: Chain,
+    val chain: Chain,
 ) {
     companion object {
         private const val MAX_BOUNDS = 3
+    }
+
+    init {
+        CompletableFuture.runAsync {
+            Thread.sleep(15000)
+            while (true) {
+                Thread.sleep(1000)
+                predictNextBound(LowerBoundType.STATE)
+            }
+        }
     }
 
     private val averageSpeed = chain.averageRemoveDataSpeed
@@ -67,9 +79,15 @@ class LowerBounds(
     }
 
     fun predictNextBound(type: LowerBoundType): Long {
+        val offset = if (chain == Chain.BSC__MAINNET && type == LowerBoundType.STATE) {
+            30
+        } else {
+            0
+        }.toLong()
+
         val lowerBoundCoeffs = lowerBounds[type] ?: return 0
 
-        val xTime = Instant.now().epochSecond
+        val xTime = Instant.now().plus(offset, ChronoUnit.SECONDS).epochSecond
 
         return (lowerBoundCoeffs.k.get() * xTime + lowerBoundCoeffs.b.get()).roundToLong()
     }
