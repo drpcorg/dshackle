@@ -134,7 +134,7 @@ open class EthereumEgressSubscription(
 
     data class LogsRequest(
         val address: List<Address>,
-        val topics: List<Hex32?>,
+        val topics: List<List<Hex32>?>,
     )
 
     fun readLogsRequest(params: Map<String, Any?>): LogsRequest {
@@ -160,24 +160,35 @@ open class EthereumEgressSubscription(
         } else {
             emptyList()
         }
-        val topics: List<Hex32?> = if (params.containsKey("topics")) {
-            when (val topics = params["topics"]) {
+
+        val topics: List<List<Hex32>?> = if (params.containsKey("topics")) {
+            when (val rawTopics = params["topics"]) {
                 is String -> try {
-                    listOf(Hex32.from(topics))
+                    listOf(listOf(Hex32.from(rawTopics)))
                 } catch (t: Throwable) {
-                    log.debug("Ignore invalid topic: $topics with error ${t.message}")
+                    log.debug("Ignore invalid topic: $rawTopics with error ${t.message}")
                     emptyList()
                 }
-                is Collection<*> -> topics.map { topic ->
-                    try {
-                        when (topic) {
-                            null -> null
-                            is Collection<*> -> topic.firstOrNull()?.toString()?.let { Hex32.from(it) }
-                            else -> topic?.toString()?.let { Hex32.from(it) }
+                is Collection<*> -> rawTopics.map { topicItem ->
+                    when (topicItem) {
+                        null -> null
+                        is String -> listOfNotNull(
+                            try {
+                                Hex32.from(topicItem)
+                            } catch (t: Throwable) {
+                                log.debug("Ignore invalid topic: $topicItem with error ${t.message}")
+                                null
+                            },
+                        )
+                        is Collection<*> -> topicItem.mapNotNull { t ->
+                            try {
+                                t?.toString()?.let { Hex32.from(it) }
+                            } catch (t: Throwable) {
+                                log.debug("Ignore invalid topic: $t with error ${t.message}")
+                                null
+                            }
                         }
-                    } catch (t: Throwable) {
-                        log.debug("Ignore invalid topic: $topic with error ${t.message}")
-                        throw IllegalArgumentException("Invalid topic: $topic")
+                        else -> throw IllegalArgumentException("Invalid topic entry: $topicItem. Must be null, string or list of strings")
                     }
                 }
                 null -> emptyList()
