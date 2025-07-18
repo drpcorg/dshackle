@@ -18,7 +18,7 @@ class ChainOptions {
         val callLimitSize: Int,
         val disableLivenessSubscriptionValidation: Boolean,
         val disableBoundValidation: Boolean = false,
-        val valdateErigonBug: Boolean,
+        val validateErigonBug: Boolean,
     )
 
     data class DefaultOptions(
