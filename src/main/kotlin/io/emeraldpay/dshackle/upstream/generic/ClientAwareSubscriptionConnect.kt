@@ -42,11 +42,11 @@ class ClientAwareSubscriptionConnect<T>(
 
     private fun handleDisconnect(reason: String) {
         if (disconnected.compareAndSet(false, true)) {
-            log.debug("Client {} disconnected ({}), triggering cleanup", client.clientId, reason)
+            log.info("[AUTO-UNSUBSCRIBE] Client {} disconnected ({}), triggering cleanup", client.clientId, reason)
             try {
                 client.onDisconnect()
             } catch (e: Exception) {
-                log.warn("Error during client {} disconnect callback: {}", client.clientId, e.message)
+                log.warn("[AUTO-UNSUBSCRIBE] Error during client {} disconnect callback: {}", client.clientId, e.message)
             }
         }
     }

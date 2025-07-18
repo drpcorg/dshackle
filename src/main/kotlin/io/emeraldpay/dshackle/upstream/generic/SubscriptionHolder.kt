@@ -25,7 +25,7 @@ class SubscriptionHolder<T>(
      */
     fun addClient(client: SubscriptionClient): SubscriptionConnect<T> {
         clients[client.clientId] = client
-        log.debug("Added client {} to subscription {}:{}, total clients: {}", client.clientId, topic, params, clients.size)
+        log.info("[AUTO-UNSUBSCRIBE] Added client {} to subscription {}:{}, total clients: {}", client.clientId, topic, params, clients.size)
         return ClientAwareSubscriptionConnect(connection, client)
     }
 
@@ -37,9 +37,9 @@ class SubscriptionHolder<T>(
     fun removeClient(clientId: String): Boolean {
         val removed = clients.remove(clientId)
         if (removed != null) {
-            log.debug("Removed client {} from subscription {}:{}, remaining clients: {}", clientId, topic, params, clients.size)
+            log.info("[AUTO-UNSUBSCRIBE] Removed client {} from subscription {}:{}, remaining clients: {}", clientId, topic, params, clients.size)
         } else {
-            log.warn("Attempted to remove non-existent client {} from subscription {}:{}", clientId, topic, params)
+            log.warn("[AUTO-UNSUBSCRIBE] Attempted to remove non-existent client {} from subscription {}:{}", clientId, topic, params)
         }
 
         return clients.isEmpty()

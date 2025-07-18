@@ -50,6 +50,7 @@ class GenericIngressSubscription(
         } as SubscriptionHolder<T>
 
         // Create client with disconnect callback
+        log.info("[AUTO-UNSUBSCRIBE] Creating new client {} for subscription {}:{}", clientId, topic, params)
         val client = DefaultSubscriptionClient(clientId) {
             releaseSubscription(topic, params, clientId)
         }
@@ -61,13 +62,15 @@ class GenericIngressSubscription(
      * Release a client's subscription. Called when a client disconnects.
      */
     fun releaseSubscription(topic: String, params: Any?, clientId: String) {
+        log.info("[AUTO-UNSUBSCRIBE] Releasing subscription for client {} on topic {}:{}", clientId, topic, params)
         val key = topic to params
         holders.computeIfPresent(key) { _, holder ->
             if (holder.removeClient(clientId)) {
-                log.info("Last client removed for subscription {}:{}, cleaning up", topic, params)
+                log.info("[AUTO-UNSUBSCRIBE] Last client removed for subscription {}:{}, triggering cleanup", topic, params)
                 // Cleanup will be handled by the connection itself
                 null // Remove from map
             } else {
+                log.info("[AUTO-UNSUBSCRIBE] Client {} removed, but {} clients remain for {}:{}", clientId, holder.getClientCount(), topic, params)
                 holder // Keep if still has clients
             }
         }
@@ -108,7 +111,7 @@ class GenericIngressSubscription(
     }
 
     override fun cleanupSubscription(topic: String, params: Any?, subscriptionId: String?) {
-        log.info("Cleaning up subscription {}:{} with ID: {}", topic, params, subscriptionId)
+        log.info("[AUTO-UNSUBSCRIBE] Cleaning up subscription {}:{} with ID: {}", topic, params, subscriptionId)
 
         if (subscriptionId.isNullOrEmpty()) {
             log.warn("Cannot cleanup subscription {}:{} - no subscription ID", topic, params)
@@ -119,12 +122,13 @@ class GenericIngressSubscription(
         val unsubscribeMethod = getUnsubscribeMethod(topic)
         if (unsubscribeMethod != null) {
             val unsubscribeRequest = ChainRequest(unsubscribeMethod, ListParams(subscriptionId))
+            log.info("[AUTO-UNSUBSCRIBE] Sending unsubscribe request {} to upstream for {}:{}", unsubscribeMethod, topic, params)
             conn.unsubscribe(unsubscribeRequest)
                 .doOnSuccess {
-                    log.info("Successfully unsubscribed from {}:{}", topic, params)
+                    log.info("[AUTO-UNSUBSCRIBE] Successfully unsubscribed from upstream {}:{}", topic, params)
                 }
                 .doOnError { error ->
-                    log.warn("Failed to unsubscribe from {}:{}: {}", topic, params, error.message)
+                    log.warn("[AUTO-UNSUBSCRIBE] Failed to unsubscribe from upstream {}:{}: {}", topic, params, error.message)
                 }
                 .subscribe()
         } else {
