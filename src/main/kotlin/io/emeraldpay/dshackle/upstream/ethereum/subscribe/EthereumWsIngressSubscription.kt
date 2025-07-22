@@ -40,12 +40,16 @@ class EthereumWsIngressSubscription(
     private val holders = ConcurrentHashMap<Pair<String, Any?>, SubscriptionHolder<*>>()
 
     override fun getAvailableTopics(): List<String> {
-        return listOf(EthereumEgressSubscription.METHOD_PENDING_TXES)
+        return listOf(
+            EthereumEgressSubscription.METHOD_PENDING_TXES,
+            EthereumEgressSubscription.METHOD_NEW_HEADS,
+            EthereumEgressSubscription.METHOD_LOGS,
+        )
     }
 
     @Suppress("UNCHECKED_CAST")
     override fun <T> get(topic: String, params: Any?): SubscriptionConnect<T>? {
-        if (topic == EthereumEgressSubscription.METHOD_PENDING_TXES) {
+        if (topic in getAvailableTopics()) {
             val clientId = generateClientId()
             return getForClient(topic, params, clientId)
         }
@@ -56,7 +60,7 @@ class EthereumWsIngressSubscription(
      * Get a subscription for a specific client with tracking
      */
     fun <T> getForClient(topic: String, params: Any?, clientId: String): SubscriptionConnect<T>? {
-        if (topic != EthereumEgressSubscription.METHOD_PENDING_TXES) {
+        if (topic !in getAvailableTopics()) {
             return null
         }
 
@@ -65,8 +69,14 @@ class EthereumWsIngressSubscription(
         @Suppress("UNCHECKED_CAST")
         val holder = holders.computeIfAbsent(key) {
             log.debug("Creating new subscription holder for {}:{}", topic, params)
+            val connection = when (topic) {
+                EthereumEgressSubscription.METHOD_PENDING_TXES -> pendingTxes
+                EthereumEgressSubscription.METHOD_NEW_HEADS -> EthereumSubscriptionConnect(conn, "newHeads", params, this)
+                EthereumEgressSubscription.METHOD_LOGS -> EthereumSubscriptionConnect(conn, "logs", params, this)
+                else -> throw IllegalArgumentException("Unsupported topic: $topic")
+            }
             SubscriptionHolder(
-                pendingTxes,
+                connection,
                 topic,
                 params,
             )
