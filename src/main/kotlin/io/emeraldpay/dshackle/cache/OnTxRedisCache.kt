@@ -148,7 +148,7 @@ abstract class OnTxRedisCache<T>(
         // keep for hour, but block create 10 seconds ago cache for 10 seconds, as it
         // still can be replaced in the blockchain
         val age = Instant.now().epochSecond - blockTime.epochSecond
-        return min(age, TimeUnit.HOURS.toSeconds(MAX_CACHE_TIME_HOURS))
+        return min(max(age, 1L), TimeUnit.HOURS.toSeconds(MAX_CACHE_TIME_HOURS))
     }
 
     /**
