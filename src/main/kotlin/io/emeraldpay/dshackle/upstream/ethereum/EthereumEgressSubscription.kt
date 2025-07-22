@@ -5,6 +5,7 @@ import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.Capability
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.EgressSubscription
+import io.emeraldpay.dshackle.upstream.IngressSubscription
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Address
@@ -48,7 +49,15 @@ open class EthereumEgressSubscription(
     val upstream: Multistream,
     val scheduler: Scheduler,
     val pendingTxesSource: PendingTxesSource?,
+    val ingressSubscription: IngressSubscription? = null,
 ) : EgressSubscription {
+
+    // Secondary constructor for backward compatibility with existing tests
+    constructor(
+        upstream: Multistream,
+        scheduler: Scheduler,
+        pendingTxesSource: PendingTxesSource?,
+    ) : this(upstream, scheduler, pendingTxesSource, null)
 
     companion object {
         private val log = LoggerFactory.getLogger(EthereumEgressSubscription::class.java)
@@ -81,6 +90,14 @@ open class EthereumEgressSubscription(
 
     @Suppress("UNCHECKED_CAST")
     override fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher): Flux<out Any> {
+        // Try to use client-tracked IngressSubscription first (for auto-cleanup support)
+        if (ingressSubscription != null && topic in ingressSubscription.getAvailableTopics()) {
+            log.debug("[AUTO-UNSUBSCRIBE] Using client-tracked subscription for topic: {}", topic)
+            return ingressSubscription.get<Any>(topic, params)?.connect(matcher) ?: Flux.empty()
+        }
+
+        // Fall back to direct connections (legacy mode without auto-cleanup)
+        log.debug("Using direct connection (no auto-cleanup) for topic: {}", topic)
         if (topic == METHOD_NEW_HEADS) {
             return newHeads.connect(matcher)
         }

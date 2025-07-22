@@ -70,10 +70,12 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
 
     override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {
         return { ms ->
-            val pendingTxes: PendingTxesSource = (ms.getAll())
+            val ethereumUpstreams = (ms.getAll())
                 .filter { it is GenericUpstream }
                 .map { it as GenericUpstream }
                 .filter { it.getIngressSubscription() is EthereumIngressSubscription }
+
+            val pendingTxes: PendingTxesSource = ethereumUpstreams
                 .mapNotNull {
                     (it.getIngressSubscription() as EthereumIngressSubscription).getPendingTxes()
                 }.let {
@@ -85,7 +87,19 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
                         AggregatedPendingTxes(it)
                     }
                 }
-            EthereumEgressSubscription(ms, headScheduler, pendingTxes)
+
+            // Get the first available EthereumWsIngressSubscription for client tracking
+            val ingressSubscription = ethereumUpstreams
+                .mapNotNull { it.getIngressSubscription() as? EthereumWsIngressSubscription }
+                .firstOrNull()
+
+            if (ingressSubscription != null) {
+                log.debug("[AUTO-UNSUBSCRIBE] EthereumEgressSubscription created with client tracking support")
+            } else {
+                log.debug("EthereumEgressSubscription created without client tracking (legacy mode)")
+            }
+
+            EthereumEgressSubscription(ms, headScheduler, pendingTxes, ingressSubscription)
         }
     }
 
@@ -157,7 +171,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         val validators = mutableListOf<SingleValidator<ValidateUpstreamSettingsResult>>(
             ChainIdValidator(upstream, chain),
         )
-        if (options.valdateErigonBug) {
+        if (options.validateErigonBug) {
             validators.add(ErigonBuggedValidator(upstream))
         }
         val limitValidator = EthCallLimitValidator(upstream, options, config)

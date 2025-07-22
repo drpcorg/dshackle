@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(./gradlew:*)",
+      "Bash(./build/install/dshackle/bin/dshackle:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(grep:*)",
+      "Bash(timeout:*)",
+      "Bash(gtimeout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": []
+  }
+}
