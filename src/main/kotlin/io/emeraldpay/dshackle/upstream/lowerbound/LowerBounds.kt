@@ -67,10 +67,6 @@ class LowerBounds(
         }
     }
 
-    fun predictNextBound(type: LowerBoundType): Long {
-        return predictNextBound(type, 0)
-    }
-
     fun predictNextBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         val lowerBoundCoeffs = lowerBounds[type] ?: return 0
 

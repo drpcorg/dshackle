@@ -225,7 +225,7 @@ class SelectorTest {
         expected: MatchesResponse,
     ) {
         val up = mock<Upstream> {
-            on { predictLowerBound(LowerBoundType.STATE) } doReturn predicted
+            on { predictLowerBound(LowerBoundType.STATE, 0) } doReturn predicted
         }
         val matcher = Selector.LowerHeightMatcher(lowerHeight, LowerBoundType.STATE)
 

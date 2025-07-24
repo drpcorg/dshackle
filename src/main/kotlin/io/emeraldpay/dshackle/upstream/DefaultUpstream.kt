@@ -168,10 +168,6 @@ abstract class DefaultUpstream(
         // NOOP
     }
 
-    override fun predictLowerBound(type: LowerBoundType): Long {
-        return predictLowerBound(type, 0)
-    }
-
     override fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         return 0
     }
