@@ -417,6 +417,10 @@ open class GenericUpstream(
         return lowerBoundService.predictLowerBound(type)
     }
 
+    override fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
+        return lowerBoundService.predictLowerBound(type, timeOffsetSeconds)
+    }
+
     fun isValid(): Boolean = isUpstreamValid.get()
 
     companion object {

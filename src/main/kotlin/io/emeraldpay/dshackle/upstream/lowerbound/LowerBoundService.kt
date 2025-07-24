@@ -34,9 +34,13 @@ abstract class LowerBoundService(
     }
 
     fun predictLowerBound(type: LowerBoundType): Long {
+        return predictLowerBound(type, 0)
+    }
+
+    fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         return detectors
             .firstOrNull { it.types().contains(type) }
-            ?.predictLowerBound(type)
+            ?.predictLowerBound(type, timeOffsetSeconds)
             ?: 0
     }
 
