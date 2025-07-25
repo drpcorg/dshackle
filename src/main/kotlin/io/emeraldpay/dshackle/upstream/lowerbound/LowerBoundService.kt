@@ -33,10 +33,10 @@ abstract class LowerBoundService(
             .forEach { it.updateLowerBound(lowerBound, type) }
     }
 
-    fun predictLowerBound(type: LowerBoundType): Long {
+    fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         return detectors
             .firstOrNull { it.types().contains(type) }
-            ?.predictLowerBound(type)
+            ?.predictLowerBound(type, timeOffsetSeconds)
             ?: 0
     }
 
