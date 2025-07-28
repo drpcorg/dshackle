@@ -18,7 +18,14 @@ class EthereumLowerBoundStateDetector(
 ) : EthereumLowerBoundDetectorBase(upstream.getChain()) {
     private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.STATE, stateErrors, lowerBounds, commonErrorPatterns)
 
+    @Volatile
+    private var supportsStateOverride: Boolean? = null
+
     companion object {
+        private const val STATE_CHECKER_ADDRESS = "0x0000000000000000000000000000000000000001"
+        private const val STATE_CHECKER_CALL_DATA = "0x26121ff0"
+        private const val STATE_CHECKER_BYTECODE = "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c806326121ff014610030575b600080fd5b610038610048565b6040516100459190610073565b60405180910390f35b6000602a905090565b6000819050919050565b61006d81610052565b82525050565b60006020820190506100886000830184610064565b9291505056fea2646970667358221220c7b6d4bc2c1b1d5b5c2e8e2a5b5c5d5e5f5a5b5c5d5e5f5a5b5c5d5e5f5a5b5c64736f6c63430008130033"
+
         val stateErrors = setOf(
             "No state available for block", // nethermind
             "missing trie node", // geth
@@ -66,24 +73,113 @@ class EthereumLowerBoundStateDetector(
         return 3
     }
 
+    private fun testStateOverrideSupport(): Mono<Boolean> {
+        return upstream.getIngressReader().read(
+            ChainRequest(
+                "eth_call",
+                ListParams(
+                    mapOf(
+                        "to" to STATE_CHECKER_ADDRESS,
+                        "data" to STATE_CHECKER_CALL_DATA,
+                    ),
+                    "latest",
+                    mapOf(
+                        STATE_CHECKER_ADDRESS to mapOf(
+                            "code" to STATE_CHECKER_BYTECODE,
+                        ),
+                    ),
+                ),
+            ),
+        ).map { response ->
+            if (response.hasResult()) {
+                val result = String(response.getResult())
+                result != "\"0x\"" && result != "\"0x0\"" && !response.getResult().contentEquals(Global.nullValue)
+            } else {
+                false
+            }
+        }.onErrorReturn(false)
+            .timeout(Defaults.internalCallsTimeout)
+    }
+
+    private fun stateDetectionWithOverride(block: Long): Mono<ChainResponse> {
+        return upstream.getIngressReader().read(
+            ChainRequest(
+                "eth_call",
+                ListParams(
+                    mapOf(
+                        "to" to STATE_CHECKER_ADDRESS,
+                        "data" to STATE_CHECKER_CALL_DATA,
+                    ),
+                    block.toHex(),
+                    mapOf(
+                        STATE_CHECKER_ADDRESS to mapOf(
+                            "code" to STATE_CHECKER_BYTECODE,
+                        ),
+                    ),
+                ),
+            ),
+        ).doOnNext { response ->
+            if (response.hasResult()) {
+                val result = String(response.getResult())
+                if (result == "\"0x\"" || result == "\"0x0\"" || response.getResult().contentEquals(Global.nullValue)) {
+                    throw IllegalStateException("No state data")
+                }
+            } else {
+                throw IllegalStateException("No state data")
+            }
+        }.timeout(Defaults.internalCallsTimeout)
+    }
+
+    private fun fallbackStateDetection(block: Long): Mono<ChainResponse> {
+        return upstream.getIngressReader().read(
+            ChainRequest(
+                "eth_getBalance",
+                ListParams(ZERO_ADDRESS, block.toHex()),
+            ),
+        ).doOnNext { response ->
+            if (response.hasResult() && response.getResult().contentEquals(Global.nullValue)) {
+                throw IllegalStateException("No state data")
+            }
+        }.timeout(Defaults.internalCallsTimeout)
+    }
+
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
         return recursiveLowerBound.recursiveDetectLowerBound { block ->
             if (block == 0L) {
                 Mono.just(ChainResponse(ByteArray(0), null))
             } else {
-                upstream.getIngressReader().read(
-                    ChainRequest(
-                        "eth_getBalance",
-                        ListParams(ZERO_ADDRESS, block.toHex()),
-                    ),
-                ).timeout(Defaults.internalCallsTimeout)
-            }.doOnNext {
-                if (it.hasResult() && it.getResult().contentEquals(Global.nullValue)) {
-                    throw IllegalStateException("No state data")
-                }
+                detectStateForBlock(block)
             }
         }.flatMap {
             Flux.just(it, lowerBoundFrom(it, LowerBoundType.TRACE))
+        }
+    }
+
+    private fun detectStateForBlock(block: Long): Mono<ChainResponse> {
+        val currentSupportsStateOverride = supportsStateOverride
+
+        return if (currentSupportsStateOverride == true) {
+            stateDetectionWithOverride(block).onErrorResume {
+                fallbackStateDetection(block)
+            }
+        } else if (currentSupportsStateOverride == false) {
+            fallbackStateDetection(block)
+        } else {
+            testStateOverrideSupport()
+                .doOnNext { supported -> supportsStateOverride = supported }
+                .flatMap { supported ->
+                    if (supported) {
+                        stateDetectionWithOverride(block).onErrorResume {
+                            fallbackStateDetection(block)
+                        }
+                    } else {
+                        fallbackStateDetection(block)
+                    }
+                }
+                .onErrorResume {
+                    supportsStateOverride = false
+                    fallbackStateDetection(block)
+                }
         }
     }
 
