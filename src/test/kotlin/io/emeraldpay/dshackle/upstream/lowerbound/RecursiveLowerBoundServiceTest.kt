@@ -35,6 +35,58 @@ class RecursiveLowerBoundServiceTest {
     private val hash1 = "0x1b1a5dd69e12aa12e2b9197be0d0cceef3dde6368ea6376ad7c8b06488c9cf6a"
     private val hash2 = "0x1b1a5dd69e12aa12e2b9197be0d0cceef3dde6368ea6376ad7c8b06488c9cf7a"
 
+    companion object {
+        private const val STATE_CHECKER_ADDRESS = "0x0000000000000000000000000000000000000001"
+        private const val STATE_CHECKER_CALL_DATA = "0x26121ff0"
+        private const val STATE_CHECKER_BYTECODE = "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c806326121ff014610030575b600080fd5b610038610048565b6040516100459190610073565b60405180910390f35b6000602a905090565b6000819050919050565b61006d81610052565b82525050565b60006020820190506100886000830184610064565b9291505056fea2646970667358221220c7b6d4bc2c1b1d5b5c2e8e2a5b5c5d5e5f5a5b5c5d5e5f5a5b5c5d5e5f5a5b5c64736f6c63430008130033"
+        private const val SUCCESS_RESPONSE = "\"0x000000000000000000000000000000000000000000000000000000000000002a\""
+
+        private fun createStateOverrideCallRequest(blockTag: String): ChainRequest {
+            return ChainRequest(
+                "eth_call",
+                ListParams(
+                    mapOf(
+                        "to" to STATE_CHECKER_ADDRESS,
+                        "data" to STATE_CHECKER_CALL_DATA,
+                    ),
+                    blockTag,
+                    mapOf(
+                        STATE_CHECKER_ADDRESS to mapOf(
+                            "code" to STATE_CHECKER_BYTECODE,
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        private fun createSuccessResponse(): ChainResponse {
+            return ChainResponse(SUCCESS_RESPONSE.toByteArray(), null)
+        }
+
+        @JvmStatic
+        fun detectorsFirstBlock(): List<Arguments> = listOf(
+            Arguments.of(
+                mock<ChainReader> {
+                    on {
+                        read(any())
+                    } doReturn Mono.just(ChainResponse("\"0x1\"".toByteArray(), null))
+                },
+                PolkadotLowerBoundService::class.java,
+            ),
+            Arguments.of(
+                mock<ChainReader> {
+                    // Mock state override support test - return success
+                    on { read(createStateOverrideCallRequest("latest")) } doReturn Mono.just(createSuccessResponse())
+                    // Mock eth_call for block 1 with state override
+                    on { read(createStateOverrideCallRequest("0x1")) } doReturn Mono.just(createSuccessResponse())
+                    // Fallback for any other calls
+                    on { read(any()) } doReturn Mono.just(ChainResponse(ByteArray(0), null))
+                },
+                EthereumLowerBoundService::class.java,
+            ),
+        )
+    }
+
     @Test
     fun `find lower data for eth`() {
         val head = mock<Head> {
@@ -44,8 +96,15 @@ class RecursiveLowerBoundServiceTest {
             File(this::class.java.getResource("/responses/get-by-number-response.json")!!.toURI()).toPath(),
         )
         val reader = mock<ChainReader> {
+            // Mock state override support test - return success
+            on { read(createStateOverrideCallRequest("latest")) } doReturn Mono.just(createSuccessResponse())
+
             blocks.forEach {
                 if (it == 17964844L) {
+                    // Mock successful state override call
+                    on { read(createStateOverrideCallRequest(it.toHex())) } doReturn Mono.just(createSuccessResponse())
+
+                    // Fallback mocks for original methods
                     on {
                         read(ChainRequest("eth_getBalance", ListParams(ZERO_ADDRESS, it.toHex())))
                     } doReturn Mono.just(ChainResponse(ByteArray(0), null))
@@ -56,6 +115,10 @@ class RecursiveLowerBoundServiceTest {
                         read(ChainRequest("eth_getTransactionByHash", ListParams("0x99e52a94cfdf83a5bdadcd2e25c71574a5a24fa4df56a33f9f8b5cb6fa0ac657")))
                     } doReturn Mono.just(ChainResponse(ByteArray(0), null))
                 } else {
+                    // Mock failed state override call
+                    on { read(createStateOverrideCallRequest(it.toHex())) } doReturn Mono.error(RuntimeException("missing trie node"))
+
+                    // Fallback mocks for original methods
                     on {
                         read(ChainRequest("eth_getBalance", ListParams(ZERO_ADDRESS, it.toHex())))
                     } doReturn Mono.error(RuntimeException("missing trie node"))
@@ -177,25 +240,5 @@ class RecursiveLowerBoundServiceTest {
             .hasSameElementsAs(
                 listOf(LowerBoundData(1L, LowerBoundType.STATE)),
             )
-    }
-
-    companion object {
-        @JvmStatic
-        fun detectorsFirstBlock(): List<Arguments> = listOf(
-            Arguments.of(
-                mock<ChainReader> {
-                    on {
-                        read(any())
-                    } doReturn Mono.just(ChainResponse("\"0x1\"".toByteArray(), null))
-                },
-                PolkadotLowerBoundService::class.java,
-            ),
-            Arguments.of(
-                mock<ChainReader> {
-                    on { read(any()) } doReturn Mono.just(ChainResponse(ByteArray(0), null))
-                },
-                EthereumLowerBoundService::class.java,
-            ),
-        )
     }
 }
