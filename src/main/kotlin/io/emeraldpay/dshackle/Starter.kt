@@ -38,7 +38,7 @@ fun main(args: Array<String>) {
 
     HeapDumpCreator.init()
 
-    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
+    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID)
 
     val cores = Runtime.getRuntime().availableProcessors()
     val maxMemory: Long = Runtime.getRuntime().maxMemory() / (1024 * 1024).toLong()
