@@ -17,6 +17,7 @@
 package io.emeraldpay.dshackle
 
 import io.netty.handler.ssl.OpenSsl
+import io.netty.util.ResourceLeakDetector
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ResourceBanner
 import org.springframework.boot.SpringApplication
@@ -36,6 +37,8 @@ fun main(args: Array<String>) {
     Schedulers.enableMetrics()
 
     HeapDumpCreator.init()
+
+    ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
 
     val cores = Runtime.getRuntime().availableProcessors()
     val maxMemory: Long = Runtime.getRuntime().maxMemory() / (1024 * 1024).toLong()
