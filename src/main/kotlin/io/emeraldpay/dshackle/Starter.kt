@@ -38,6 +38,8 @@ fun main(args: Array<String>) {
 
     HeapDumpCreator.init()
 
+    System.setProperty("io.netty.leakDetection.targetRecords", "10");
+
     ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.ADVANCED)
 
     val cores = Runtime.getRuntime().availableProcessors()
