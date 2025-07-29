@@ -385,7 +385,7 @@ open class NativeCall(
 
             val selector = request.takeIf { it.hasSelector() }?.let { Selectors.keepForwarded(it.selector) }
 
-            val isStreamRequest = request.chunkSize != 0
+            val isStreamRequest = false
 
             ValidCallContext(
                 requestItem.id,
