@@ -108,7 +108,8 @@ open class NativeCall(
                     }
                     .doOnNext {
                             callRes ->
-                        if (callRes.error?.message?.contains(Regex("method ([A-Za-z0-9_]+) does not exist/is not available")) == true) {
+                        if (callRes.error?.message?.contains(Regex("method ([A-Za-z0-9_]+) does not exist/is not available")) == true ||
+                            callRes.error?.message?.contains("method is disabled", ignoreCase = true) == true) {
                             if (it is ValidCallContext<*>) {
                                 if (it.payload is ParsedCallDetails) {
                                     log.error("nativeCallResult method ${it.payload.method} of ${it.upstream.getId()} is not available, disabling")
