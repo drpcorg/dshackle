@@ -22,9 +22,9 @@ class EthereumLowerBoundStateDetector(
     private var supportsStateOverride: Boolean? = null
 
     companion object {
-        private const val STATE_CHECKER_ADDRESS = "0x0000000000000000000000000000000000000001"
-        private const val STATE_CHECKER_CALL_DATA = "0x26121ff0"
-        private const val STATE_CHECKER_BYTECODE = "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c806326121ff014610030575b600080fd5b610038610048565b6040516100459190610073565b60405180910390f35b6000602a905090565b6000819050919050565b61006d81610052565b82525050565b60006020820190506100886000830184610064565b9291505056fea2646970667358221220c7b6d4bc2c1b1d5b5c2e8e2a5b5c5d5e5f5a5b5c5d5e5f5a5b5c5d5e5f5a5b5c64736f6c63430008130033"
+        private const val STATE_CHECKER_ADDRESS = "0x1111111111111111111111111111111111111111"
+        private const val STATE_CHECKER_CALL_DATA = "0x1eaf190c"
+        private const val STATE_CHECKER_BYTECODE = "0x6080604052348015600e575f5ffd5b50600436106026575f3560e01c80631eaf190c14602a575b5f5ffd5b60306044565b604051603b91906078565b60405180910390f35b5f5f73ffffffffffffffffffffffffffffffffffffffff1631905090565b5f819050919050565b6072816062565b82525050565b5f60208201905060895f830184606b565b9291505056fea2646970667358221220251f5b4d2ed1abe77f66fde198a57ada08562dc3b0afbc6bac0261d1bf516b5d64736f6c634300081e0033"
 
         val stateErrors = setOf(
             "No state available for block", // nethermind
@@ -74,6 +74,7 @@ class EthereumLowerBoundStateDetector(
     }
 
     private fun testStateOverrideSupport(): Mono<Boolean> {
+        log.debug("Testing state override support for upstream {}", upstream.getId())
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_call",
@@ -91,17 +92,22 @@ class EthereumLowerBoundStateDetector(
                 ),
             ),
         ).map { response ->
-            if (response.hasResult()) {
+            val supported = if (response.hasResult()) {
                 val result = String(response.getResult())
                 result != "\"0x\"" && result != "\"0x0\"" && !response.getResult().contentEquals(Global.nullValue)
             } else {
                 false
             }
-        }.onErrorReturn(false)
-            .timeout(Defaults.internalCallsTimeout)
+            log.debug("State override support test for upstream {}: {}", upstream.getId(), supported)
+            supported
+        }.onErrorResume { error ->
+            log.debug("State override support test failed for upstream {}: {}", upstream.getId(), error.message)
+            Mono.just(false)
+        }.timeout(Defaults.internalCallsTimeout)
     }
 
     private fun stateDetectionWithOverride(block: Long): Mono<ChainResponse> {
+        log.debug("Testing state with override for upstream {} at block {}", upstream.getId(), block)
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_call",
@@ -122,15 +128,22 @@ class EthereumLowerBoundStateDetector(
             if (response.hasResult()) {
                 val result = String(response.getResult())
                 if (result == "\"0x\"" || result == "\"0x0\"" || response.getResult().contentEquals(Global.nullValue)) {
+                    log.debug("State override failed for upstream {} at block {}: empty result", upstream.getId(), block)
                     throw IllegalStateException("No state data")
+                } else {
+                    log.debug("State override successful for upstream {} at block {}", upstream.getId(), block)
                 }
             } else {
+                log.debug("State override failed for upstream {} at block {}: no result", upstream.getId(), block)
                 throw IllegalStateException("No state data")
             }
+        }.doOnError { error ->
+            log.debug("State override error for upstream {} at block {}: {}", upstream.getId(), block, error.message)
         }.timeout(Defaults.internalCallsTimeout)
     }
 
     private fun fallbackStateDetection(block: Long): Mono<ChainResponse> {
+        log.debug("Testing state with fallback (eth_getBalance) for upstream {} at block {}", upstream.getId(), block)
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_getBalance",
@@ -138,18 +151,27 @@ class EthereumLowerBoundStateDetector(
             ),
         ).doOnNext { response ->
             if (response.hasResult() && response.getResult().contentEquals(Global.nullValue)) {
+                log.debug("Fallback state detection failed for upstream {} at block {}: null result", upstream.getId(), block)
                 throw IllegalStateException("No state data")
+            } else {
+                log.debug("Fallback state detection successful for upstream {} at block {}", upstream.getId(), block)
             }
+        }.doOnError { error ->
+            log.debug("Fallback state detection error for upstream {} at block {}: {}", upstream.getId(), block, error.message)
         }.timeout(Defaults.internalCallsTimeout)
     }
 
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
+        log.info("Starting state lower bound detection for upstream {}", upstream.getId())
         return recursiveLowerBound.recursiveDetectLowerBound { block ->
             if (block == 0L) {
+                log.debug("Testing block 0 for upstream {} (genesis block)", upstream.getId())
                 Mono.just(ChainResponse(ByteArray(0), null))
             } else {
                 detectStateForBlock(block)
             }
+        }.doOnNext { lowerBoundData ->
+            log.info("Found state lower bound for upstream {}: block {}", upstream.getId(), lowerBoundData.lowerBound)
         }.flatMap {
             Flux.just(it, lowerBoundFrom(it, LowerBoundType.TRACE))
         }
@@ -158,28 +180,46 @@ class EthereumLowerBoundStateDetector(
     private fun detectStateForBlock(block: Long): Mono<ChainResponse> {
         val currentSupportsStateOverride = supportsStateOverride
 
-        return if (currentSupportsStateOverride == true) {
-            stateDetectionWithOverride(block).onErrorResume {
-                fallbackStateDetection(block)
-            }
-        } else if (currentSupportsStateOverride == false) {
-            fallbackStateDetection(block)
-        } else {
-            testStateOverrideSupport()
-                .doOnNext { supported -> supportsStateOverride = supported }
-                .flatMap { supported ->
-                    if (supported) {
-                        stateDetectionWithOverride(block).onErrorResume {
-                            fallbackStateDetection(block)
-                        }
-                    } else {
-                        fallbackStateDetection(block)
-                    }
-                }
-                .onErrorResume {
-                    supportsStateOverride = false
+        return when (currentSupportsStateOverride) {
+            true -> {
+                log.debug("Using state override for upstream {} at block {} (cached: supported)", upstream.getId(), block)
+                stateDetectionWithOverride(block).onErrorResume { error ->
+                    log.debug("State override failed for upstream {} at block {}, falling back to eth_getBalance: {}", 
+                        upstream.getId(), block, error.message)
                     fallbackStateDetection(block)
                 }
+            }
+            false -> {
+                log.debug("Using fallback method for upstream {} at block {} (cached: not supported)", upstream.getId(), block)
+                fallbackStateDetection(block)
+            }
+            null -> {
+                log.debug("Testing state override support for upstream {} (first time)", upstream.getId())
+                testStateOverrideSupport()
+                    .doOnNext { supported -> 
+                        supportsStateOverride = supported
+                        log.info("State override support for upstream {}: {}", upstream.getId(), supported)
+                    }
+                    .flatMap { supported ->
+                        if (supported) {
+                            log.debug("Using state override for upstream {} at block {} (newly detected)", upstream.getId(), block)
+                            stateDetectionWithOverride(block).onErrorResume { error ->
+                                log.debug("State override failed for upstream {} at block {}, falling back to eth_getBalance: {}", 
+                                    upstream.getId(), block, error.message)
+                                fallbackStateDetection(block)
+                            }
+                        } else {
+                            log.debug("Using fallback method for upstream {} at block {} (newly detected)", upstream.getId(), block)
+                            fallbackStateDetection(block)
+                        }
+                    }
+                    .onErrorResume { error ->
+                        log.warn("State override support test failed for upstream {}, falling back to eth_getBalance: {}", 
+                            upstream.getId(), error.message)
+                        supportsStateOverride = false
+                        fallbackStateDetection(block)
+                    }
+            }
         }
     }
 
