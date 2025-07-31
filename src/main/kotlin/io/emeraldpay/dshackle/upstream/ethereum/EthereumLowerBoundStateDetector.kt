@@ -184,8 +184,12 @@ class EthereumLowerBoundStateDetector(
             true -> {
                 log.debug("Using state override for upstream {} at block {} (cached: supported)", upstream.getId(), block)
                 stateDetectionWithOverride(block).onErrorResume { error ->
-                    log.debug("State override failed for upstream {} at block {}, falling back to eth_getBalance: {}", 
-                        upstream.getId(), block, error.message)
+                    log.debug(
+                        "State override failed for upstream {} at block {}, falling back to eth_getBalance: {}",
+                        upstream.getId(),
+                        block,
+                        error.message,
+                    )
                     fallbackStateDetection(block)
                 }
             }
@@ -196,7 +200,7 @@ class EthereumLowerBoundStateDetector(
             null -> {
                 log.debug("Testing state override support for upstream {} (first time)", upstream.getId())
                 testStateOverrideSupport()
-                    .doOnNext { supported -> 
+                    .doOnNext { supported ->
                         supportsStateOverride = supported
                         log.info("State override support for upstream {}: {}", upstream.getId(), supported)
                     }
@@ -204,8 +208,12 @@ class EthereumLowerBoundStateDetector(
                         if (supported) {
                             log.debug("Using state override for upstream {} at block {} (newly detected)", upstream.getId(), block)
                             stateDetectionWithOverride(block).onErrorResume { error ->
-                                log.debug("State override failed for upstream {} at block {}, falling back to eth_getBalance: {}", 
-                                    upstream.getId(), block, error.message)
+                                log.debug(
+                                    "State override failed for upstream {} at block {}, falling back to eth_getBalance: {}",
+                                    upstream.getId(),
+                                    block,
+                                    error.message,
+                                )
                                 fallbackStateDetection(block)
                             }
                         } else {
@@ -214,8 +222,11 @@ class EthereumLowerBoundStateDetector(
                         }
                     }
                     .onErrorResume { error ->
-                        log.warn("State override support test failed for upstream {}, falling back to eth_getBalance: {}", 
-                            upstream.getId(), error.message)
+                        log.warn(
+                            "State override support test failed for upstream {}, falling back to eth_getBalance: {}",
+                            upstream.getId(),
+                            error.message,
+                        )
                         supportsStateOverride = false
                         fallbackStateDetection(block)
                     }
