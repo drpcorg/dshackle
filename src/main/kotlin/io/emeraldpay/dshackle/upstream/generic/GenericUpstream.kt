@@ -402,7 +402,7 @@ open class GenericUpstream(
                 .subscribeOn(finalizationScheduler)
                 .subscribe { data ->
                     metrics.computeIfAbsent(
-                        "${data.type}-${getId()}"
+                        "${data.type}-${getId()}",
                     ) {
                         Gauge.builder("upstream_blocks", finalizationDetector) { detector ->
                             detector.getFinalizationByType(data.type)?.height?.toDouble() ?: 0.0
