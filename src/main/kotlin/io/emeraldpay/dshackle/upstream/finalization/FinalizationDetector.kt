@@ -14,6 +14,8 @@ interface FinalizationDetector {
 
     fun getFinalizations(): Collection<FinalizationData>
 
+    fun getFinalizationByType(type: FinalizationType): FinalizationData?
+
     fun addFinalization(finalization: FinalizationData)
 }
 
@@ -28,6 +30,10 @@ class NoopFinalizationDetector : FinalizationDetector {
 
     override fun getFinalizations(): Collection<FinalizationData> {
         return emptyList()
+    }
+
+    override fun getFinalizationByType(type: FinalizationType): FinalizationData? {
+        return null
     }
 
     override fun addFinalization(finalization: FinalizationData) {
