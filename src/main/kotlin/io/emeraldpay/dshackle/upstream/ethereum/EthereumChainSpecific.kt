@@ -160,6 +160,10 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         if (options.valdateErigonBug) {
             validators.add(ErigonBuggedValidator(upstream))
         }
+        
+        // Add LogIndexValidator to detect incorrect logIndex numbering
+        validators.add(LogIndexValidator(upstream))
+        
         val limitValidator = EthCallLimitValidator(upstream, options, config)
         if (limitValidator.isEnabled()) {
             validators.add(limitValidator)
