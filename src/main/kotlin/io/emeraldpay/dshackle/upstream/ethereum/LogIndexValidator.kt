@@ -132,39 +132,35 @@ class LogIndexValidator(
         // Start with first two, but if they don't both have logs, keep searching
         return findTwoTransactionsWithLogs(transactions)
             .flatMap { txPair ->
-                if (txPair == null) {
-                    // Couldn't find two transactions with logs in this block
-                    Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
-                } else {
-                    // Get receipts for both transactions
-                    Mono.zip(
-                        getTransactionReceipt(txPair.first),
-                        getTransactionReceipt(txPair.second),
-                    ).map { receipts ->
-                        val firstReceipt = receipts.t1
-                        val secondReceipt = receipts.t2
+                // Get receipts for both transactions
+                Mono.zip(
+                    getTransactionReceipt(txPair.first),
+                    getTransactionReceipt(txPair.second),
+                ).map { receipts ->
+                    val firstReceipt = receipts.t1
+                    val secondReceipt = receipts.t2
 
-                        val firstLogs = firstReceipt.get("logs")
-                        val secondLogs = secondReceipt.get("logs")
+                    val firstLogs = firstReceipt.get("logs")
+                    val secondLogs = secondReceipt.get("logs")
 
-                        // Validate only if both have logs
-                        if (firstLogs != null && firstLogs.isArray && firstLogs.size() > 0 &&
-                            secondLogs != null && secondLogs.isArray && secondLogs.size() > 0
-                        ) {
-                            validateLogIndices(firstLogs, secondLogs)
-                        } else {
-                            ValidateUpstreamSettingsResult.UPSTREAM_VALID
-                        }
+                    // Validate only if both have logs
+                    if (firstLogs != null && firstLogs.isArray && firstLogs.size() > 0 &&
+                        secondLogs != null && secondLogs.isArray && secondLogs.size() > 0
+                    ) {
+                        validateLogIndices(firstLogs, secondLogs)
+                    } else {
+                        ValidateUpstreamSettingsResult.UPSTREAM_VALID
                     }
                 }
             }
+            .defaultIfEmpty(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
     }
 
     /**
      * Find two consecutive transactions that both have logs
-     * Returns pair of transaction hashes or null if not found
+     * Returns pair of transaction hashes or empty Mono if not found
      */
-    private fun findTwoTransactionsWithLogs(transactions: JsonNode): Mono<kotlin.Pair<String, String>?> {
+    private fun findTwoTransactionsWithLogs(transactions: JsonNode): Mono<kotlin.Pair<String, String>> {
         // For simplicity, just check first two transactions
         // Could be enhanced to check all consecutive pairs
         if (transactions.size() >= 2) {
@@ -175,7 +171,7 @@ class LogIndexValidator(
                 return Mono.just(kotlin.Pair(firstTxHash, secondTxHash))
             }
         }
-        return Mono.just(null)
+        return Mono.empty()
     }
 
     /**
