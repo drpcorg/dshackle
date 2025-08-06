@@ -257,7 +257,7 @@ class ErigonBuggedValidator(
                 upstream.getId(),
                 ex.message,
             )
-            Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+            Mono.just(onError)
         }
     }
 
