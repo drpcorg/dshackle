@@ -49,11 +49,7 @@ class LogIndexValidatorTest {
             secondTxLogs = listOf("0x0", "0x1")  // BUG: should be 0x3, 0x4
         )
         
-        // Skip to 10th call to trigger validation (callCount reset in setup!)
-        repeat(9) {
-            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR).block()
-        }
-        
+        // First call (callCount=0) triggers validation immediately
         StepVerifier.create(
             validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
         )
@@ -69,11 +65,7 @@ class LogIndexValidatorTest {
             secondTxLogs = listOf("0x3", "0x4")  // CORRECT: continues globally
         )
         
-        // Skip to 10th call to trigger validation
-        repeat(9) {
-            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR).block()
-        }
-        
+        // First call triggers validation immediately
         StepVerifier.create(
             validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
         )
@@ -89,11 +81,7 @@ class LogIndexValidatorTest {
             secondTxLogs = listOf("0x0")  // BUG: should be 0x1
         )
         
-        // Skip to 10th call to trigger validation
-        repeat(9) {
-            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR).block()
-        }
-        
+        // First call triggers validation immediately
         StepVerifier.create(
             validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
         )
@@ -168,16 +156,31 @@ class LogIndexValidatorTest {
     }
 
     @Test
-    fun `skips validation when call count not multiple of 10`() {
-        // Note: First call will be count=1, which % 10 != 0, so should skip
-        // No mock setup needed - validator should return VALID without making calls
-        
-        StepVerifier.create(
-            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
+    fun `performs validation only once every 10 calls`() {
+        // First call (callCount=0) will perform validation (0 % 10 == 0)
+        // So we need to set up mocks for the first call
+        setupMockForBugDetection(
+            firstTxLogs = listOf("0x0", "0x1"),
+            secondTxLogs = listOf("0x2", "0x3")  // Correct numbering
         )
-            .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
-            .expectComplete()
-            .verify(Duration.ofSeconds(1))
+        
+        // First call - performs validation (callCount=0)
+        val firstResult = validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR).block()
+        assert(firstResult == ValidateUpstreamSettingsResult.UPSTREAM_VALID) { "First call should validate and return VALID" }
+        
+        // Calls 2-10 should skip validation and return VALID immediately
+        repeat(9) { index ->
+            StepVerifier.create(
+                validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
+            )
+                .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+                .expectComplete()
+                .verify(Duration.ofMillis(100)) // Should be fast since no actual validation
+        }
+        
+        // 11th call (callCount=10) should perform validation again
+        val eleventhResult = validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR).block()
+        assert(eleventhResult == ValidateUpstreamSettingsResult.UPSTREAM_VALID) { "11th call should validate again" }
     }
 
     @Test

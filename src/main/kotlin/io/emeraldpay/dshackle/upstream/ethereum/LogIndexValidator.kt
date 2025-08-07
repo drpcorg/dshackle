@@ -158,7 +158,7 @@ class LogIndexValidator(
 
     /**
      * Find two consecutive transactions that both have logs
-     * Returns pair of transaction hashes or empty Mono if not found
+     * Returns a pair of transaction hashes or empty Mono if not found
      */
     private fun findTwoTransactionsWithLogs(transactions: JsonNode): Mono<kotlin.Pair<String, String>> {
         // For simplicity, just check first two transactions
