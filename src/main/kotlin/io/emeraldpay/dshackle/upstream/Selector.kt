@@ -108,6 +108,7 @@ class Selector {
                                 LowerHeightMatcher(
                                     it.lowerHeightSelector.height,
                                     it.lowerHeightSelector.lowerBoundType.fromProtoType(),
+                                    it.lowerHeightSelector.timeOffset,
                                 )
                             } else {
                                 empty
@@ -569,9 +570,10 @@ class Selector {
     data class LowerHeightMatcher(
         private val lowerHeight: Long,
         private val boundType: LowerBoundType,
+        private val timeOffsetSeconds: Long = 0,
     ) : Matcher() {
         override fun matchesWithCause(up: Upstream): MatchesResponse {
-            val predictedLowerBound = up.predictLowerBound(boundType)
+            val predictedLowerBound = up.predictLowerBound(boundType, timeOffsetSeconds)
             return if (lowerHeight >= predictedLowerBound && predictedLowerBound != 0L) {
                 Success
             } else {

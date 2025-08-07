@@ -16,7 +16,7 @@ class LowerBoundsPredictionTest {
         lowerBounds.updateBound(newLowerBound)
 
         val lastBound = lowerBounds.getLastBound(LowerBoundType.STATE)
-        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
         val allBounds = lowerBounds.getAllBounds(LowerBoundType.STATE)
 
         assertThat(lastBound).isEqualTo(newLowerBound)
@@ -29,7 +29,7 @@ class LowerBoundsPredictionTest {
         val lowerBounds = LowerBounds(Chain.ETHEREUM__MAINNET)
 
         val lastBound = lowerBounds.getLastBound(LowerBoundType.STATE)
-        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
         val allBounds = lowerBounds.getAllBounds(LowerBoundType.STATE)
 
         assertThat(lastBound).isNull()
@@ -46,7 +46,7 @@ class LowerBoundsPredictionTest {
         lowerBounds.updateBound(newLowerBound)
 
         val lastBound = lowerBounds.getLastBound(LowerBoundType.STATE)
-        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
         val allBounds = lowerBounds.getAllBounds(LowerBoundType.STATE)
 
         assertThat(lastBound).isEqualTo(newLowerBound)
@@ -56,7 +56,7 @@ class LowerBoundsPredictionTest {
         lowerBounds.updateBound(nextNewLowerBound)
 
         val newLastBound = lowerBounds.getLastBound(LowerBoundType.STATE)
-        val newPredictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val newPredictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
         val newAllBounds = lowerBounds.getAllBounds(LowerBoundType.STATE)
 
         assertThat(newLastBound).isEqualTo(nextNewLowerBound)
@@ -73,7 +73,7 @@ class LowerBoundsPredictionTest {
         lowerBounds.updateBound(LowerBoundData(100000L, 1000, LowerBoundType.STATE))
 
         val lastBound = lowerBounds.getLastBound(LowerBoundType.STATE)
-        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val predictedNextBound = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
         val allBounds = lowerBounds.getAllBounds(LowerBoundType.STATE)
 
         assertThat(lastBound).isEqualTo(newLowerBound)
@@ -162,7 +162,7 @@ class LowerBoundsPredictionTest {
         lowerBounds.updateBound(lowerBound3)
 
         assertThat(lowerBounds.getLastBound(LowerBoundType.STATE)).isEqualTo(lowerBound3)
-        assertThat(lowerBounds.predictNextBound(LowerBoundType.STATE)).isEqualTo(15060L)
+        assertThat(lowerBounds.predictNextBound(LowerBoundType.STATE, 0)).isEqualTo(15060L)
         assertThat(lowerBounds.getAllBounds(LowerBoundType.STATE)).isEqualTo(listOf(lowerBound1, lowerBound2, lowerBound3))
     }
 
@@ -178,7 +178,7 @@ class LowerBoundsPredictionTest {
         lowerBounds.updateBound(lowerBound2)
         lowerBounds.updateBound(lowerBound3)
 
-        val predicted = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val predicted = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
 
         assertThat(predicted)
             .isLessThan(37996030)
@@ -193,7 +193,7 @@ class LowerBoundsPredictionTest {
 
         lowerBounds.updateBound(lowerBound1)
 
-        val predicted = lowerBounds.predictNextBound(LowerBoundType.STATE)
+        val predicted = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
 
         assertThat(predicted)
             .isLessThan(37996030)
