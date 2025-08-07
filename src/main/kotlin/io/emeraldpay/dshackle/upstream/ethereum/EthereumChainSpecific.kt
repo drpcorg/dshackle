@@ -162,7 +162,10 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         }
 
         // Add LogIndexValidator to detect incorrect logIndex numbering
-        validators.add(LogIndexValidator(upstream))
+        // Can be disabled via options.disableLogIndexValidation
+        if (!options.disableLogIndexValidation) {
+            validators.add(LogIndexValidator(upstream))
+        }
 
         val limitValidator = EthCallLimitValidator(upstream, options, config)
         if (limitValidator.isEnabled()) {
