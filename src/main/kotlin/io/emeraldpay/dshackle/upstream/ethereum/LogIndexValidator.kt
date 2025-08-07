@@ -42,6 +42,13 @@ class LogIndexValidator(
     private val upstream: Upstream,
 ) : SingleValidator<ValidateUpstreamSettingsResult> {
 
+    private data class TransactionValidationData(
+        val firstTxHash: String,
+        val secondTxHash: String,
+        val firstReceipt: JsonNode,
+        val secondReceipt: JsonNode,
+    )
+
     companion object {
         @JvmStatic
         val log: Logger = LoggerFactory.getLogger(LogIndexValidator::class.java)
@@ -129,28 +136,37 @@ class LogIndexValidator(
         }
 
         // Try to find two transactions with logs
-        // Start with first two, but if they don't both have logs, keep searching
         return findTwoTransactionsWithLogs(transactions)
             .flatMap { txPair ->
-                // Get receipts for both transactions
+                // Get receipts for both transactions and create validation data
                 Mono.zip(
                     getTransactionReceipt(txPair.first),
                     getTransactionReceipt(txPair.second),
                 ).map { receipts ->
-                    val firstReceipt = receipts.t1
-                    val secondReceipt = receipts.t2
+                    TransactionValidationData(
+                        firstTxHash = txPair.first,
+                        secondTxHash = txPair.second,
+                        firstReceipt = receipts.t1,
+                        secondReceipt = receipts.t2,
+                    )
+                }
+            }
+            .map { validationData ->
+                val firstLogs = validationData.firstReceipt.get("logs")
+                val secondLogs = validationData.secondReceipt.get("logs")
 
-                    val firstLogs = firstReceipt.get("logs")
-                    val secondLogs = secondReceipt.get("logs")
-
-                    // Validate only if both have logs
-                    if (firstLogs != null && firstLogs.isArray && firstLogs.size() > 0 &&
-                        secondLogs != null && secondLogs.isArray && secondLogs.size() > 0
-                    ) {
-                        validateLogIndices(firstLogs, secondLogs)
-                    } else {
-                        ValidateUpstreamSettingsResult.UPSTREAM_VALID
-                    }
+                // Validate only if both have logs
+                if (firstLogs != null && firstLogs.isArray && firstLogs.size() > 0 &&
+                    secondLogs != null && secondLogs.isArray && secondLogs.size() > 0
+                ) {
+                    validateLogIndices(
+                        firstLogs,
+                        secondLogs,
+                        validationData.firstTxHash,
+                        validationData.secondTxHash,
+                    )
+                } else {
+                    ValidateUpstreamSettingsResult.UPSTREAM_VALID
                 }
             }
             .defaultIfEmpty(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
@@ -177,7 +193,12 @@ class LogIndexValidator(
     /**
      * Validate that logIndex is global across the block, not local to transaction
      */
-    private fun validateLogIndices(firstTxLogs: JsonNode, secondTxLogs: JsonNode): ValidateUpstreamSettingsResult {
+    private fun validateLogIndices(
+        firstTxLogs: JsonNode,
+        secondTxLogs: JsonNode,
+        firstTxHash: String,
+        secondTxHash: String,
+    ): ValidateUpstreamSettingsResult {
         // CRITICAL: We need BOTH transactions to have logs to detect the bug
         // If first tx has no logs and second tx starts at 0, that's CORRECT behavior
 
@@ -212,7 +233,7 @@ class LogIndexValidator(
 
         if (firstTxFirstLogIndex != 0L) {
             log.warn(
-                "Node ${upstream.getId()} has unexpected logIndex start: " +
+                "Node ${upstream.getId()} has unexpected logIndex start in transaction $firstTxHash: " +
                     "first transaction's first log has logIndex=$firstTxFirstLogIndex instead of 0",
             )
         }
@@ -224,8 +245,8 @@ class LogIndexValidator(
             // This is the bug! Second transaction should not start at 0 when first has logs
             log.error(
                 "Node ${upstream.getId()} uses LOCAL logIndex instead of GLOBAL. " +
-                    "First transaction has ${firstTxLogs.size()} logs (indices 0-$firstTxLastLogIndex), " +
-                    "but second transaction starts at logIndex=0 instead of $expectedSecondTxStart. " +
+                    "First tx ($firstTxHash) has ${firstTxLogs.size()} logs (indices 0-$firstTxLastLogIndex), " +
+                    "but second tx ($secondTxHash) starts at logIndex=0 instead of $expectedSecondTxStart. " +
                     "This indicates Erigon bug with incorrect logIndex numbering.",
             )
             return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
@@ -234,7 +255,7 @@ class LogIndexValidator(
         // Additional validation: check if indices are continuous
         if (secondTxFirstLogIndex != expectedSecondTxStart) {
             log.warn(
-                "Node ${upstream.getId()} has non-continuous logIndex: " +
+                "Node ${upstream.getId()} has non-continuous logIndex between transactions $firstTxHash and $secondTxHash: " +
                     "second transaction starts at $secondTxFirstLogIndex, expected $expectedSecondTxStart",
             )
             // This might be a different issue, but not the specific bug we're looking for
