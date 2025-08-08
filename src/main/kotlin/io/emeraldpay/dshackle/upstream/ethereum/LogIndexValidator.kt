@@ -57,6 +57,7 @@ class LogIndexValidator(
 
         // Check every N validations to save resources
         private const val CHECK_FREQUENCY = 10
+        private const val CHECK_TX_COUNT = 6
 
         // Maximum attempts to find a suitable block for validation
         private const val MAX_BLOCK_SEARCH_ATTEMPTS = 5
@@ -219,21 +220,63 @@ class LogIndexValidator(
     }
 
     /**
-     * Find two consecutive transactions that both have logs
+     * Find first two transactions that both have logs (not necessarily consecutive)
      * Returns a pair of transaction hashes or empty Mono if not found
      */
     private fun findTwoTransactionsWithLogs(transactions: JsonNode): Mono<kotlin.Pair<String, String>> {
-        // For simplicity, just check first two transactions
-        // Could be enhanced to check all consecutive pairs
-        if (transactions.size() >= 2) {
-            val firstTxHash = transactions[0].get("hash")?.asText()
-            val secondTxHash = transactions[1].get("hash")?.asText()
+        // Search for first two transactions that have logs (not necessarily consecutive)
+        val maxSearchCount = minOf(CHECK_TX_COUNT, transactions.size()) // Limit search to avoid excessive RPC calls
+        val foundTxHashes = mutableListOf<String>()
 
-            if (firstTxHash != null && secondTxHash != null) {
-                return Mono.just(kotlin.Pair(firstTxHash, secondTxHash))
-            }
+        return searchForTransactionsWithLogs(transactions, 0, maxSearchCount, foundTxHashes)
+            .filter { it.size >= 2 }
+            .map { kotlin.Pair(it[0], it[1]) }
+            .switchIfEmpty(Mono.empty())
+    }
+
+    /**
+     * Recursively search for transactions with logs, checking receipts one by one
+     * Stops as soon as we find two transactions with logs
+     */
+    private fun searchForTransactionsWithLogs(
+        transactions: JsonNode,
+        currentIndex: Int,
+        maxSearchCount: Int,
+        foundTxHashes: MutableList<String>,
+    ): Mono<List<String>> {
+        // Stop if we found enough transactions or reached the limit
+        if (foundTxHashes.size >= 2 || currentIndex >= maxSearchCount || currentIndex >= transactions.size()) {
+            return Mono.just(foundTxHashes.toList())
         }
-        return Mono.empty()
+
+        val txHash = transactions[currentIndex].get("hash")?.asText()
+        if (txHash == null) {
+            log.warn("Transaction at index $currentIndex has no hash, aborting validation due to corrupted block data")
+            return Mono.just(emptyList<String>())
+        }
+
+        return getTransactionReceipt(txHash)
+            .map { receipt ->
+                val logs = receipt.get("logs")
+                if (logs != null && logs.isArray && logs.size() > 0) {
+                    // This transaction has logs, add it to our list
+                    foundTxHashes.add(txHash)
+                    log.debug("Found transaction with logs: $txHash (${logs.size()} logs)")
+                }
+                foundTxHashes.toList()
+            }
+            .flatMap { currentFound ->
+                // Continue searching if we need more transactions
+                if (currentFound.size >= 2) {
+                    Mono.just(currentFound)
+                } else {
+                    searchForTransactionsWithLogs(transactions, currentIndex + 1, maxSearchCount, foundTxHashes)
+                }
+            }
+            .onErrorResume { error ->
+                log.warn("Error getting receipt for $txHash: ${error.message}, aborting validation to avoid false results")
+                Mono.just(emptyList<String>())
+            }
     }
 
     /**
