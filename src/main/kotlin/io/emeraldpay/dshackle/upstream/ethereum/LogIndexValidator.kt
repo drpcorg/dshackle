@@ -278,13 +278,15 @@ class LogIndexValidator(
 
         // Additional validation: check if indices are continuous
         if (secondTxFirstLogIndex != expectedSecondTxStart) {
-            log.warn(
+            log.error(
                 "Node ${upstream.getId()} has non-continuous logIndex between transactions $firstTxHash and $secondTxHash: " +
-                    "second transaction starts at $secondTxFirstLogIndex, expected $expectedSecondTxStart",
+                    "second transaction starts at $secondTxFirstLogIndex, expected $expectedSecondTxStart. " +
+                    "This indicates missing or incorrectly numbered logs.",
             )
-            // This might be a different issue, but not the specific bug we're looking for
+            return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
         }
 
+        // If we got here, everything is correct
         return ValidateUpstreamSettingsResult.UPSTREAM_VALID
     }
 

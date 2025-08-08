@@ -209,16 +209,16 @@ class LogIndexValidatorTest {
     }
 
     @Test
-    fun `handles non-continuous logIndex as warning not error`() {
+    fun `detects non-continuous logIndex as error`() {
         setupMockForBugDetection(
             firstTxLogs = listOf("0x0", "0x1", "0x2"),
-            secondTxLogs = listOf("0x5", "0x6"), // Gap but not starting at 0
+            secondTxLogs = listOf("0x5", "0x6"), // Gap - should be 0x3, 0x4
         )
 
         StepVerifier.create(
             validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
         )
-            .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_VALID) // Should warn but not fail
+            .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR) // Should fail due to gap
             .expectComplete()
             .verify(Duration.ofSeconds(3))
     }
