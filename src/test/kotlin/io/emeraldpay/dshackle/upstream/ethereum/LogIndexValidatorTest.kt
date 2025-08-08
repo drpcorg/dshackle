@@ -173,7 +173,7 @@ class LogIndexValidatorTest {
         assert(firstResult == ValidateUpstreamSettingsResult.UPSTREAM_VALID) { "First call should validate and return VALID" }
 
         // Calls 2-10 should skip validation and return VALID immediately
-        repeat(9) { index ->
+        repeat(9) { _ ->
             StepVerifier.create(
                 validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
             )
@@ -324,7 +324,7 @@ class LogIndexValidatorTest {
             .verify(Duration.ofSeconds(3))
 
         // Calls 2-10 should skip validation but return the error state
-        repeat(9) { index ->
+        repeat(9) { _ ->
             StepVerifier.create(
                 validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
             )

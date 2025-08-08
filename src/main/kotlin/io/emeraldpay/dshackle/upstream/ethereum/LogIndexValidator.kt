@@ -178,60 +178,32 @@ class LogIndexValidator(
             return Mono.just(lastResult.get())
         }
 
-        // Try to find two transactions with logs
+        // Try to find two transactions with logs (receipts are already fetched)
         return findTwoTransactionsWithLogs(transactions)
-            .flatMap { txPair ->
-                // Get receipts for both transactions and create validation data
-                Mono.zip(
-                    getTransactionReceipt(txPair.first),
-                    getTransactionReceipt(txPair.second),
-                ).map { receipts ->
-                    TransactionValidationData(
-                        firstTxHash = txPair.first,
-                        secondTxHash = txPair.second,
-                        firstReceipt = receipts.t1,
-                        secondReceipt = receipts.t2,
-                    )
-                }
-            }
             .map { validationData ->
                 val firstLogs = validationData.firstReceipt.get("logs")
                 val secondLogs = validationData.secondReceipt.get("logs")
 
-                // Validate only if both have logs
-                if (firstLogs != null && firstLogs.isArray && firstLogs.size() > 0 &&
-                    secondLogs != null && secondLogs.isArray && secondLogs.size() > 0
-                ) {
-                    validateLogIndices(
-                        firstLogs,
-                        secondLogs,
-                        validationData.firstTxHash,
-                        validationData.secondTxHash,
-                    )
-                } else {
-                    log.debug(
-                        "One or both transactions have no logs, cannot validate, returning last result: {}",
-                        lastResult.get(),
-                    )
-                    lastResult.get()
-                }
+                // Both transactions are guaranteed to have logs (found by search function)
+                validateLogIndices(
+                    firstLogs,
+                    secondLogs,
+                    validationData.firstTxHash,
+                    validationData.secondTxHash,
+                )
             }
             .defaultIfEmpty(lastResult.get())
     }
 
     /**
      * Find first two transactions that both have logs (not necessarily consecutive)
-     * Returns a pair of transaction hashes or empty Mono if not found
+     * Returns validation data with receipts to avoid double RPC calls
      */
-    private fun findTwoTransactionsWithLogs(transactions: JsonNode): Mono<kotlin.Pair<String, String>> {
+    private fun findTwoTransactionsWithLogs(transactions: JsonNode): Mono<TransactionValidationData> {
         // Search for first two transactions that have logs (not necessarily consecutive)
         val maxSearchCount = minOf(CHECK_TX_COUNT, transactions.size()) // Limit search to avoid excessive RPC calls
-        val foundTxHashes = mutableListOf<String>()
 
-        return searchForTransactionsWithLogs(transactions, 0, maxSearchCount, foundTxHashes)
-            .filter { it.size >= 2 }
-            .map { kotlin.Pair(it[0], it[1]) }
-            .switchIfEmpty(Mono.empty())
+        return searchForTransactionsWithLogs(transactions, 0, maxSearchCount, mutableListOf())
     }
 
     /**
@@ -242,40 +214,47 @@ class LogIndexValidator(
         transactions: JsonNode,
         currentIndex: Int,
         maxSearchCount: Int,
-        foundTxHashes: MutableList<String>,
-    ): Mono<List<String>> {
+        foundTxData: MutableList<Pair<String, JsonNode>>,
+    ): Mono<TransactionValidationData> {
         // Stop if we found enough transactions or reached the limit
-        if (foundTxHashes.size >= 2 || currentIndex >= maxSearchCount || currentIndex >= transactions.size()) {
-            return Mono.just(foundTxHashes.toList())
+        if (foundTxData.size >= 2) {
+            val first = foundTxData[0]
+            val second = foundTxData[1]
+            return Mono.just(
+                TransactionValidationData(
+                    firstTxHash = first.first,
+                    secondTxHash = second.first,
+                    firstReceipt = first.second,
+                    secondReceipt = second.second,
+                ),
+            )
+        }
+
+        if (currentIndex >= maxSearchCount || currentIndex >= transactions.size()) {
+            return Mono.empty() // Not enough transactions found
         }
 
         val txHash = transactions[currentIndex].get("hash")?.asText()
         if (txHash == null) {
             log.warn("Transaction at index $currentIndex has no hash, aborting validation due to corrupted block data")
-            return Mono.just(emptyList<String>())
+            return Mono.empty()
         }
 
         return getTransactionReceipt(txHash)
-            .map { receipt ->
+            .flatMap { receipt ->
                 val logs = receipt.get("logs")
                 if (logs != null && logs.isArray && logs.size() > 0) {
                     // This transaction has logs, add it to our list
-                    foundTxHashes.add(txHash)
+                    foundTxData.add(Pair(txHash, receipt))
                     log.debug("Found transaction with logs: $txHash (${logs.size()} logs)")
                 }
-                foundTxHashes.toList()
-            }
-            .flatMap { currentFound ->
-                // Continue searching if we need more transactions
-                if (currentFound.size >= 2) {
-                    Mono.just(currentFound)
-                } else {
-                    searchForTransactionsWithLogs(transactions, currentIndex + 1, maxSearchCount, foundTxHashes)
-                }
+
+                // Continue searching - either we have enough or need to find more
+                searchForTransactionsWithLogs(transactions, currentIndex + 1, maxSearchCount, foundTxData)
             }
             .onErrorResume { error ->
                 log.warn("Error getting receipt for $txHash: ${error.message}, aborting validation to avoid false results")
-                Mono.just(emptyList<String>())
+                Mono.empty()
             }
     }
 
