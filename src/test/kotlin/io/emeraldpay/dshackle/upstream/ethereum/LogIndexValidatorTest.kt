@@ -292,6 +292,22 @@ class LogIndexValidatorTest {
     """.trimIndent()
 
     @Test
+    fun `detects incorrect logIndex start in first transaction`() {
+        setupMockForBugDetection(
+            firstTxLogs = listOf("0x5", "0x6", "0x7"), // BUG: should start from 0x0
+            secondTxLogs = listOf("0x8", "0x9"),
+        )
+
+        // Should detect that first transaction doesn't start at 0
+        StepVerifier.create(
+            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
+        )
+            .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+            .expectComplete()
+            .verify(Duration.ofSeconds(3))
+    }
+
+    @Test
     fun `remembers error state between validations`() {
         // First call detects bug
         setupMockForBugDetection(

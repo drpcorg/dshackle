@@ -249,14 +249,17 @@ class LogIndexValidator(
         }
 
         // Validation logic:
-        // 1. First transaction's first log should start at 0 (warning if not)
+        // 1. First transaction's first log MUST start at 0 (error if not)
         // 2. Second transaction MUST continue from where first ended (error if resets to 0)
 
         if (firstTxFirstLogIndex != 0L) {
-            log.warn(
-                "Node ${upstream.getId()} has unexpected logIndex start in transaction $firstTxHash: " +
-                    "first transaction's first log has logIndex=$firstTxFirstLogIndex instead of 0",
+            // This is also a critical issue - first log in block should always be 0
+            log.error(
+                "Node ${upstream.getId()} has incorrect logIndex start in first transaction $firstTxHash: " +
+                    "first log has logIndex=$firstTxFirstLogIndex instead of 0. " +
+                    "This indicates a serious issue with logIndex numbering.",
             )
+            return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
         }
 
         // The key check: if first tx has logs AND second tx starts at 0, it's a BUG
