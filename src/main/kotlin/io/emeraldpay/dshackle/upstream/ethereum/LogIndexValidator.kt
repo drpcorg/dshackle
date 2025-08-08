@@ -61,15 +61,26 @@ class LogIndexValidator(
     }
 
     private var callCount: Int = 0
+    private var lastResult: ValidateUpstreamSettingsResult = ValidateUpstreamSettingsResult.UPSTREAM_VALID
+
     override fun validate(onError: ValidateUpstreamSettingsResult): Mono<ValidateUpstreamSettingsResult> {
         // Perform validation periodically to save resources
         if (callCount % CHECK_FREQUENCY != 0) {
             callCount++
-            return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            return Mono.just(lastResult)
         }
         callCount++
 
+        log.debug("Starting logIndex validation for upstream ${upstream.getId()}, check #${callCount / CHECK_FREQUENCY}")
+
         return findBlockWithLogsAndValidate()
+            .doOnNext { result ->
+                // Update lastResult only when we actually performed validation
+                lastResult = result
+                if (result == ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR) {
+                    log.error("LogIndex validation failed for upstream ${upstream.getId()}, marking as fatal")
+                }
+            }
             .timeout(Duration.ofSeconds(15))
             .retryRandomBackoff(2, Duration.ofMillis(200), Duration.ofMillis(1000)) { ctx ->
                 log.debug(
@@ -78,9 +89,10 @@ class LogIndexValidator(
                 )
             }
             .onErrorResume { err ->
-                log.debug("Error during logIndex validation for ${upstream.getId()}: ${err.message}")
-                // In case of error, assume valid to avoid false positives
-                Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+                log.warn("Error during logIndex validation for ${upstream.getId()}: ${err.message}")
+                // In case of error, return last known state to avoid false positives
+                // We only mark as invalid if we explicitly detect the bug
+                Mono.just(lastResult)
             }
     }
 
@@ -102,8 +114,8 @@ class LogIndexValidator(
         attempt: Int,
     ): Mono<ValidateUpstreamSettingsResult> {
         if (attempt >= MAX_BLOCK_SEARCH_ATTEMPTS || startBlockNum <= 0) {
-            log.debug("Could not find suitable block for logIndex validation in ${upstream.getId()} after $attempt attempts")
-            return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            log.debug("Could not find suitable block for logIndex validation in ${upstream.getId()} after $attempt attempts, returning last result: $lastResult")
+            return Mono.just(lastResult)
         }
 
         val blockNum = startBlockNum - attempt
@@ -132,7 +144,8 @@ class LogIndexValidator(
     private fun validateBlockTransactions(transactions: JsonNode): Mono<ValidateUpstreamSettingsResult> {
         // We need at least 2 transactions to validate
         if (transactions.size() < 2) {
-            return Mono.just(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            log.debug("Block has less than 2 transactions, cannot validate, returning last result: $lastResult")
+            return Mono.just(lastResult)
         }
 
         // Try to find two transactions with logs
@@ -166,10 +179,14 @@ class LogIndexValidator(
                         validationData.secondTxHash,
                     )
                 } else {
-                    ValidateUpstreamSettingsResult.UPSTREAM_VALID
+                    log.debug(
+                        "One or both transactions have no logs, cannot validate, returning last result: {}",
+                        lastResult,
+                    )
+                    lastResult
                 }
             }
-            .defaultIfEmpty(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            .defaultIfEmpty(lastResult)
     }
 
     /**
@@ -223,8 +240,12 @@ class LogIndexValidator(
 
         // Can't validate without proper data
         if (firstTxFirstLogIndex == null || firstTxLastLogIndex == null || secondTxFirstLogIndex == null) {
-            log.debug("Cannot validate logIndex for ${upstream.getId()}: missing log data")
-            return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+            log.debug(
+                "Cannot validate logIndex for {}: missing log data, returning last result: {}",
+                upstream.getId(),
+                lastResult,
+            )
+            return lastResult
         }
 
         // Validation logic:

@@ -24,6 +24,7 @@ import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.argThat
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import reactor.core.publisher.Mono
@@ -289,4 +290,58 @@ class LogIndexValidatorTest {
             ]
         }
     """.trimIndent()
+
+    @Test
+    fun `remembers error state between validations`() {
+        // First call detects bug
+        setupMockForBugDetection(
+            firstTxLogs = listOf("0x0", "0x1", "0x2"),
+            secondTxLogs = listOf("0x0", "0x1"), // BUG: should be 0x3, 0x4
+        )
+
+        // First call (callCount=0) triggers validation and detects bug
+        StepVerifier.create(
+            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
+        )
+            .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+            .expectComplete()
+            .verify(Duration.ofSeconds(3))
+
+        // Calls 2-10 should skip validation but return the error state
+        repeat(9) { index ->
+            StepVerifier.create(
+                validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
+            )
+                .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR) // Should remember error
+                .expectComplete()
+                .verify(Duration.ofMillis(100))
+        }
+    }
+
+    @Test
+    fun `returns last result when cannot find suitable block`() {
+        // Setup: only blocks with 1 transaction
+        reader = mock<ChainReader> {
+            on { read(ChainRequest("eth_blockNumber", ListParams())) } doReturn
+                Mono.just(ChainResponse("\"0x1000\"".toByteArray(), null))
+
+            // All blocks return only 1 transaction
+            on { read(argThat { method == "eth_getBlockByNumber" }) } doReturn
+                Mono.just(ChainResponse("""{"transactions": [{"hash": "0xaaa"}]}""".toByteArray(), null))
+        }
+
+        upstream = mock<Upstream> {
+            on { getIngressReader() } doReturn reader
+            on { getId() } doReturn "test-upstream"
+        }
+        validator = LogIndexValidator(upstream)
+
+        // First validation should return UPSTREAM_VALID (initial state)
+        StepVerifier.create(
+            validator.validate(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR),
+        )
+            .expectNext(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+            .expectComplete()
+            .verify(Duration.ofSeconds(3))
+    }
 }
