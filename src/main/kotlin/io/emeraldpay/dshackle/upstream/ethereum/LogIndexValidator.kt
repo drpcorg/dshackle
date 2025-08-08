@@ -101,10 +101,38 @@ class LogIndexValidator(
      * Find a suitable block with at least 2 transactions that have logs and validate it
      */
     private fun findBlockWithLogsAndValidate(): Mono<ValidateUpstreamSettingsResult> {
-        return getLatestBlockNumber()
-            .flatMap { latestBlockNum ->
-                searchForSuitableBlock(latestBlockNum, 0)
+        // Try to use upstream's head height to avoid extra RPC call
+        return try {
+            val head = upstream.getHead()
+            val currentHeight = head.getCurrentHeight()
+            if (currentHeight != null && currentHeight > 0) {
+                searchForSuitableBlock(currentHeight, 0)
+            } else {
+                // No head height available, skip validation
+                log.debug("No head height available for ${upstream.getId()}, skipping validation")
+                Mono.just(lastResult.get())
             }
+        } catch (e: Exception) {
+            // If getHead() is not available (e.g., in tests), fallback to RPC for compatibility
+            getLatestBlockNumber()
+                .flatMap { latestBlockNum ->
+                    searchForSuitableBlock(latestBlockNum, 0)
+                }
+                .onErrorResume {
+                    log.debug("Cannot get block number for ${upstream.getId()}: ${it.message}, skipping validation")
+                    Mono.just(lastResult.get())
+                }
+        }
+    }
+
+    /**
+     * Get the latest block number - used as fallback when head is not available
+     */
+    private fun getLatestBlockNumber(): Mono<Long> {
+        return upstream.getIngressReader()
+            .read(ChainRequest("eth_blockNumber", ListParams()))
+            .flatMap(ChainResponse::requireStringResult)
+            .map { it.removePrefix("0x").toLong(16) }
     }
 
     /**
@@ -308,16 +336,6 @@ class LogIndexValidator(
             log.warn("Failed to parse logIndex: $logIndexHex", e)
             null
         }
-    }
-
-    /**
-     * Get the latest block number
-     */
-    private fun getLatestBlockNumber(): Mono<Long> {
-        return upstream.getIngressReader()
-            .read(ChainRequest("eth_blockNumber", ListParams()))
-            .flatMap(ChainResponse::requireStringResult)
-            .map { it.removePrefix("0x").toLong(16) }
     }
 
     /**
