@@ -54,7 +54,6 @@ class ManagedCallMethods(
     )
     private val quorum: MutableMap<String, Factory<CallQuorum>> = HashMap()
     private val staticResponse: MutableMap<String, String> = HashMap()
-    private val redefined = delegated.keys.filter(enabled::contains).associateWith { true }
 
     init {
         enabled.forEach { m ->
@@ -81,7 +80,7 @@ class ManagedCallMethods(
 
     override fun createQuorumFor(method: String): CallQuorum {
         return when {
-            isDelegated(method) && !isRedefined(method) -> delegate.createQuorumFor(method)
+            isDelegated(method) -> delegate.createQuorumFor(method)
             allAllowed.contains(method) -> quorum[method]?.create() ?: defaultQuorum.create()
             else -> {
                 log.warn("Getting quorum for unknown method - $method")
@@ -92,10 +91,6 @@ class ManagedCallMethods(
 
     private fun isDelegated(method: String): Boolean {
         return delegated[method] ?: false
-    }
-
-    private fun isRedefined(method: String): Boolean {
-        return redefined[method] ?: false
     }
 
     override fun isCallable(method: String): Boolean {
