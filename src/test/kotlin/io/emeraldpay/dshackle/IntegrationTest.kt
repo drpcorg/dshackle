@@ -58,11 +58,12 @@ class IntegrationTest {
         val ms = multistreamHolder.getUpstream(Chain.ETHEREUM__MAINNET)
         val ethUpstream = ms.getUpstreams()[0]
         val tracer = mock<Tracer>()
+        val reqReader = RequestReaderFactory.default()
 
         val txQuorum = ethUpstream.getMethods().createQuorumFor("eth_sendRawTransaction")
         val txCountQuorum = ethUpstream.getMethods().createQuorumFor("eth_getTransactionCount")
 
-        val txReader = RequestReaderFactory.default().create(
+        val txReader = reqReader.create(
             RequestReaderFactory.ReaderData(
                 ms,
                 Selector.UpstreamFilter.default,
@@ -71,11 +72,11 @@ class IntegrationTest {
                 tracer,
             ),
         )
-        val txCountReader = RequestReaderFactory.default().create(
+        val txCountReader = reqReader.create(
             RequestReaderFactory.ReaderData(
                 ms,
                 Selector.UpstreamFilter.default,
-                txQuorum,
+                txCountQuorum,
                 null,
                 tracer,
             ),
