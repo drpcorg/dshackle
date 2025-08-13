@@ -108,7 +108,7 @@ spring-security-config = { module = "org.springframework.security:spring-securit
 
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 
-testcontainers = "org.testcontainers:testcontainers:1.17.5"
+testcontainers = "org.testcontainers:testcontainers:1.21.3"
 testcontainers-ganache = "io.github.ganchix:testcontainers-java-module-ganache:0.0.4"
 
 junit-jupiter = "org.junit.jupiter:junit-jupiter:5.9.1"
