@@ -5,6 +5,7 @@ import io.emeraldpay.dshackle.config.MainConfigReader
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.quorum.BroadcastQuorum
+import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
 import io.emeraldpay.dshackle.reader.BroadcastReader
 import io.emeraldpay.dshackle.reader.RequestReaderFactory
 import io.emeraldpay.dshackle.upstream.MultistreamHolder
@@ -81,7 +82,7 @@ class IntegrationTest {
         )
 
         assertThat(txQuorum).isInstanceOf(BroadcastQuorum::class.java)
-        assertThat(txCountQuorum).isInstanceOf(BroadcastQuorum::class.java)
+        assertThat(txCountQuorum).isInstanceOf(MaximumValueQuorum::class.java)
         assertThat(txReader).isInstanceOf(BroadcastReader::class.java)
         assertThat(txCountReader).isInstanceOf(BroadcastReader::class.java)
     }
