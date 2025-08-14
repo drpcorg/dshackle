@@ -1,7 +1,6 @@
 package io.emeraldpay.dshackle.upstream.lowerbound
 
 import io.emeraldpay.dshackle.Chain
-import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
@@ -142,8 +141,7 @@ class RecursiveLowerBoundServiceTest {
                     }
                 }
             }
-            
-            // Catch-all mock for TX detector requests only - make other requests fail with "missing trie node" 
+            // Catch-all mock for TX detector requests only - make other requests fail with "missing trie node"
             on {
                 read(any<ChainRequest>())
             } doReturn Mono.error(RuntimeException("missing trie node"))
@@ -164,10 +162,10 @@ class RecursiveLowerBoundServiceTest {
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.TRACE }
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.BLOCK }
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.LOGS }
-            .expectNextMatches { 
+            .expectNextMatches {
                 // TX detector may fail and return UNKNOWN with lowerBound=0 or succeed with the correct bound
-                (it.lowerBound == 17964844L && it.type == LowerBoundType.TX) || 
-                (it.lowerBound == 0L && it.type == LowerBoundType.UNKNOWN)
+                (it.lowerBound == 17964844L && it.type == LowerBoundType.TX) ||
+                    (it.lowerBound == 0L && it.type == LowerBoundType.UNKNOWN)
             }
             .thenCancel()
             .verify(Duration.ofSeconds(5))
@@ -181,7 +179,6 @@ class RecursiveLowerBoundServiceTest {
                 LowerBoundData(17964844L, LowerBoundType.BLOCK),
                 LowerBoundData(17964844L, LowerBoundType.LOGS),
             )
-        
         // TX detector may succeed or fail, so check both possibilities
         val txBound = lowerBounds.find { it.type == LowerBoundType.TX || it.type == LowerBoundType.UNKNOWN }
         assertThat(txBound).isNotNull
