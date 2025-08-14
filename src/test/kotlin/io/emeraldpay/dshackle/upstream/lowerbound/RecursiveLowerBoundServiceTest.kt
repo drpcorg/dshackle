@@ -44,8 +44,50 @@ class RecursiveLowerBoundServiceTest {
             File(this::class.java.getResource("/responses/get-by-number-response.json")!!.toURI()).toPath(),
         )
         val reader = mock<ChainReader> {
+            // Mock support test for state override (using "latest")
+            on {
+                read(
+                    ChainRequest(
+                        "eth_call",
+                        ListParams(
+                            mapOf(
+                                "to" to STATE_CHECKER_ADDRESS,
+                                "data" to STATE_CHECKER_CALL_DATA,
+                            ),
+                            "latest",
+                            mapOf(
+                                STATE_CHECKER_ADDRESS to mapOf(
+                                    "code" to STATE_CHECKER_BYTECODE,
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+            } doReturn Mono.just(ChainResponse("\"0x42\"".toByteArray(), null)) // Return non-zero balance to indicate support
+
             blocks.forEach {
                 if (it == 17964844L) {
+                    // Mock successful state override for the found block
+                    on {
+                        read(
+                            ChainRequest(
+                                "eth_call",
+                                ListParams(
+                                    mapOf(
+                                        "to" to STATE_CHECKER_ADDRESS,
+                                        "data" to STATE_CHECKER_CALL_DATA,
+                                    ),
+                                    it.toHex(),
+                                    mapOf(
+                                        STATE_CHECKER_ADDRESS to mapOf(
+                                            "code" to STATE_CHECKER_BYTECODE,
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        )
+                    } doReturn Mono.just(ChainResponse("\"0x0\"".toByteArray(), null)) // Return 0x0 but this should still be treated as success
+
                     on {
                         read(ChainRequest("eth_getBalance", ListParams(ZERO_ADDRESS, it.toHex())))
                     } doReturn Mono.just(ChainResponse(ByteArray(0), null))
@@ -56,6 +98,27 @@ class RecursiveLowerBoundServiceTest {
                         read(ChainRequest("eth_getTransactionByHash", ListParams("0x99e52a94cfdf83a5bdadcd2e25c71574a5a24fa4df56a33f9f8b5cb6fa0ac657")))
                     } doReturn Mono.just(ChainResponse(ByteArray(0), null))
                 } else {
+                    // Mock failed state override for other blocks
+                    on {
+                        read(
+                            ChainRequest(
+                                "eth_call",
+                                ListParams(
+                                    mapOf(
+                                        "to" to STATE_CHECKER_ADDRESS,
+                                        "data" to STATE_CHECKER_CALL_DATA,
+                                    ),
+                                    it.toHex(),
+                                    mapOf(
+                                        STATE_CHECKER_ADDRESS to mapOf(
+                                            "code" to STATE_CHECKER_BYTECODE,
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        )
+                    } doReturn Mono.error(RuntimeException("missing trie node"))
+
                     on {
                         read(ChainRequest("eth_getBalance", ListParams(ZERO_ADDRESS, it.toHex())))
                     } doReturn Mono.error(RuntimeException("missing trie node"))
@@ -180,6 +243,10 @@ class RecursiveLowerBoundServiceTest {
     }
 
     companion object {
+        private const val STATE_CHECKER_ADDRESS = "0x1111111111111111111111111111111111111111"
+        private const val STATE_CHECKER_CALL_DATA = "0x1eaf190c"
+        private const val STATE_CHECKER_BYTECODE = "0x6080604052348015600e575f5ffd5b50600436106026575f3560e01c80631eaf190c14602a575b5f5ffd5b60306044565b604051603b91906078565b60405180910390f35b5f5f73ffffffffffffffffffffffffffffffffffffffff1631905090565b5f819050919050565b6072816062565b82525050565b5f60208201905060895f830184606b565b9291505056fea2646970667358221220251f5b4d2ed1abe77f66fde198a57ada08562dc3b0afbc6bac0261d1bf516b5d64736f6c634300081e0033"
+
         @JvmStatic
         fun detectorsFirstBlock(): List<Arguments> = listOf(
             Arguments.of(
