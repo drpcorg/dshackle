@@ -22,19 +22,21 @@ import java.util.function.Function
 
 abstract class HttpReader(
     protected val target: String,
+    maxConnections: Int,
+    queueSize: Int,
     protected val metrics: RequestMetrics?,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
 ) : ChainReader {
 
-    constructor() : this("", null)
+    constructor() : this("", 1500, 1000, null)
 
     protected val httpClient: HttpClient
 
     init {
         val connectionProvider = ConnectionProvider.builder("dshackleConnectionPool")
-            .maxConnections(1500)
-            .pendingAcquireMaxCount(1000)
+            .maxConnections(maxConnections)
+            .pendingAcquireMaxCount(queueSize)
             .pendingAcquireTimeout(Duration.ofSeconds(10))
             .build()
 

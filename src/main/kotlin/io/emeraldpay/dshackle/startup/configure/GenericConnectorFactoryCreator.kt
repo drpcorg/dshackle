@@ -66,7 +66,7 @@ open class GenericConnectorFactoryCreator(
                 }
             }
             urls?.add(endpoint.url)
-            BasicHttpFactory(endpoint.url.toString(), conn.basicAuth, tls)
+            BasicHttpFactory(endpoint.url.toString(), endpoint.maxConnections, endpoint.queueSize, conn.basicAuth, tls)
         }
     }
 
