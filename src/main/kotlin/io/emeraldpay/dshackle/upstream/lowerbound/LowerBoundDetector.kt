@@ -64,7 +64,7 @@ abstract class LowerBoundDetector(
         lowerBoundSink.emitNext(LowerBoundData(lowerBound, type)) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
     }
 
-    fun predictLowerBound(type: LowerBoundType): Long {
-        return lowerBounds.predictNextBound(type)
+    fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
+        return lowerBounds.predictNextBound(type, timeOffsetSeconds)
     }
 }

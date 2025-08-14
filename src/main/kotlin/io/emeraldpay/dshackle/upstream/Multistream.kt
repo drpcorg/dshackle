@@ -257,7 +257,7 @@ abstract class Multistream(
         return getAll().any { it.isAvailable() }
     }
 
-    override fun predictLowerBound(type: LowerBoundType): Long {
+    override fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         return 0
     }
 
