@@ -32,7 +32,6 @@ import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import io.emeraldpay.dshackle.upstream.lowerbound.fromProtoType
 import org.apache.commons.lang3.StringUtils
-import org.slf4j.LoggerFactory
 import java.util.Collections
 
 class Selector {
@@ -573,19 +572,7 @@ class Selector {
         private val boundType: LowerBoundType,
         private val timeOffsetSeconds: Long = 0,
     ) : Matcher() {
-
-        companion object {
-            private val log = LoggerFactory.getLogger(LowerHeightMatcher::class.java)
-        }
-
         override fun matchesWithCause(up: Upstream): MatchesResponse {
-            log.warn(
-                "Evaluating lower height matcher: lowerHeight={}, boundType={}, timeOffsetSeconds={}",
-                lowerHeight,
-                boundType,
-                timeOffsetSeconds,
-            )
-
             val predictedLowerBound = up.predictLowerBound(boundType, timeOffsetSeconds)
             return if (lowerHeight >= predictedLowerBound && predictedLowerBound != 0L) {
                 Success
