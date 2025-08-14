@@ -108,7 +108,11 @@ open class NativeCall(
                     }
                     .doOnNext {
                             callRes ->
-                        if (callRes.error?.message?.contains(Regex("method ([A-Za-z0-9_]+) does not exist/is not available")) == true) {
+                        val isMethodNotAvailable = callRes.error?.message?.contains(Regex("method ([A-Za-z0-9_]+) does not exist/is not available")) == true
+                        val isMethodDisabled = callRes.error?.message?.contains("method is disabled", ignoreCase = true) == true
+                        val isTraceOrDebugMethod = it is ValidCallContext<*> && it.payload is ParsedCallDetails && (it.payload.method.startsWith("trace_") || it.payload.method.startsWith("debug_"))
+
+                        if (isMethodNotAvailable || (isMethodDisabled && isTraceOrDebugMethod)) {
                             if (it is ValidCallContext<*>) {
                                 if (it.payload is ParsedCallDetails) {
                                     log.error("nativeCallResult method ${it.payload.method} of ${it.upstream.getId()} is not available, disabling")

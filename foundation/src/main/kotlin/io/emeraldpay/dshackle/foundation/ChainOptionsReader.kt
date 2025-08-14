@@ -58,6 +58,9 @@ class ChainOptionsReader : YamlConfigReader<ChainOptions.PartialOptions>() {
         getValueAsBool(values, "disable-bound-validation")?.let {
             options.disableBoundValidation = it
         }
+        getValueAsBool(values, "disable-log-index-validation")?.let {
+            options.disableLogIndexValidation = it
+        }
         return options
     }
 }
