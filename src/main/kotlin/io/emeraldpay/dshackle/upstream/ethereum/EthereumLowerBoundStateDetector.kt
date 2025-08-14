@@ -165,7 +165,12 @@ class EthereumLowerBoundStateDetector(
                 detectStateForBlock(block)
             }
         }.doOnNext { lowerBoundData ->
-            log.info("Found state lower bound for upstream {}: block {}", upstream.getId(), lowerBoundData.lowerBound)
+            val detectionMethod = when (supportsStateOverride) {
+                true -> "state override (eth_call)"
+                false -> "fallback (eth_getBalance)"
+                null -> "unknown method"
+            }
+            log.info("Found state lower bound for upstream {} using {}: block {}", upstream.getId(), detectionMethod, lowerBoundData.lowerBound)
         }.flatMap {
             Flux.just(it, lowerBoundFrom(it, LowerBoundType.TRACE))
         }
