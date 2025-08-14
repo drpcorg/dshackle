@@ -157,22 +157,28 @@ class EthereumLowerBoundStateDetector(
     }
 
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
-        return recursiveLowerBound.recursiveDetectLowerBound { block ->
-            if (block == 0L) {
-                log.info("Testing block 0 for upstream {} (genesis block)", upstream.getId())
-                Mono.just(ChainResponse(ByteArray(0), null))
-            } else {
-                detectStateForBlock(block)
+        return if (supportsStateOverride == true) {
+            runFullLowerBoundDetectionComparison().flatMap {
+                Flux.just(it, lowerBoundFrom(it, LowerBoundType.TRACE))
             }
-        }.doOnNext { lowerBoundData ->
-            val detectionMethod = when (supportsStateOverride) {
-                true -> "state override (eth_call)"
-                false -> "fallback (eth_getBalance)"
-                null -> "unknown method"
+        } else {
+            recursiveLowerBound.recursiveDetectLowerBound { block ->
+                if (block == 0L) {
+                    log.info("Testing block 0 for upstream {} (genesis block)", upstream.getId())
+                    Mono.just(ChainResponse(ByteArray(0), null))
+                } else {
+                    detectStateForBlock(block)
+                }
+            }.doOnNext { lowerBoundData ->
+                val detectionMethod = when (supportsStateOverride) {
+                    true -> "state override (eth_call)"
+                    false -> "fallback (eth_getBalance)"
+                    null -> "unknown method"
+                }
+                log.info("Found state lower bound for upstream {} using {}: block {}", upstream.getId(), detectionMethod, lowerBoundData.lowerBound)
+            }.flatMap {
+                Flux.just(it, lowerBoundFrom(it, LowerBoundType.TRACE))
             }
-            log.info("Found state lower bound for upstream {} using {}: block {}", upstream.getId(), detectionMethod, lowerBoundData.lowerBound)
-        }.flatMap {
-            Flux.just(it, lowerBoundFrom(it, LowerBoundType.TRACE))
         }
     }
 
@@ -231,6 +237,65 @@ class EthereumLowerBoundStateDetector(
                     }
             }
         }
+    }
+
+    private fun runFullLowerBoundDetectionComparison(): Flux<LowerBoundData> {
+        log.info("Running full lower bound detection comparison on upstream {}", upstream.getId())
+
+        val overrideDetector = RecursiveLowerBound(upstream, LowerBoundType.STATE, stateErrors, lowerBounds, commonErrorPatterns)
+        val fallbackDetector = RecursiveLowerBound(upstream, LowerBoundType.STATE, stateErrors, lowerBounds, commonErrorPatterns)
+
+        val overrideBoundMono = overrideDetector.recursiveDetectLowerBound { block ->
+            if (block == 0L) {
+                log.debug("Testing block 0 for upstream {} (genesis block) with override method", upstream.getId())
+                Mono.just(ChainResponse(ByteArray(0), null))
+            } else {
+                stateDetectionWithOverride(block)
+            }
+        }.next().map { data -> Pair("override", data.lowerBound) }
+            .onErrorResume { error ->
+                log.warn("Override method failed to detect lower bound for upstream {}: {}", upstream.getId(), error.message)
+                Mono.just(Pair("override", -1L))
+            }
+
+        val fallbackBoundMono = fallbackDetector.recursiveDetectLowerBound { block ->
+            if (block == 0L) {
+                log.debug("Testing block 0 for upstream {} (genesis block) with fallback method", upstream.getId())
+                Mono.just(ChainResponse(ByteArray(0), null))
+            } else {
+                fallbackStateDetection(block)
+            }
+        }.next().map { data -> Pair("fallback", data.lowerBound) }
+            .onErrorResume { error ->
+                log.warn("Fallback method failed to detect lower bound for upstream {}: {}", upstream.getId(), error.message)
+                Mono.just(Pair("fallback", -1L))
+            }
+
+        return Mono.zip(overrideBoundMono, fallbackBoundMono) { overrideResult, fallbackResult ->
+            val (overrideMethod, overrideBound) = overrideResult
+            val (fallbackMethod, fallbackBound) = fallbackResult
+
+            when {
+                overrideBound == fallbackBound && overrideBound > 0 -> {
+                    log.info("Lower bound detection results MATCH for upstream {}: both methods found block {}", upstream.getId(), overrideBound)
+                }
+                overrideBound != fallbackBound && overrideBound > 0 && fallbackBound > 0 -> {
+                    log.warn("Lower bound detection results MISMATCH for upstream {}: override found block {}, fallback found block {}", upstream.getId(), overrideBound, fallbackBound)
+                }
+                overrideBound > 0 && fallbackBound == -1L -> {
+                    log.warn("Lower bound detection PARTIAL SUCCESS for upstream {}: override found block {}, fallback failed", upstream.getId(), overrideBound)
+                }
+                overrideBound == -1L && fallbackBound > 0 -> {
+                    log.warn("Lower bound detection PARTIAL SUCCESS for upstream {}: fallback found block {}, override failed", upstream.getId(), fallbackBound)
+                }
+                else -> {
+                    log.warn("Lower bound detection FAILED for upstream {}: both methods failed", upstream.getId())
+                }
+            }
+
+            val finalBound = if (overrideBound > 0) overrideBound else fallbackBound
+            LowerBoundData(finalBound, LowerBoundType.STATE)
+        }.flux()
     }
 
     override fun types(): Set<LowerBoundType> {
