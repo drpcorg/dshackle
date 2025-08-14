@@ -15,15 +15,15 @@ class LowerBoundServiceTest {
     @Test
     fun `predict lower bound`() {
         val detector = mock<LowerBoundDetector> {
-            on { predictLowerBound(LowerBoundType.STATE) } doReturn 4000
+            on { predictLowerBound(LowerBoundType.STATE, 0) } doReturn 4000
             on { types() } doReturn setOf(LowerBoundType.STATE)
         }
         val boundService = LowerBoundServiceMock(mock<Upstream>(), listOf(detector))
 
-        val bound = boundService.predictLowerBound(LowerBoundType.STATE)
+        val bound = boundService.predictLowerBound(LowerBoundType.STATE, 0)
 
         verify(detector).types()
-        verify(detector).predictLowerBound(LowerBoundType.STATE)
+        verify(detector).predictLowerBound(LowerBoundType.STATE, 0)
 
         assertThat(bound).isEqualTo(4000)
     }
@@ -35,10 +35,10 @@ class LowerBoundServiceTest {
         }
         val boundService = LowerBoundServiceMock(mock<Upstream>(), listOf(detector))
 
-        val bound = boundService.predictLowerBound(LowerBoundType.BLOCK)
+        val bound = boundService.predictLowerBound(LowerBoundType.BLOCK, 0)
 
         verify(detector).types()
-        verify(detector, never()).predictLowerBound(any())
+        verify(detector, never()).predictLowerBound(any(), any())
 
         assertThat(bound).isEqualTo(0)
     }

@@ -67,16 +67,10 @@ class LowerBounds(
         }
     }
 
-    fun predictNextBound(type: LowerBoundType): Long {
-        val offset = if (chain == Chain.BSC__MAINNET && type == LowerBoundType.STATE) {
-            30
-        } else {
-            0
-        }.toLong()
-
+    fun predictNextBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         val lowerBoundCoeffs = lowerBounds[type] ?: return 0
 
-        val xTime = Instant.now().plus(offset, ChronoUnit.SECONDS).epochSecond
+        val xTime = Instant.now().plus(timeOffsetSeconds, ChronoUnit.SECONDS).epochSecond
 
         return (lowerBoundCoeffs.k.get() * xTime + lowerBoundCoeffs.b.get()).roundToLong()
     }
