@@ -112,4 +112,8 @@ class EthereumFinalizationDetector : FinalizationDetector {
     override fun getFinalizations(): Collection<FinalizationData> {
         return data.values
     }
+
+    override fun getFinalizationByType(type: FinalizationType): FinalizationData? {
+        return data[type]
+    }
 }

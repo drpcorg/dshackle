@@ -34,6 +34,9 @@ import io.emeraldpay.dshackle.upstream.generic.connectors.GenericConnector
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundServiceBuilder
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.Meter
+import io.micrometer.core.instrument.Metrics
 import org.springframework.context.Lifecycle
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.Disposable
@@ -48,7 +51,7 @@ import java.util.function.Supplier
 
 open class GenericUpstream(
     id: String,
-    chain: Chain,
+    private val chain: Chain,
     hash: Short,
     options: ChainOptions.Options,
     role: UpstreamsConfig.UpstreamRole,
@@ -106,6 +109,14 @@ open class GenericUpstream(
 
     private val hasLiveSubscriptionHead: AtomicBoolean = AtomicBoolean(getOptions().disableLivenessSubscriptionValidation)
     protected val connector: GenericConnector = connectorFactory.create(this, chain)
+        .also { upConnector ->
+            Gauge.builder("upstream_head", upConnector.getHead()) {
+                it.getCurrentHeight()?.toDouble() ?: 0.0
+            }
+                .tag("upstreamId", id)
+                .tag("chain", chain.chainCode)
+                .register(Metrics.globalRegistry)
+        }
     private val livenessSubscription = AtomicReference<Disposable?>()
     private val settingsDetector = upstreamSettingsDetectorBuilder(chain, this)
     private var rpcMethodsDetector: UpstreamRpcMethodsDetector? = null
@@ -120,6 +131,8 @@ open class GenericUpstream(
     private val finalizationDetectorSubscription = AtomicReference<Disposable?>()
 
     private val headLivenessState = Sinks.many().multicast().directBestEffort<ValidateUpstreamSettingsResult>()
+
+    private val metrics = mutableMapOf<String, Meter>()
 
     override fun getHead(): Head {
         return connector.getHead()
@@ -387,7 +400,18 @@ open class GenericUpstream(
         finalizationDetectorSubscription.set(
             finalizationDetector.detectFinalization(this, chainConfig.expectedBlockTime, getChain())
                 .subscribeOn(finalizationScheduler)
-                .subscribe {
+                .subscribe { data ->
+                    metrics.computeIfAbsent(
+                        "${data.type}-${getId()}",
+                    ) {
+                        Gauge.builder("upstream_blocks", finalizationDetector) { detector ->
+                            detector.getFinalizationByType(data.type)?.height?.toDouble() ?: 0.0
+                        }
+                            .tag("blockType", data.type.toString())
+                            .tag("upstreamId", getId())
+                            .tag("chain", chain.chainCode)
+                            .register(Metrics.globalRegistry)
+                    }
                     sendUpstreamStateEvent(UPDATED)
                 },
         )

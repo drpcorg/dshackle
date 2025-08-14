@@ -37,10 +37,12 @@ import java.util.function.Function
  */
 class JsonRpcHttpReader(
     target: String,
+    maxConnections: Int,
+    queueSize: Int,
     metrics: RequestMetrics,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
-) : HttpReader(target, metrics, basicAuth, tlsCAAuth) {
+) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth) {
 
     private val parser = ResponseRpcParser()
     private val streamParser = JsonRpcStreamParser()

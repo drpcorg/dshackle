@@ -19,6 +19,7 @@ class ChainOptions {
         val disableLivenessSubscriptionValidation: Boolean,
         val disableBoundValidation: Boolean = false,
         val valdateErigonBug: Boolean,
+        val disableLogIndexValidation: Boolean = false,
     )
 
     data class DefaultOptions(
@@ -41,7 +42,8 @@ class ChainOptions {
         var callLimitSize: Int? = null,
         var disableLivenessSubscriptionValidation: Boolean? = null,
         var disableBoundValidation: Boolean? = null,
-        var validateErigonBug: Boolean? = null
+        var validateErigonBug: Boolean? = null,
+        var disableLogIndexValidation: Boolean? = null
     ) {
         companion object {
             @JvmStatic
@@ -73,6 +75,7 @@ class ChainOptions {
             copy.disableLivenessSubscriptionValidation = overwrites.disableLivenessSubscriptionValidation ?: this.disableLivenessSubscriptionValidation
             copy.disableBoundValidation = overwrites.disableBoundValidation ?: this.disableBoundValidation
             copy.validateErigonBug = overwrites.validateErigonBug ?: this.validateErigonBug
+            copy.disableLogIndexValidation = overwrites.disableLogIndexValidation ?: this.disableLogIndexValidation
             return copy
         }
 
@@ -93,6 +96,7 @@ class ChainOptions {
                 this.disableLivenessSubscriptionValidation ?: false,
                 this.disableBoundValidation ?: false,
                 this.validateErigonBug ?: true,
+                this.disableLogIndexValidation ?: false,
             )
     }
 }

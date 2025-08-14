@@ -9,13 +9,20 @@ import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Metrics
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
+import org.slf4j.LoggerFactory
 
 class BasicHttpFactory(
     private val url: String,
+    private val maxConnections: Int,
+    private val queueSize: Int,
     private val basicAuth: AuthConfig.ClientBasicAuth?,
     private val tls: ByteArray?,
 ) : HttpFactory {
+    private val log = LoggerFactory.getLogger(this::class.java)
+
     override fun create(id: String?, chain: Chain): HttpReader {
+        log.info("Creating http pool for {} with maxConnections {} and queueSize {}", url, maxConnections, queueSize)
+
         val metricsTags = listOf(
             // "unknown" is not supposed to happen
             Tag.of("upstream", id ?: "unknown"),
@@ -35,8 +42,8 @@ class BasicHttpFactory(
         )
 
         if (chain.type.apiType == ApiType.REST) {
-            return RestHttpReader(url, metrics, basicAuth, tls)
+            return RestHttpReader(url, maxConnections, queueSize, metrics, basicAuth, tls)
         }
-        return JsonRpcHttpReader(url, metrics, basicAuth, tls)
+        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, basicAuth, tls)
     }
 }
