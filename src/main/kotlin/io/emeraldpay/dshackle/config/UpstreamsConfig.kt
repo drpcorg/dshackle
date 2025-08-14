@@ -124,7 +124,13 @@ data class UpstreamsConfig(
         val port: Int,
     )
 
-    data class HttpEndpoint(val url: URI) {
+    data class HttpEndpoint(
+        val url: URI,
+        val maxConnections: Int,
+        val queueSize: Int,
+    ) {
+        constructor(url: URI) : this(url, DEFAULT_MAX_CONNECTIONS, DEFAULT_QUEUE_SIZE)
+
         var basicAuth: AuthConfig.ClientBasicAuth? = null
         var tls: AuthConfig.ClientTlsAuth? = null
     }

@@ -27,6 +27,9 @@ import java.io.InputStream
 import java.net.URI
 import java.util.Locale
 
+const val DEFAULT_MAX_CONNECTIONS = 1500
+const val DEFAULT_QUEUE_SIZE = 1000
+
 class UpstreamsConfigReader(
     private val fileResolver: FileResolver,
     private val optionsReader: ChainOptionsReader,
@@ -138,7 +141,7 @@ class UpstreamsConfigReader(
 
         getMapping(connConfigNode, "esplora")?.let { node ->
             getValueAsString(node, "url")?.let { url ->
-                val http = UpstreamsConfig.HttpEndpoint(URI(url))
+                val http = UpstreamsConfig.HttpEndpoint(URI(url), DEFAULT_MAX_CONNECTIONS, DEFAULT_QUEUE_SIZE)
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
                 http.tls = authConfigReader.readClientTls(node)
                 connection.esplora = http
@@ -168,8 +171,11 @@ class UpstreamsConfigReader(
 
     private fun readRpcConfig(connConfigNode: MappingNode): UpstreamsConfig.HttpEndpoint? {
         return getMapping(connConfigNode, "rpc")?.let { node ->
+            val maxConnections = getValueAsInt(node, "max-connections") ?: DEFAULT_MAX_CONNECTIONS
+            val queueSize = getValueAsInt(node, "queue-size") ?: DEFAULT_QUEUE_SIZE
+
             getValueAsString(node, "url")?.let { url ->
-                val http = UpstreamsConfig.HttpEndpoint(URI(url))
+                val http = UpstreamsConfig.HttpEndpoint(URI(url), maxConnections, queueSize)
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
                 http.tls = authConfigReader.readClientTls(node)
                 http
