@@ -27,6 +27,7 @@ class EthereumLowerBoundProofDetector(
             "cannot find EVM IAVL store",
             "old data not available due to pruning",
             "no historical RPC is available",
+            "Method not found", // Monad error bc they don't have eth_getProofs
         )
     }
 
