@@ -27,7 +27,8 @@ class HeadLivenessValidatorImpl(
         val headLiveness = head.headLiveness()
         // first we have moving window of 2 blocks and check that they are consecutive ones
         val headFlux = head.getFlux().map { it.height }.buffer(2, 1).map {
-            it.last() - it.first() == 1L
+            // sometimes we can get there the same block, in this case it will be reorg
+            it.last() - it.first() <= 1L
         }.scan(Pair(0, true)) { acc, value ->
             // then we accumulate consecutive true events, false resets counter
             if (value) {
