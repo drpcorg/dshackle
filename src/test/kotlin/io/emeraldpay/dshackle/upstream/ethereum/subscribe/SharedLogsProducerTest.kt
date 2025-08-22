@@ -49,7 +49,8 @@ import java.time.Duration
 
 /**
  * Полноценные тесты для SharedLogsProducer
- * Включает как интеграционные тесты, так и unit-тесты для LogsSubscription
+ * Comprehensive tests for SharedLogsProducer
+ * Includes both integration tests and unit tests for LogsSubscription
  */
 class SharedLogsProducerTest {
 
