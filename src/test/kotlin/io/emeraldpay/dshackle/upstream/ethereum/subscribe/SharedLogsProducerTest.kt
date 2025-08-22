@@ -218,7 +218,7 @@ class SharedLogsProducerTest {
             transactionIndex = 1L
         }
 
-        // Создаем лог с неправильным адресом
+        // Create log with incorrect address
         val nonMatchingLog = TransactionLogJson().apply {
             address = otherAddress
             blockHash = BlockHash.from(TEST_BLOCK_HASH)
