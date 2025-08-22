@@ -254,7 +254,7 @@ class SharedLogsProducerTest {
 
         blockUpdatesSink.tryEmitNext(block)
 
-        // Проверяем что получили только лог с правильным адресом
+        // Verify that we only received log with correct address
         StepVerifier.create(subscription.take(1))
             .expectNextMatches { logMessage ->
                 logMessage.address == targetAddress &&
