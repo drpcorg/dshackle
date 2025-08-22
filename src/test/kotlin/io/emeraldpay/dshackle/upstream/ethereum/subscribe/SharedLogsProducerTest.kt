@@ -69,7 +69,7 @@ class SharedLogsProducerTest {
     private lateinit var producer: SharedLogsProducer
     private lateinit var blockUpdatesFlux: Flux<BlockContainer>
 
-    // Sink для управления потоком блоков в тестах
+    // Sink for controlling block flow in tests
     private lateinit var blockUpdatesSink: Sinks.Many<BlockContainer>
 
     @BeforeEach
