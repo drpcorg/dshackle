@@ -206,7 +206,7 @@ class SharedLogsProducerTest {
         val targetAddress = Address.from(TEST_ADDRESS)
         val otherAddress = Address.from(OTHER_ADDRESS)
 
-        // Создаем лог с правильным адресом
+        // Create log with correct address
         val matchingLog = TransactionLogJson().apply {
             address = targetAddress
             blockHash = BlockHash.from(TEST_BLOCK_HASH)
