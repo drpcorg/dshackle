@@ -83,15 +83,15 @@ class SharedLogsProducer(
         sharedStream = produceLogs.produce(connectBlockUpdates.connect(matcher))
             .subscribe(
                 { logMessage ->
-                    logsSink?.tryEmitNext(logMessage)
+                    logsSink?.emitNext(logMessage) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 },
                 { error ->
                     log.error("Error in shared logs stream", error)
-                    logsSink?.tryEmitError(error)
+                    logsSink?.emitError(error) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 },
                 {
                     log.debug("Shared logs stream completed")
-                    logsSink?.tryEmitComplete()
+                    logsSink?.emitComplete { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 },
             )
     }
