@@ -196,7 +196,7 @@ class SharedLogsProducerTest {
 
         producer.subscribe(addresses, topics, matcher)
 
-        // Then - проверяем что используется тот же stream
+        // Then - verify that the same stream is used
         assertEquals(firstStream, sharedStreamField.get(producer))
         assertEquals(firstSink, logsSinkField.get(producer))
     }
