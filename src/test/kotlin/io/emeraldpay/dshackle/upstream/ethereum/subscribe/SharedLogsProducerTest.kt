@@ -83,7 +83,7 @@ class SharedLogsProducerTest {
         blockUpdatesSink = Sinks.many().multicast().onBackpressureBuffer()
         blockUpdatesFlux = blockUpdatesSink.asFlux()
 
-        // Настраиваем моки - упрощенный подход
+        // Set up mocks - simplified approach
         `when`(multistream.getCachingReader()).thenReturn(cachingReader)
         `when`(multistream.getChain()).thenReturn(Chain.ETHEREUM__MAINNET)
         `when`(multistream.getHead(anyOrNull())).thenReturn(head)
