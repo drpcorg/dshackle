@@ -22,17 +22,17 @@ class GenericEgressSubscription(
             .distinct()
     }
 
-    override fun subscribe(topic: String, params: Any?, matcher: Matcher): Flux<ByteArray> {
+    override fun subscribe(topic: String, params: Any?, matcher: Matcher, unsubscribeMethod: String): Flux<ByteArray> {
         val up = multistream.getUpstreams()
             .filter { it.isAvailable() }
             .shuffled()
             .first { matcher.matches(it) } as GenericUpstream
 
-        val result = up.getIngressSubscription().get<ByteArray>(topic, params)?.connect(matcher)
+        val result = up.getIngressSubscription().get<ByteArray>(topic, params, unsubscribeMethod)?.connect(matcher)
         if (result == null) {
             log.warn("subscription source not found for topic {}", topic)
             return Flux.empty()
         }
-        return up.getIngressSubscription().get<ByteArray>(topic, params)?.connect(matcher) ?: Flux.empty()
+        return up.getIngressSubscription().get<ByteArray>(topic, params, unsubscribeMethod)?.connect(matcher) ?: Flux.empty()
     }
 }

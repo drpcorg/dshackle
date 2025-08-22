@@ -40,12 +40,23 @@ class NativeSubscribeSpec extends Specification {
                 .build()
 
         def subscribe = Mock(EthereumEgressSubscription) {
-            1 * it.subscribe("newHeads", null, _ as Selector.AnyLabelMatcher) >> Flux.just("{}")
+            1 * it.subscribe("newHeads", null, _ as Selector.AnyLabelMatcher, "") >> Flux.just("{}")
             1 * it.getAvailableTopics() >> ["newHeads"]
         }
         def up = Mock(GenericMultistream) {
-            1 * it.tryProxySubscribe(_ as Selector.AnyLabelMatcher, call) >> null
-            2 * it.getEgressSubscription() >> subscribe
+            1 * it.start()
+            _ * it.getSubscriptionTopics() >> { 
+                println("getSubscriptionTopics called")
+                return ["newHeads"] 
+            }
+            _ * it.tryProxySubscribe(_, _) >> { 
+                println("tryProxySubscribe called")
+                return null 
+            }
+            _ * it.getEgressSubscription() >> {
+                println("getEgressSubscription called")
+                return subscribe
+            }
         }
 
         def nativeSubscribe = new NativeSubscribe(new MultistreamHolderMock(Chain.ETHEREUM__MAINNET, up), signer)
@@ -80,7 +91,7 @@ class NativeSubscribeSpec extends Specification {
                         params["topics"][0] == "0x7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65"
                 println("ok: $ok")
                 ok
-            }, _ as Selector.AnyLabelMatcher) >> Flux.just("{}")
+            }, _ as Selector.AnyLabelMatcher, "") >> Flux.just("{}")
             1 * it.getAvailableTopics() >> ["logs"]
         }
         def up = Mock(GenericMultistream) {

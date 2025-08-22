@@ -19,7 +19,7 @@ import reactor.core.publisher.Flux
 
 interface EgressSubscription {
     fun getAvailableTopics(): List<String>
-    fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher): Flux<out Any>
+    fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher, unsubscribeMethod: String): Flux<out Any>
 }
 
 object EmptyEgressSubscription : EgressSubscription {
@@ -27,7 +27,7 @@ object EmptyEgressSubscription : EgressSubscription {
         return emptyList()
     }
 
-    override fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher): Flux<out Any> {
+    override fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher, unsubscribeMethod: String): Flux<out Any> {
         return Flux.empty()
     }
 }

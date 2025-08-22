@@ -80,7 +80,7 @@ open class EthereumEgressSubscription(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher): Flux<out Any> {
+    override fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher, unsubscribeMethod: String): Flux<out Any> {
         if (topic == METHOD_NEW_HEADS) {
             return newHeads.connect(matcher)
         }

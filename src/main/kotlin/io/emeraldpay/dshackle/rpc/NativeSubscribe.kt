@@ -94,7 +94,7 @@ open class NativeSubscribe(
                     objectMapper.readValue(it.newInput(), List::class.java)
                 }
             }
-            subscribe(chain, method, params, matcher, subscriptionId)
+            subscribe(chain, method, params, matcher, subscriptionId, request.unsubscribeMethod)
         }
         return publisher.map { ResponseHolder(it, nonce) }
     }
@@ -119,11 +119,11 @@ open class NativeSubscribe(
         }
     }
     open fun subscribe(chain: Chain, method: String, params: Any?, matcher: Selector.Matcher): Flux<out Any> =
-        subscribe(chain, method, params, matcher, "")
+        subscribe(chain, method, params, matcher, "", "")
 
-    open fun subscribe(chain: Chain, method: String, params: Any?, matcher: Selector.Matcher, subscriptionId: String): Flux<out Any> =
+    open fun subscribe(chain: Chain, method: String, params: Any?, matcher: Selector.Matcher, subscriptionId: String, unsubscribeMethod: String): Flux<out Any> =
         getUpstream(chain).getEgressSubscription()
-            .subscribe(method, params, matcher)
+            .subscribe(method, params, matcher, unsubscribeMethod)
             .doOnError {
                 log.error("sub_id:$subscriptionId Error during subscription to $method, chain $chain, params $params", it)
             }
