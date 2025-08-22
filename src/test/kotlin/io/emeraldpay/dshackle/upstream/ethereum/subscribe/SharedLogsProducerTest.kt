@@ -32,10 +32,13 @@ import io.emeraldpay.dshackle.upstream.ethereum.hex.HexData
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionLogJson
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.LogMessage
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.mockito.kotlin.anyOrNull
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -64,7 +67,7 @@ class SharedLogsProducerTest {
     private lateinit var head: Head
     private lateinit var producer: SharedLogsProducer
     private lateinit var blockUpdatesFlux: Flux<BlockContainer>
-    
+
     // Sink для управления потоком блоков в тестах
     private lateinit var blockUpdatesSink: Sinks.Many<BlockContainer>
 
@@ -74,25 +77,25 @@ class SharedLogsProducerTest {
         cachingReader = mock(EthereumCachingReader::class.java)
         logReader = mock(Reader::class.java) as Reader<BlockId, EthereumDirectReader.Result<List<TransactionLogJson>>>
         head = mock(Head::class.java)
-        
+
         // Создаем контролируемый поток блоков
         blockUpdatesSink = Sinks.many().multicast().onBackpressureBuffer()
         blockUpdatesFlux = blockUpdatesSink.asFlux()
-        
+
         // Настраиваем моки - упрощенный подход
         `when`(multistream.getCachingReader()).thenReturn(cachingReader)
         `when`(multistream.getChain()).thenReturn(Chain.ETHEREUM__MAINNET)
         `when`(multistream.getHead(anyOrNull())).thenReturn(head)
-        
+
         `when`(cachingReader.logsByHash()).thenReturn(logReader)
         val emptyResult = EthereumDirectReader.Result(emptyList<TransactionLogJson>(), emptyList())
         `when`(logReader.read(BlockId.from("0x0"))).thenReturn(Mono.just(emptyResult))
-        
+
         `when`(head.getFlux()).thenReturn(blockUpdatesFlux)
-        
-            producer = SharedLogsProducer(multistream, Schedulers.immediate())
+
+        producer = SharedLogsProducer(multistream, Schedulers.immediate())
     }
-    
+
     @AfterEach
     fun tearDown() {
         blockUpdatesSink.tryEmitComplete()
@@ -101,7 +104,7 @@ class SharedLogsProducerTest {
     private fun createLogMessage(
         address: String = TEST_ADDRESS,
         topics: List<String> = emptyList(),
-        removed: Boolean = false
+        removed: Boolean = false,
     ): LogMessage {
         return LogMessage(
             address = Address.from(address),
@@ -113,7 +116,7 @@ class SharedLogsProducerTest {
             transactionHash = TransactionId.from(TEST_TX_HASH),
             transactionIndex = 1L,
             removed = removed,
-            upstreamId = "test-upstream"
+            upstreamId = "test-upstream",
         )
     }
 
@@ -136,13 +139,13 @@ class SharedLogsProducerTest {
             transactionHash = TransactionId.from(TEST_TX_HASH)
             transactionIndex = 1L
         }
-        
+
         val logsResult = EthereumDirectReader.Result(listOf(testLog), emptyList())
         `when`(logReader.read(BlockId.from(testLog.blockHash))).thenReturn(Mono.just(logsResult))
-        
+
         val matcher = createMatcher()
         `when`(matcher.matches(anyOrNull())).thenReturn(true)
-        
+
         val filterAddresses = listOf(Address.from(TEST_ADDRESS))
         val subscription = producer.subscribe(filterAddresses, emptyList(), matcher)
 
@@ -156,17 +159,17 @@ class SharedLogsProducerTest {
             parsed = null,
             parentHash = null,
             transactions = emptyList(),
-            upstreamId = "test-upstream"
+            upstreamId = "test-upstream",
         )
-        
+
         blockUpdatesSink.tryEmitNext(block)
-        
+
         // Проверяем что получили логи
         StepVerifier.create(subscription.take(1))
             .expectNextMatches { logMessage ->
                 logMessage.address == testLog.address &&
-                logMessage.blockHash == testLog.blockHash &&
-                logMessage.blockNumber == testLog.blockNumber
+                    logMessage.blockHash == testLog.blockHash &&
+                    logMessage.blockNumber == testLog.blockNumber
             }
             .expectComplete()
             .verify(Duration.ofSeconds(5))
@@ -181,15 +184,15 @@ class SharedLogsProducerTest {
 
         // When
         producer.subscribe(addresses, topics, matcher)
-        
+
         val sharedStreamField = SharedLogsProducer::class.java.getDeclaredField("sharedStream")
         sharedStreamField.isAccessible = true
         val firstStream = sharedStreamField.get(producer)
-        
+
         val logsSinkField = SharedLogsProducer::class.java.getDeclaredField("logsSink")
         logsSinkField.isAccessible = true
         val firstSink = logsSinkField.get(producer)
-        
+
         producer.subscribe(addresses, topics, matcher)
 
         // Then - проверяем что используется тот же stream
@@ -201,7 +204,7 @@ class SharedLogsProducerTest {
     fun `should filter logs by address`() {
         val targetAddress = Address.from(TEST_ADDRESS)
         val otherAddress = Address.from(OTHER_ADDRESS)
-        
+
         // Создаем лог с правильным адресом
         val matchingLog = TransactionLogJson().apply {
             address = targetAddress
@@ -213,7 +216,7 @@ class SharedLogsProducerTest {
             transactionHash = TransactionId.from(TEST_TX_HASH)
             transactionIndex = 1L
         }
-        
+
         // Создаем лог с неправильным адресом
         val nonMatchingLog = TransactionLogJson().apply {
             address = otherAddress
@@ -225,16 +228,16 @@ class SharedLogsProducerTest {
             transactionHash = TransactionId.from(OTHER_TX_HASH)
             transactionIndex = 2L
         }
-        
+
         val logsResult = EthereumDirectReader.Result(listOf(matchingLog, nonMatchingLog), emptyList())
         `when`(logReader.read(BlockId.from(matchingLog.blockHash))).thenReturn(Mono.just(logsResult))
-        
+
         val matcher = createMatcher()
         `when`(matcher.matches(anyOrNull())).thenReturn(true)
-        
+
         val filterAddresses = listOf(targetAddress)
         val subscription = producer.subscribe(filterAddresses, emptyList(), matcher)
-        
+
         val block = BlockContainer(
             height = 1L,
             hash = BlockId.from(TEST_BLOCK_HASH),
@@ -245,38 +248,38 @@ class SharedLogsProducerTest {
             parsed = null,
             parentHash = null,
             transactions = emptyList(),
-            upstreamId = "test-upstream"
+            upstreamId = "test-upstream",
         )
-        
+
         blockUpdatesSink.tryEmitNext(block)
-        
+
         // Проверяем что получили только лог с правильным адресом
         StepVerifier.create(subscription.take(1))
             .expectNextMatches { logMessage ->
                 logMessage.address == targetAddress &&
-                logMessage.logIndex == 1L
+                    logMessage.logIndex == 1L
             }
             .expectComplete()
             .verify(Duration.ofSeconds(5))
     }
 
     // ========== Unit tests for LogsSubscription ==========
-    
+
     private fun createLogsSubscription(
         id: String,
         addresses: List<Address> = emptyList(),
-        topics: List<List<Hex32>?> = emptyList()
+        topics: List<List<Hex32>?> = emptyList(),
     ): Any {
         val logsSubscriptionClass = SharedLogsProducer::class.java.declaredClasses
             .first { it.simpleName == "LogsSubscription" }
         val constructor = logsSubscriptionClass.declaredConstructors[0]
         constructor.isAccessible = true
-        
+
         return constructor.newInstance(
             id,
             addresses,
             topics,
-            mock(Selector.Matcher::class.java)
+            mock(Selector.Matcher::class.java),
         )
     }
 
@@ -292,9 +295,9 @@ class SharedLogsProducerTest {
     fun `LogsSubscription matches logs by address`() {
         val subscription = createLogsSubscription(
             "test-id",
-            listOf(Address.from(TEST_ADDRESS))
+            listOf(Address.from(TEST_ADDRESS)),
         )
-        
+
         val matchingLog = createLogMessage(TEST_ADDRESS)
         val nonMatchingLog = createLogMessage(OTHER_ADDRESS)
 
@@ -305,7 +308,7 @@ class SharedLogsProducerTest {
     @Test
     fun `LogsSubscription matches all addresses when empty list`() {
         val subscription = createLogsSubscription("test-id")
-        
+
         val log1 = createLogMessage(TEST_ADDRESS)
         val log2 = createLogMessage(OTHER_ADDRESS)
 
@@ -317,13 +320,13 @@ class SharedLogsProducerTest {
     fun `LogsSubscription matches logs by topics`() {
         val topic1 = "0x1234567890123456789012345678901234567890123456789012345678901234"
         val topic2 = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
-        
+
         val subscription = createLogsSubscription(
             "test-id",
             emptyList(),
-            listOf(listOf(Hex32.from(topic1)), null, listOf(Hex32.from(topic2)))
+            listOf(listOf(Hex32.from(topic1)), null, listOf(Hex32.from(topic2))),
         )
-        
+
         val matchingLog = createLogMessage(TEST_ADDRESS, listOf(topic1, topic1, topic2))
         val nonMatchingLog = createLogMessage(TEST_ADDRESS, listOf(topic2, topic1, topic2))
         val shortTopicsLog = createLogMessage(TEST_ADDRESS, listOf(topic1))
@@ -337,13 +340,13 @@ class SharedLogsProducerTest {
     fun `LogsSubscription matches when topic filter is null (wildcard)`() {
         val topic1 = "0x1234567890123456789012345678901234567890123456789012345678901234"
         val topic2 = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
-        
+
         val subscription = createLogsSubscription(
             "test-id",
             emptyList(),
-            listOf(null, listOf(Hex32.from(topic2)))
+            listOf(null, listOf(Hex32.from(topic2))),
         )
-        
+
         val log1 = createLogMessage(TEST_ADDRESS, listOf(topic1, topic2))
         val log2 = createLogMessage(TEST_ADDRESS, listOf(topic2, topic2))
 
@@ -354,7 +357,7 @@ class SharedLogsProducerTest {
     @Test
     fun `LogsSubscription matches all topics when empty list`() {
         val subscription = createLogsSubscription("test-id")
-        
+
         val topic1 = "0x1234567890123456789012345678901234567890123456789012345678901234"
         val logWithTopics = createLogMessage(TEST_ADDRESS, listOf(topic1))
         val logWithoutTopics = createLogMessage(TEST_ADDRESS, emptyList())
@@ -367,13 +370,13 @@ class SharedLogsProducerTest {
     fun `LogsSubscription combines address and topics matching`() {
         val targetAddress = TEST_ADDRESS
         val topic1 = "0x1234567890123456789012345678901234567890123456789012345678901234"
-        
+
         val subscription = createLogsSubscription(
             "test-id",
             listOf(Address.from(targetAddress)),
-            listOf(listOf(Hex32.from(topic1)))
+            listOf(listOf(Hex32.from(topic1))),
         )
-        
+
         val matchingLog = createLogMessage(targetAddress, listOf(topic1))
         val wrongAddress = createLogMessage(OTHER_ADDRESS, listOf(topic1))
         val wrongTopic = createLogMessage(targetAddress, listOf("0xabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"))
@@ -387,29 +390,29 @@ class SharedLogsProducerTest {
     fun `LogsSubscription filters by multiple topic positions`() {
         val topicA = "0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa"
         val topicB = "0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
-        
+
         val subscription = createLogsSubscription(
             "test-id",
             listOf(Address.from("0x63bc4a36c66c64acb3d695298d492e8c1d909d3f")),
             listOf(
                 listOf(Hex32.from(topicA)), // position 0 must be topicA
-                listOf(Hex32.from(topicB))  // position 1 must be topicB
-            )
+                listOf(Hex32.from(topicB)), // position 1 must be topicB
+            ),
         )
-        
+
         val matchingLog = createLogMessage(
-            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f", 
-            listOf(topicA, topicB)
+            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
+            listOf(topicA, topicB),
         )
-        
+
         val matchingLogWithExtra = createLogMessage(
-            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f", 
-            listOf(topicA, topicB, "0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5641")
+            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
+            listOf(topicA, topicB, "0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5641"),
         )
-        
+
         val nonMatchingLog = createLogMessage(
-            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f", 
-            listOf(topicA)
+            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
+            listOf(topicA),
         )
 
         assertTrue(matches(subscription, matchingLog))
@@ -422,29 +425,29 @@ class SharedLogsProducerTest {
         val topicA = "0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa"
         val topicB = "0x00000000000000000000000088e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
         val topicC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-        
+
         val subscription = createLogsSubscription(
             "test-id",
             emptyList(),
             listOf(
                 listOf(Hex32.from(topicA), Hex32.from(topicB)), // position 0: topicA OR topicB
-                null // position 1: any topic
-            )
+                null, // position 1: any topic
+            ),
         )
-        
+
         val logWithTopicA = createLogMessage(
-            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f", 
-            listOf(topicA, topicB)
+            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
+            listOf(topicA, topicB),
         )
-        
+
         val logWithTopicB = createLogMessage(
-            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f", 
-            listOf(topicB, topicA)
+            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
+            listOf(topicB, topicA),
         )
-        
+
         val logWithTopicC = createLogMessage(
-            "0x298d492e8c1d909d3f63bc4a36c66c64acb3d695", 
-            listOf(topicC)
+            "0x298d492e8c1d909d3f63bc4a36c66c64acb3d695",
+            listOf(topicC),
         )
 
         assertTrue(matches(subscription, logWithTopicA))
@@ -452,16 +455,21 @@ class SharedLogsProducerTest {
         assertFalse(matches(subscription, logWithTopicC))
     }
 
-    @Test 
-    fun `LogsSubscription matches all logs when no filters applied`() {
+    @Test fun `LogsSubscription matches all logs when no filters applied`() {
         val subscription = createLogsSubscription("test-id")
-        
-        val log1 = createLogMessage("0x298d492e8c1d909d3f63bc4a36c66c64acb3d695", 
-            listOf("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"))
-        val log2 = createLogMessage("0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
-            listOf("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"))
-        val log3 = createLogMessage("0x4a36c66c64acb3d695298d492e8c1d909d3f63bc",
-            listOf("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa"))
+
+        val log1 = createLogMessage(
+            "0x298d492e8c1d909d3f63bc4a36c66c64acb3d695",
+            listOf("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
+        )
+        val log2 = createLogMessage(
+            "0x63bc4a36c66c64acb3d695298d492e8c1d909d3f",
+            listOf("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
+        )
+        val log3 = createLogMessage(
+            "0x4a36c66c64acb3d695298d492e8c1d909d3f63bc",
+            listOf("0x952ba7f163c4a11628f55a4df523b3efddf252ad1be2c89b69c2b068fc378daa"),
+        )
 
         assertTrue(matches(subscription, log1))
         assertTrue(matches(subscription, log2))

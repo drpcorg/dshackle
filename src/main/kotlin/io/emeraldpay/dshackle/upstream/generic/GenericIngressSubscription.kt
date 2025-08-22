@@ -21,12 +21,13 @@ class GenericIngressSubscription(val conn: WsSubscriptions, val methods: List<St
     private val holders = ConcurrentHashMap<Pair<String, Any?>, SubscriptionConnect<out Any>>()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(topic: String, params: Any?): SubscriptionConnect<T> {
+    override fun <T> get(topic: String, params: Any?, unsubscribeMethod: String): SubscriptionConnect<T> {
         return holders.computeIfAbsent(topic to params) { key ->
             GenericSubscriptionConnect(
                 conn,
                 key.first,
                 key.second,
+                unsubscribeMethod,
             )
         } as SubscriptionConnect<T>
     }
@@ -36,6 +37,7 @@ class GenericSubscriptionConnect(
     val conn: WsSubscriptions,
     val topic: String,
     val params: Any?,
+    val unsubscribeMethod: String,
 ) : GenericPersistentConnect() {
 
     companion object {
@@ -44,8 +46,8 @@ class GenericSubscriptionConnect(
 
     @Suppress("UNCHECKED_CAST")
     override fun createConnection(): Flux<Any> {
-        return conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
-            .data
+        val sub = conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
+        return sub.data
             .timeout(
                 Duration.ofSeconds(85),
                 Mono.empty<ByteArray?>().doOnEach {
@@ -55,6 +57,12 @@ class GenericSubscriptionConnect(
             .onErrorResume {
                 log.error("Error during subscription to $topic", it)
                 Mono.empty()
+            }.doFinally {
+                if (unsubscribeMethod != "") {
+                    conn.unsubscribe(ChainRequest(unsubscribeMethod, ListParams(sub.subId.get()))).subscribe {
+                        log.info("unsubscribed from ${sub.subId.get()}")
+                    }
+                }
             } as Flux<Any>
     }
 
