@@ -165,7 +165,7 @@ class SharedLogsProducerTest {
 
         blockUpdatesSink.tryEmitNext(block)
 
-        // Проверяем что получили логи
+        // Verify that we received logs
         StepVerifier.create(subscription.take(1))
             .expectNextMatches { logMessage ->
                 logMessage.address == testLog.address &&
