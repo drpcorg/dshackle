@@ -79,7 +79,7 @@ class SharedLogsProducerTest {
         logReader = mock(Reader::class.java) as Reader<BlockId, EthereumDirectReader.Result<List<TransactionLogJson>>>
         head = mock(Head::class.java)
 
-        // Создаем контролируемый поток блоков
+        // Create controlled block flow
         blockUpdatesSink = Sinks.many().multicast().onBackpressureBuffer()
         blockUpdatesFlux = blockUpdatesSink.asFlux()
 
