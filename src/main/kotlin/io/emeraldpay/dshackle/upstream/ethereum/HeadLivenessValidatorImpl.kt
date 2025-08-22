@@ -17,16 +17,38 @@ class HeadLivenessValidatorImpl(
     companion object {
         const val CHECKED_BLOCKS_UNTIL_LIVE = 3
         const val COOLDOWN_MINUTES = 5L
+        const val TIMEOUT_MULTIPLIER = 2L
+        const val MAX_BLOCK_TIME_MINUTES = 10L
         private val log = LoggerFactory.getLogger(HeadLivenessValidatorImpl::class.java)
     }
 
     @Volatile
     private var lastNonConsecutiveTime: Instant? = null
 
+    @Volatile
+    private var measuredBlockTime: Duration = expectedBlockTime
+
+    @Volatile
+    private var lastBlockTimestamp: Instant? = null
+
     override fun getFlux(): Flux<HeadLivenessState> {
         val headLiveness = head.headLiveness()
         // first we have moving window of 2 blocks and check that they are consecutive ones
-        val headFlux = head.getFlux().map { it.height }.buffer(2, 1).map {
+        val headFlux = head.getFlux().doOnNext { _ ->
+            // Measure actual block time
+            val now = Instant.now()
+            val previous = lastBlockTimestamp
+            lastBlockTimestamp = now
+
+            if (previous != null) {
+                val actualInterval = Duration.between(previous, now)
+                // Always take the larger value to avoid timeouts
+                if (actualInterval > measuredBlockTime) {
+                    measuredBlockTime = actualInterval
+                    log.info("Updated measured block time to {}ms for upstream {}", measuredBlockTime.toMillis(), upstreamId)
+                }
+            }
+        }.map { it.height }.buffer(2, 1).map {
             // sometimes we can get there the same block, in this case it will be reorg
             it.last() - it.first() <= 1L
         }.scan(Pair(0, true)) { acc, value ->
@@ -64,17 +86,27 @@ class HeadLivenessValidatorImpl(
                 }
                 else -> Flux.empty()
             }
-        }.timeout(
-            expectedBlockTime.multipliedBy(CHECKED_BLOCKS_UNTIL_LIVE.toLong() * 2),
-            Flux.just(HeadLivenessState.NON_CONSECUTIVE).doOnNext {
-                if (log.isDebugEnabled) {
-                    log.debug("head liveness check broken with timeout in $upstreamId")
-                } else {
-                    ThrottledLogger.log(log, "head liveness check broken with timeout in $upstreamId")
-                }
-            },
-        ).repeat().subscribeOn(scheduler)
+        }
 
-        return Flux.merge(headFlux, headLiveness)
+        // Use defer to dynamically evaluate timeout on each subscription
+        val timeoutFlux = Flux.defer {
+            headFlux.timeout(
+                measuredBlockTime.multipliedBy(CHECKED_BLOCKS_UNTIL_LIVE.toLong() * 2),
+                Flux.just(HeadLivenessState.NON_CONSECUTIVE).doOnNext {
+                    // Increase measured block time when timeout occurs to avoid future timeouts
+                    measuredBlockTime = measuredBlockTime.multipliedBy(TIMEOUT_MULTIPLIER).coerceAtMost(Duration.ofMinutes(MAX_BLOCK_TIME_MINUTES))
+                    if (log.isDebugEnabled) {
+                        log.debug(
+                            "head liveness check broken with timeout in $upstreamId, increased measured block time to {}ms",
+                            measuredBlockTime.toMillis(),
+                        )
+                    } else {
+                        ThrottledLogger.log(log, "head liveness check broken with timeout in $upstreamId")
+                    }
+                },
+            )
+        }.repeat().subscribeOn(scheduler)
+
+        return Flux.merge(timeoutFlux, headLiveness)
     }
 }
