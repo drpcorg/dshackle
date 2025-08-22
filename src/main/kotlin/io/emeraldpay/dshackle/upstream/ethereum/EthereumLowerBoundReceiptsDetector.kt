@@ -26,6 +26,7 @@ class EthereumLowerBoundReceiptsDetector(
             "missing trie node",
             "old data not available due to pruning",
             "Unexpected error", // hyperliquid
+            "invalid block height", // hyperliquid
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 

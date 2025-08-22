@@ -27,6 +27,7 @@ class EthereumLowerBoundBlockDetector(
             "height is not available", // sei
             "method handler crashed", // sei
             "Unexpected error", // hyperliquid
+            "invalid block height", // hyperliquid
         )
     }
 

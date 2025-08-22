@@ -28,6 +28,7 @@ class EthereumLowerBoundProofDetector(
             "old data not available due to pruning",
             "no historical RPC is available",
             "Method not found", // Monad error bc they don't have eth_getProofs
+            "invalid block height", // hyperliquid
         )
     }
 
