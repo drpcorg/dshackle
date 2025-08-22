@@ -33,11 +33,11 @@ import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionLogJson
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.LogMessage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.anyOrNull
 import reactor.core.publisher.Flux
@@ -186,19 +186,25 @@ class SharedLogsProducerTest {
         // When
         producer.subscribe(addresses, topics, matcher)
 
-        val sharedStreamField = SharedLogsProducer::class.java.getDeclaredField("sharedStream")
-        sharedStreamField.isAccessible = true
-        val firstStream = sharedStreamField.get(producer)
+        val sharedStreamsField = SharedLogsProducer::class.java.getDeclaredField("sharedStreams")
+        sharedStreamsField.isAccessible = true
+        val sharedStreams = sharedStreamsField.get(producer) as Map<*, *>
 
-        val logsSinkField = SharedLogsProducer::class.java.getDeclaredField("logsSink")
-        logsSinkField.isAccessible = true
-        val firstSink = logsSinkField.get(producer)
+        val logsSinksField = SharedLogsProducer::class.java.getDeclaredField("logsSinks")
+        logsSinksField.isAccessible = true
+        val logsSinks = logsSinksField.get(producer) as Map<*, *>
+
+        val matcherKey = matcher.describeInternal()
+        val firstStream = sharedStreams[matcherKey]
+        val firstSink = logsSinks[matcherKey]
 
         producer.subscribe(addresses, topics, matcher)
 
-        // Then - verify that the same stream is used
-        assertEquals(firstStream, sharedStreamField.get(producer))
-        assertEquals(firstSink, logsSinkField.get(producer))
+        // Then - verify that the same stream is used for the same matcher
+        assertEquals(firstStream, sharedStreams[matcherKey])
+        assertEquals(firstSink, logsSinks[matcherKey])
+        assertEquals(1, sharedStreams.size)
+        assertEquals(1, logsSinks.size)
     }
 
     @Test

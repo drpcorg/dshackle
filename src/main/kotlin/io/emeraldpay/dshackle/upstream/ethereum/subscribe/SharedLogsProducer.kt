@@ -42,11 +42,9 @@ class SharedLogsProducer(
     private val subscriptions = ConcurrentHashMap<String, LogsSubscription>()
     private val subscriptionCounter = AtomicInteger(0)
 
-    @Volatile
-    private var sharedStream: Disposable? = null
-
-    @Volatile
-    private var logsSink: Sinks.Many<LogMessage>? = null
+    // Map of matcher hash to shared streams
+    private val sharedStreams = ConcurrentHashMap<String, Disposable>()
+    private val logsSinks = ConcurrentHashMap<String, Sinks.Many<LogMessage>>()
 
     fun subscribe(
         addresses: List<Address>,
@@ -55,53 +53,57 @@ class SharedLogsProducer(
     ): Flux<LogMessage> {
         val subscriptionId = "logs-sub-${subscriptionCounter.incrementAndGet()}"
         val subscription = LogsSubscription(subscriptionId, addresses, topics, matcher)
+        val matcherKey = matcher.describeInternal()
 
         subscriptions[subscriptionId] = subscription
 
-        // Start shared stream if this is the first subscription
-        if (subscriptions.size == 1) {
+        // Start shared stream if this is the first subscription for this matcher
+        val subscriptionsForMatcher = subscriptions.values.filter { it.matcher.describeInternal() == matcherKey }
+        if (subscriptionsForMatcher.size == 1) {
             startSharedStream(matcher)
         }
 
-        val logsFlux = logsSink?.asFlux() ?: Flux.empty()
+        val logsFlux = logsSinks[matcherKey]?.asFlux() ?: Flux.empty()
 
         return logsFlux
             .filter { logMessage -> subscription.matches(logMessage) }
             .doFinally { // Remove subscription when stream ends
                 subscriptions.remove(subscriptionId)
-                // Stop shared stream if no more subscriptions
-                if (subscriptions.isEmpty()) {
-                    stopSharedStream()
+                // Stop shared stream if no more subscriptions for this matcher
+                val remainingSubscriptionsForMatcher = subscriptions.values.filter { it.matcher.describeInternal() == matcherKey }
+                if (remainingSubscriptionsForMatcher.isEmpty()) {
+                    stopSharedStream(matcherKey)
                 }
             }
     }
 
     private fun startSharedStream(matcher: Selector.Matcher) {
-        log.debug("Starting shared logs stream")
-        logsSink = Sinks.many().multicast().onBackpressureBuffer()
+        val matcherKey = matcher.describeInternal()
 
-        sharedStream = produceLogs.produce(connectBlockUpdates.connect(matcher))
+        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>()
+        logsSinks[matcherKey] = logsSink
+
+        val sharedStream = produceLogs.produce(connectBlockUpdates.connect(matcher))
             .subscribe(
                 { logMessage ->
-                    logsSink?.emitNext(logMessage) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                    logsSink.emitNext(logMessage) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 },
                 { error ->
-                    log.error("Error in shared logs stream", error)
-                    logsSink?.emitError(error) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                    log.error("Error in shared logs stream for matcher: $matcherKey", error)
+                    logsSink.emitError(error) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 },
                 {
-                    log.debug("Shared logs stream completed")
-                    logsSink?.emitComplete { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                    logsSink.emitComplete { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 },
             )
+        sharedStreams[matcherKey] = sharedStream
     }
 
-    private fun stopSharedStream() {
-        log.debug("Stopping shared logs stream")
-        sharedStream?.dispose()
-        sharedStream = null
-        logsSink?.tryEmitComplete()
-        logsSink = null
+    private fun stopSharedStream(matcherKey: String) {
+        sharedStreams[matcherKey]?.dispose()
+        sharedStreams.remove(matcherKey)
+        logsSinks[matcherKey]?.tryEmitComplete()
+        logsSinks.remove(matcherKey)
     }
 
     private data class LogsSubscription(
