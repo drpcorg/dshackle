@@ -129,7 +129,7 @@ class SharedLogsProducerTest {
 
     @Test
     fun `should start shared stream on first subscription`() {
-        // Создаем реальные логи для блока
+        // Create real logs for block
         val testLog = TransactionLogJson().apply {
             address = Address.from(TEST_ADDRESS)
             blockHash = BlockHash.from(TEST_BLOCK_HASH)
