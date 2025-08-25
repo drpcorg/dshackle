@@ -118,7 +118,67 @@ class ManagedCallMethods(
             }
             return json.toByteArray()
         }
-        return delegate.executeHardcoded(method)
+
+        val delegateResult = delegate.executeHardcoded(method)
+
+        // Transform web3_clientVersion to ensure 4 components
+        if (method == "web3_clientVersion") {
+            return transformWeb3ClientVersion(delegateResult)
+        }
+
+        return delegateResult
+    }
+
+    /**
+     * Transform web3_clientVersion response to ensure it has exactly 4 components separated by "/"
+     * Expected format: "Client/Version/OS/Language"
+     * If response has fewer than 4 components, pad with "/unk" until we have 4
+     */
+    private fun transformWeb3ClientVersion(originalResponse: ByteArray): ByteArray {
+        try {
+            val responseString = String(originalResponse)
+            val mapper = ObjectMapper()
+
+            // Parse JSON to extract the actual version string
+            val jsonNode = mapper.readTree(responseString)
+            val versionString = if (jsonNode.isTextual) {
+                jsonNode.asText()
+            } else {
+                // If it's not a string, return original response
+                return originalResponse
+            }
+
+            // Split by "/" to get components, filter out empty strings
+            val components = versionString.split("/").filter { it.isNotEmpty() }.toMutableList()
+
+            // If we already have 4 or more components, return original
+            if (components.size >= 4) {
+                return originalResponse
+            }
+
+            // If we have no components (empty string), start fresh
+            if (components.isEmpty()) {
+                components.add("unk")
+            }
+
+            // Pad with "unk" until we have exactly 4 components
+            while (components.size < 4) {
+                components.add("unk")
+            }
+
+            // Reconstruct the version string
+            val normalizedVersion = components.take(4).joinToString("/")
+
+            // Return as JSON string
+            val normalizedJson = mapper.writeValueAsString(normalizedVersion)
+
+            log.debug("Transformed web3_clientVersion from '{}' to '{}'", versionString, normalizedVersion)
+
+            return normalizedJson.toByteArray()
+        } catch (e: Exception) {
+            log.warn("Failed to transform web3_clientVersion response, returning original: {}", e.message)
+            return originalResponse
+        }
     }
 
     override fun getGroupMethods(groupName: String): Set<String> =
