@@ -11,6 +11,7 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.concurrent.atomic.AtomicInteger
 
 const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -22,13 +23,15 @@ class EthereumUpstreamSettingsDetector(
     private val notArchived = upstream
         .getLabels()
         .find { it.getOrDefault("archive", "") == "false" } != null
-
+    private var detectCounter = AtomicInteger(1)
     override fun internalDetectLabels(): Flux<Pair<String, String>> {
+        detectCounter.incrementAndGet()
         return Flux.merge(
             detectNodeType(),
             detectArchiveNode(notArchived),
             detectGasLabels(),
             detectFlashBlocks(),
+            detectHlNativeTx(),
         )
     }
 
@@ -116,6 +119,81 @@ class EthereumUpstreamSettingsDetector(
             }
             Flux.fromIterable(labels)
         }.onErrorResume {
+            Flux.empty()
+        }
+    }
+
+    /*
+        Some clients on hyperliquid don't include system topup transactions, set either one of labels
+     */
+    private fun detectHlNativeTx(): Flux<Pair<String, String>> {
+        // Only run HL native tx detection on Hyperliquid chains
+        if (chain != Chain.HYPERLIQUID__MAINNET && chain != Chain.HYPERLIQUID__TESTNET) {
+            return Flux.empty()
+        }
+        if (detectCounter.get() % 5 != 1) {
+            return Flux.empty() // reduce frequency of detection
+        }
+        val blocksToCheck = 300 // as of now, native tx occurs about once in 30 blocks on average, have 10x leeway here...
+        return upstream.getIngressReader().read(
+            ChainRequest(
+                "eth_blockNumber",
+                ListParams(),
+            ),
+        ).flatMap {
+            it.requireResult()
+        }.flatMapMany { latestBlockBytes ->
+            val latestBlockHex = String(latestBlockBytes).trim().replace("\"", "")
+            val latestBlockNumber = latestBlockHex.drop(2).toBigInteger(16)
+            val blockChecks = (0L until blocksToCheck).map { offset ->
+                val blockNumber = latestBlockNumber - offset.toBigInteger()
+                val blockHex = "0x" + blockNumber.toString(16)
+                upstream.getIngressReader().read(
+                    ChainRequest(
+                        "eth_getBlockReceipts",
+                        ListParams(blockHex),
+                    ),
+                ).flatMap {
+                    it.requireResult()
+                }.flatMap { receiptsBytes ->
+                    val receiptsJson = Global.objectMapper.readValue(receiptsBytes, JsonNode::class.java)
+                    var foundHlNativeTx = false
+                    if (receiptsJson.isArray) {
+                        receiptsJson.forEach { receipt ->
+                            val from = receipt.get("from")?.asText()
+                            if (from == "0x2222222222222222222222222222222222222222") { // system topup transaction
+                                foundHlNativeTx = true
+                            }
+                        }
+                    }
+                    Mono.just(foundHlNativeTx)
+                }.onErrorResume {
+                    log.error("${upstream.getId()} Error during HL native tx detection: ${it.message}")
+                    Mono.empty()
+                }
+            }
+            Flux.fromIterable(blockChecks)
+                .flatMap { it }
+                .any { it }
+                .flatMapMany { hasHlNativeTx ->
+                    if (hasHlNativeTx) {
+                        Flux.fromIterable(
+                            listOf(
+                                Pair("include_hl_native_tx", "true"),
+                                Pair("exclude_hl_native_tx", "false"),
+                            ),
+                        )
+                    } else {
+                        Flux.fromIterable(
+                            listOf(
+                                Pair("include_hl_native_tx", "false"),
+                                Pair("exclude_hl_native_tx", "true"),
+                            ),
+                        )
+                    }
+                }
+        }.onErrorResume {
+            log.error("${upstream.getId()} Can't determine HL native tx status: ${it.message}")
             Flux.empty()
         }
     }
