@@ -322,7 +322,9 @@ class LogIndexValidator(
                 "Node ${upstream.getId()} uses LOCAL logIndex instead of GLOBAL. " +
                     "First tx ($firstTxHash) has ${firstTxLogs.size()} logs (indices 0-$firstTxLastLogIndex), " +
                     "but second tx ($secondTxHash) starts at logIndex=0 instead of $expectedSecondTxStart. " +
-                    "This indicates Erigon bug with incorrect logIndex numbering.",
+                    "This indicates Erigon bug with incorrect logIndex numbering. " +
+                    "TO VERIFY: Send 'eth_getTransactionReceipt' for tx $secondTxHash to your RPC node " +
+                    "and check that logIndex is NOT zero. Then compare with the same request to a public RPC.",
             )
             return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
         }
@@ -332,7 +334,9 @@ class LogIndexValidator(
             log.error(
                 "Node ${upstream.getId()} has non-continuous logIndex between transactions $firstTxHash and $secondTxHash: " +
                     "second transaction starts at $secondTxFirstLogIndex, expected $expectedSecondTxStart. " +
-                    "This indicates missing or incorrectly numbered logs.",
+                    "This indicates missing or incorrectly numbered logs. " +
+                    "TO VERIFY: Send 'eth_getTransactionReceipt' for both txs ($firstTxHash and $secondTxHash) " +
+                    "to your RPC node and check logIndex continuity. Compare with a public RPC.",
             )
             return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
         }
