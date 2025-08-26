@@ -32,5 +32,6 @@ class Defaults {
         val grpcServerPermitKeepAliveTime: Long = 15
         val grpcServerMaxConnectionIdle: Long = 3600
         val multistreamUnavailableMethodDisableDuration: Long = 20 // minutes
+        val nativeSubscribeHeartbeatInterval: Duration = Duration.ofSeconds(30)
     }
 }

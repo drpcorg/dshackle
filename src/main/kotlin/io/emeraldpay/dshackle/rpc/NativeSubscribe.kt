@@ -19,6 +19,7 @@ import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.api.proto.BlockchainOuterClass.NativeSubscribeReplyItem
 import io.emeraldpay.dshackle.Chain
+import io.emeraldpay.dshackle.Defaults
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.SilentException
 import io.emeraldpay.dshackle.upstream.Multistream
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.concurrent.atomic.AtomicLong
 
 @Service
 open class NativeSubscribe(
@@ -51,14 +53,26 @@ open class NativeSubscribe(
             .flatMapMany {
                     it ->
                 val subscriptionId = it.subscriptionId
-                Mono.just(it)
+                val dataStream = Mono.just(it)
                     .flatMapMany {
                         start(it, subscriptionId)
                     }
                     .map(this@NativeSubscribe::convertToProto)
+
+                val lastMessageTime = AtomicLong(System.currentTimeMillis())
+
+                val heartbeatStream = Flux.interval(Defaults.nativeSubscribeHeartbeatInterval)
+                    .filter { System.currentTimeMillis() - lastMessageTime.get() >= Defaults.nativeSubscribeHeartbeatInterval.toMillis() }
+                    .map { createHeartbeat() }
+
+                Flux.merge(
+                    dataStream.doOnNext { lastMessageTime.set(System.currentTimeMillis()) },
+                    heartbeatStream,
+                )
                     .doOnCancel {
                         log.warn("Subscription $subscriptionId cancelled")
-                    }.onErrorMap {
+                    }
+                    .onErrorMap {
                         convertToStatus(it, subscriptionId)
                     }
             }
@@ -170,6 +184,12 @@ open class NativeSubscribe(
         msg.upstreamId = signature.upstreamId
         msg.nonce = nonce
         return msg.build()
+    }
+
+    private fun createHeartbeat(): NativeSubscribeReplyItem {
+        return NativeSubscribeReplyItem.newBuilder()
+            .setHeartbeat(true)
+            .build()
     }
 
     data class ResponseHolder(
