@@ -97,7 +97,12 @@ abstract class BasicEthUpstreamSettingsDetector(
             } else {
                 // "Type/Version" format: return version part after slash
                 val version = client.substring(firstSlash + 1)
-                return if (version.isEmpty()) UNKNOWN_CLIENT_VERSION else version
+                return if (version.isEmpty()) {
+                    log.warn("Could not determine client version for upstream ${upstream.getId()}, empty version after slash in: '{}'", client)
+                    UNKNOWN_CLIENT_VERSION
+                } else {
+                    version
+                }
             }
         }
 
@@ -108,6 +113,7 @@ abstract class BasicEthUpstreamSettingsDetector(
 
         // String without slashes and dots - return unknown version
         if (!client.contains(".")) {
+            log.warn("Could not determine client version for upstream ${upstream.getId()}, single word without version info: '{}'", client)
             return UNKNOWN_CLIENT_VERSION
         }
 
