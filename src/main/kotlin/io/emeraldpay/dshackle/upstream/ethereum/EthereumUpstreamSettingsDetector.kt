@@ -22,8 +22,9 @@ class EthereumUpstreamSettingsDetector(
     private val notArchived = upstream
         .getLabels()
         .find { it.getOrDefault("archive", "") == "false" } != null
-
+    private var detectCounter = 0u
     override fun internalDetectLabels(): Flux<Pair<String, String>> {
+        detectCounter+=1u
         return Flux.merge(
             detectNodeType(),
             detectArchiveNode(notArchived),
@@ -128,6 +129,9 @@ class EthereumUpstreamSettingsDetector(
         // Only run HL native tx detection on Hyperliquid chains
         if (chain != Chain.HYPERLIQUID__MAINNET && chain != Chain.HYPERLIQUID__TESTNET) {
             return Flux.empty()
+        }
+        if (detectCounter % 5u != 1u) {
+            return Flux.empty() // reduce frequency of detection
         }
         val blocksToCheck = 300 // as of now, native tx occurs about once in 30 blocks on average, have 10x leeway here...
         return upstream.getIngressReader().read(
