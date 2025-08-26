@@ -11,6 +11,7 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.util.concurrent.atomic.AtomicInteger
 
 const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -22,9 +23,9 @@ class EthereumUpstreamSettingsDetector(
     private val notArchived = upstream
         .getLabels()
         .find { it.getOrDefault("archive", "") == "false" } != null
-    private var detectCounter = 0u
+    private var detectCounter = AtomicInteger(1)
     override fun internalDetectLabels(): Flux<Pair<String, String>> {
-        detectCounter+=1u
+        detectCounter.incrementAndGet()
         return Flux.merge(
             detectNodeType(),
             detectArchiveNode(notArchived),
@@ -130,7 +131,7 @@ class EthereumUpstreamSettingsDetector(
         if (chain != Chain.HYPERLIQUID__MAINNET && chain != Chain.HYPERLIQUID__TESTNET) {
             return Flux.empty()
         }
-        if (detectCounter % 5u != 1u) {
+        if (detectCounter.get() % 5 != 1) {
             return Flux.empty() // reduce frequency of detection
         }
         val blocksToCheck = 300 // as of now, native tx occurs about once in 30 blocks on average, have 10x leeway here...
