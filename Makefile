@@ -1,5 +1,4 @@
 all: build-foundation build-main
-
 build-foundation:
 	cd foundation && ../gradlew build publishToMavenLocal
 
