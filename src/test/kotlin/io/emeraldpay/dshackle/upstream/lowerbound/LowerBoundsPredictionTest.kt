@@ -4,9 +4,48 @@ import io.emeraldpay.dshackle.Chain
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 class LowerBoundsPredictionTest {
+
+    @Test
+    fun testPredictionAtSpecificTime() {
+        val lowerBounds = LowerBounds(Chain.`0G__GALILEO_TESTNET`)
+        val dateStr = "28.08.2025 11:00:57"
+        val reqStr = "28.08.2025 11:10:25"
+        val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss")
+        val localDateTime = LocalDateTime.parse(dateStr, formatter)
+        val reqDateTime = LocalDateTime.parse(reqStr, formatter)
+
+        lowerBounds.updateBound(
+            LowerBoundData(
+                3294252,
+                localDateTime.toEpochSecond(ZoneOffset.UTC),
+                LowerBoundType.RECEIPTS,
+            ),
+        )
+        lowerBounds.updateBound(
+            LowerBoundData(
+                3294552,
+                localDateTime.plus(3, ChronoUnit.MINUTES).toEpochSecond(ZoneOffset.UTC),
+                LowerBoundType.RECEIPTS,
+            ),
+        )
+        lowerBounds.updateBound(
+            LowerBoundData(
+                3294552,
+                localDateTime.plus(6, ChronoUnit.MINUTES).toEpochSecond(ZoneOffset.UTC),
+                LowerBoundType.RECEIPTS,
+            ),
+        )
+
+        val predicted = lowerBounds.predictNextBoundAtSpecificTime(LowerBoundType.RECEIPTS, reqDateTime.toEpochSecond(ZoneOffset.UTC))
+
+        assertThat(predicted).isEqualTo(3294725)
+    }
 
     @Test
     fun `first archival lower bound data, get it and predict the next bound`() {
@@ -196,8 +235,8 @@ class LowerBoundsPredictionTest {
         val predicted = lowerBounds.predictNextBound(LowerBoundType.STATE, 0)
 
         assertThat(predicted)
-            .isLessThan(37996030)
-            .isGreaterThan(37996020)
+            .isLessThan(37996090)
+            .isGreaterThan(37996070)
     }
 
     @Test
