@@ -25,21 +25,21 @@ class LowerBoundsPredictionTest {
                 3294252,
                 localDateTime.toEpochSecond(ZoneOffset.UTC),
                 LowerBoundType.RECEIPTS,
-            )
+            ),
         )
         lowerBounds.updateBound(
             LowerBoundData(
                 3294552,
                 localDateTime.plus(3, ChronoUnit.MINUTES).toEpochSecond(ZoneOffset.UTC),
                 LowerBoundType.RECEIPTS,
-            )
+            ),
         )
         lowerBounds.updateBound(
             LowerBoundData(
                 3294552,
                 localDateTime.plus(6, ChronoUnit.MINUTES).toEpochSecond(ZoneOffset.UTC),
                 LowerBoundType.RECEIPTS,
-            )
+            ),
         )
 
         val predicted = lowerBounds.predictNextBoundAtSpecificTime(LowerBoundType.RECEIPTS, reqDateTime.toEpochSecond(ZoneOffset.UTC))
