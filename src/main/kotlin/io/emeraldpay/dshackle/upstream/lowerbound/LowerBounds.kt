@@ -75,6 +75,12 @@ class LowerBounds(
         return (lowerBoundCoeffs.k.get() * xTime + lowerBoundCoeffs.b.get()).roundToLong()
     }
 
+    fun predictNextBoundAtSpecificTime(type: LowerBoundType, timestamp: Long): Long {
+        val lowerBoundCoeffs = lowerBounds[type] ?: return 0
+
+        return (lowerBoundCoeffs.k.get() * timestamp + lowerBoundCoeffs.b.get()).roundToLong()
+    }
+
     fun getLastBound(type: LowerBoundType): LowerBoundData? {
         return lowerBounds[type]?.getLastBound()
     }
@@ -124,7 +130,8 @@ class LowerBounds(
                 regression.addObservation(doubleArrayOf(it.timestamp.toDouble()), it.lowerBound.toDouble())
             }
 
-            updateCoeffs(regression.slope, regression.intercept)
+            // we want our line to go through the last point in terms of the function k(y-y(t))+b
+            updateCoeffs(regression.slope, lowerBounds.last.lowerBound.toDouble() - regression.slope * lowerBounds.last.timestamp)
         }
     }
 }
