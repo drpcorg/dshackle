@@ -80,7 +80,7 @@ class SharedLogsProducer(
     private fun startSharedStream(matcher: Selector.Matcher) {
         val matcherKey = matcher.describeInternal()
 
-        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>()
+        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>(4096)
         logsSinks[matcherKey] = logsSink
 
         val sharedStream = produceLogs.produce(connectBlockUpdates.connect(matcher))
