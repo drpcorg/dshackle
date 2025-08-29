@@ -10,6 +10,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 const val UNKNOWN_CLIENT_VERSION = "unknown"
+const val DEFAULT_CLIENT_TYPE = "default client"
 
 typealias UpstreamSettingsDetectorBuilder = (Chain, Upstream) -> UpstreamSettingsDetector?
 
@@ -85,22 +86,72 @@ abstract class BasicEthUpstreamSettingsDetector(
 
     override fun clientVersion(node: JsonNode): String? {
         val client = mapping(node)
+
         val firstSlash = client.indexOf("/")
-        val secondSlash = client.indexOf("/", firstSlash + 1)
-        if (firstSlash == -1 || secondSlash == -1 || secondSlash < firstSlash) {
-            return node.asText()
+        if (firstSlash != -1) {
+            // Standard format with slashes: "geth/1.9.0/linux/go1.15" or "Type/Version"
+            val secondSlash = client.indexOf("/", firstSlash + 1)
+            if (secondSlash != -1) {
+                // Full standard format: return version part between first and second slash
+                return client.substring(firstSlash + 1, secondSlash)
+            } else {
+                // "Type/Version" format: return version part after slash
+                val version = client.substring(firstSlash + 1)
+                return if (version.isEmpty()) {
+                    log.warn("Could not determine client version for upstream ${upstream.getId()}, empty version after slash in: '{}'", client)
+                    UNKNOWN_CLIENT_VERSION
+                } else {
+                    version
+                }
+            }
         }
-        return client.substring(firstSlash + 1, secondSlash)
+
+        // Check if it's semver format without client type
+        if (isSemverLike(client)) {
+            return client
+        }
+
+        // String without slashes and dots - return unknown version
+        if (!client.contains(".")) {
+            log.warn("Could not determine client version for upstream ${upstream.getId()}, single word without version info: '{}'", client)
+            return UNKNOWN_CLIENT_VERSION
+        }
+
+        // Fallback: return original as version
+        log.warn("Could not determine client version for upstream ${upstream.getId()}, raw version: '{}'", client)
+        return client
     }
 
     override fun clientType(node: JsonNode): String? {
         val client = mapping(node)
-        val firstSlash = client.indexOf("/")
-        if (firstSlash == -1) {
-            log.debug("Unknown client type: {}", client)
-            return null
+
+        if (client.isEmpty()) {
+            return DEFAULT_CLIENT_TYPE
         }
-        return client.substring(0, firstSlash).lowercase()
+
+        val firstSlash = client.indexOf("/")
+        if (firstSlash != -1) {
+            // Has slash - return part before first slash as client type
+            val clientPart = client.substring(0, firstSlash)
+            return if (clientPart.isEmpty()) DEFAULT_CLIENT_TYPE else clientPart.lowercase()
+        }
+
+        // Check if it's semver format without client type
+        if (isSemverLike(client)) {
+            return DEFAULT_CLIENT_TYPE
+        }
+
+        // String without slashes and dots - use whole string as client type
+        if (!client.contains(".")) {
+            return client.lowercase()
+        }
+
+        // Fallback for unrecognized formats
+        return DEFAULT_CLIENT_TYPE
+    }
+
+    private fun isSemverLike(version: String): Boolean {
+        return version.matches(Regex("^v?\\d+\\.\\d+\\.\\d+.*"))
     }
 }
 

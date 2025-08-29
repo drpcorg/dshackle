@@ -63,6 +63,74 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         "Bor/v0.4.0/linux-amd64/go1.19.10"                    | "0x23c2f342"| "600000000" | "600000000" | "bor"           |  "v0.4.0"
     }
 
+    def "Detect unknown client version formats"() {
+        setup:
+        def up = TestingCommons.upstream(
+                new ApiReaderMock().tap {
+                    answer("web3_clientVersion", [], response)
+                    // Mock other calls to avoid complexity - only test client version parsing
+                    answer("eth_blockNumber", [], "0x10df3e5")
+                    answer("eth_getBalance", ["0x0000000000000000000000000000000000000000", "0x10dccd5"], null)
+                    answer("eth_getBalance", ["0x0000000000000000000000000000000000000000", "0x2710"], null)
+                    answer("eth_call", [[
+                            "to": "0x53Daa71B04d589429f6d3DF52db123913B818F22",
+                            "data": "0x51be4eaa",
+                    ],
+                            "latest",
+                            [
+                                    "0x53Daa71B04d589429f6d3DF52db123913B818F22": [
+                                            "code": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c806351be4eaa14602d575b600080fd5b60336047565b604051603e91906066565b60405180910390f35b60005a905090565b6000819050919050565b606081604f565b82525050565b6000602082019050607960008301846059565b9291505056fea26469706673582212201c0202887c1afe66974b06ee355dee07542bbc424cf4d1659c91f56c08c3dcc064736f6c63430008130033",
+                                    ],
+                            ]], null)
+                    answer("eth_getBlockByNumber", ["pending", false], null)
+                }
+        )
+        def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
+
+        when:
+        def act = detector.internalDetectLabels()
+        then:
+        def result = StepVerifier.create(act)
+        result.expectNext(new Pair<String, String>("client_type", clientType))
+        result.expectNext(new Pair<String, String>("client_version", clientVersion))
+        // Skip other labels - focus only on client type/version
+        result.expectNext(new Pair<String, String>("archive", "false"))
+        result.expectNext(new Pair<String, String>("flashblocks", "false"))
+        result.expectComplete().verify(Duration.ofSeconds(1))
+        
+        where:
+        response                           | clientType              | clientVersion
+        // Type/Version formats
+        "Monad/e1e25be"                   | "monad"                 | "e1e25be"
+        "Monad/v0.9.3"                    | "monad"                 | "v0.9.3"
+        "Monad/f9c50c1"                   | "monad"                 | "f9c50c1"
+        "thirdweb/1.0"                    | "thirdweb"              | "1.0"
+        "envio.dev/hyperrpc"              | "envio.dev"             | "hyperrpc"
+        // Semver formats (should use "default client")
+        "3.0.0-rc0"                       | "default client"        | "3.0.0-rc0"
+        "0.17.0"                          | "default client"        | "0.17.0"
+        "0.16.5"                          | "default client"        | "0.16.5"
+        "0.14.4-rc1"                      | "default client"        | "0.14.4-rc1"
+        "v1.29.0"                         | "default client"        | "v1.29.0"
+        // Single words (no slashes or dots)
+        "blockpi"                         | "blockpi"               | "unknown"
+        "tomo-fullnode-testnet-03"        | "tomo-fullnode-testnet-03" | "unknown"
+        "drpc-br-viction-testnet-02"      | "drpc-br-viction-testnet-02" | "unknown"
+        "drpc-sgp-viction-mainnet-01"     | "drpc-sgp-viction-mainnet-01" | "unknown"
+        "bh-rocks-rpc"                    | "bh-rocks-rpc"          | "unknown"
+        "coin98-full-03"                  | "coin98-full-03"        | "unknown"
+        "my-full-node"                    | "my-full-node"          | "unknown"
+        "Amenemhat-viction"               | "amenemhat-viction"     | "unknown"
+        "Thoth-Viction"                   | "thoth-viction"         | "unknown"
+        "unnamed_GlTVHn"                  | "unnamed_gltvhn"        | "unknown"
+        // Edge cases
+        ""                                | "default client"        | "unknown"
+        "/"                               | "default client"        | "unknown"
+        "client/"                         | "client"                | "unknown"
+        // Non-semver with dots (should fallback to default client)
+        "1.0"                             | "default client"        | "1.0"
+    }
+
     def "Not archival node if null response"() {
         setup:
         def up = TestingCommons.upstream(
