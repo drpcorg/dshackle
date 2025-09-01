@@ -84,7 +84,7 @@ class DefaultStarknetMethods(
     override fun createQuorumFor(method: String): CallQuorum {
         return when {
             nonce.contains(method) -> MaximumValueQuorum()
-            add.contains(method) -> BroadcastQuorum()
+            add.contains(method) -> NotNullQuorum() //BroadcastQuorum() - todo - fix broadcast on starknet
             nonNull.contains(method) -> NotNullQuorum()
 
             else -> AlwaysQuorum()
