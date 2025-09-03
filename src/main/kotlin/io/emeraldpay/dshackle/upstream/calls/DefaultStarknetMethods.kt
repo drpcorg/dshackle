@@ -18,7 +18,6 @@ package io.emeraldpay.dshackle.upstream.calls
 
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
-import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
 import io.emeraldpay.dshackle.quorum.NotNullQuorum
@@ -84,7 +83,7 @@ class DefaultStarknetMethods(
     override fun createQuorumFor(method: String): CallQuorum {
         return when {
             nonce.contains(method) -> MaximumValueQuorum()
-            add.contains(method) -> NotNullQuorum() //BroadcastQuorum() - todo - fix broadcast on starknet
+            add.contains(method) -> NotNullQuorum() // BroadcastQuorum() - todo - fix broadcast on starknet
             nonNull.contains(method) -> NotNullQuorum()
 
             else -> AlwaysQuorum()
