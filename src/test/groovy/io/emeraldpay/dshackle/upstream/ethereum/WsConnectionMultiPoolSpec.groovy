@@ -30,7 +30,7 @@ class WsConnectionMultiPoolSpec extends Specification {
         }
         def up = Mock(DefaultUpstream)
         def factory = Mock(WsConnectionFactory)
-        def pool = new WsConnectionMultiPool(factory, 3)
+        def pool = new WsConnectionMultiPool(factory, 3, "test-upstream")
         pool.scheduler = Stub(ScheduledExecutorService)
 
         when:
@@ -54,7 +54,7 @@ class WsConnectionMultiPoolSpec extends Specification {
         }
         def up = Mock(DefaultUpstream)
         def factory = Mock(WsConnectionFactory)
-        def pool = new WsConnectionMultiPool(factory, 3)
+        def pool = new WsConnectionMultiPool(factory, 3, "test-upstream")
         pool.scheduler = Stub(ScheduledExecutorService)
 
         when:
@@ -68,7 +68,7 @@ class WsConnectionMultiPoolSpec extends Specification {
         pool.connect()
 
         then:
-        1 * conn1.isConnected() >> true
+        (1.._) * conn1.isConnected() >> true
         1 * factory.createWsConnection(1) >> conn2
         1 * conn2.connect()
 
@@ -76,8 +76,8 @@ class WsConnectionMultiPoolSpec extends Specification {
         pool.connect()
 
         then:
-        1 * conn1.isConnected() >> true
-        1 * conn2.isConnected() >> true
+        (1.._) * conn1.isConnected() >> true
+        (1.._) * conn2.isConnected() >> true
         1 * factory.createWsConnection(2) >> conn3
         1 * conn3.connect()
 
@@ -85,9 +85,9 @@ class WsConnectionMultiPoolSpec extends Specification {
         pool.connect()
 
         then:
-        1 * conn1.isConnected() >> true
-        1 * conn2.isConnected() >> true
-        1 * conn3.isConnected() >> true
+        (1.._) * conn1.isConnected() >> true
+        (1.._) * conn2.isConnected() >> true
+        (1.._) * conn3.isConnected() >> true
         0 * factory.createWsConnection(_)
     }
 
@@ -107,7 +107,7 @@ class WsConnectionMultiPoolSpec extends Specification {
         }
         def up = Mock(DefaultUpstream)
         def factory = Mock(WsConnectionFactory)
-        def pool = new WsConnectionMultiPool(factory, 3)
+        def pool = new WsConnectionMultiPool(factory, 3, "test-upstream")
         pool.scheduler = Stub(ScheduledExecutorService)
 
         when: "initial fill"
@@ -130,9 +130,9 @@ class WsConnectionMultiPoolSpec extends Specification {
         pool.connect()
 
         then:
-        1 * conn1.isConnected() >> true
-        1 * conn2.isConnected() >> true
-        1 * conn3.isConnected() >> true
+        (1.._) * conn1.isConnected() >> true
+        (1.._) * conn2.isConnected() >> true
+        (1.._) * conn3.isConnected() >> true
         0 * factory.createWsConnection(_)
 
         when: "one failed"
@@ -149,8 +149,8 @@ class WsConnectionMultiPoolSpec extends Specification {
         pool.connect()
 
         then:
-        1 * conn1.isConnected() >> true
-        1 * conn3.isConnected() >> true
+        (1.._) * conn1.isConnected() >> true
+        (1.._) * conn3.isConnected() >> true
         1 * factory.createWsConnection(3) >> conn4
         1 * conn4.connect()
     }
