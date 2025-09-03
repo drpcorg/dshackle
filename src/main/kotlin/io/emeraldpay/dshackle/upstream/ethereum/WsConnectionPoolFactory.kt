@@ -29,7 +29,7 @@ class WsConnectionPoolFactory(
             "Creating instance for different upstream. ${upstream.getId()} != id"
         }
         return if (connections > 1) {
-            WsConnectionMultiPool(wsConnectionFactory, connections)
+            WsConnectionMultiPool(wsConnectionFactory, connections, upstream.getId())
         } else {
             WsConnectionSinglePool(wsConnectionFactory)
         }

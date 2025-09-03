@@ -16,6 +16,11 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.Global
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.Metrics
+import io.micrometer.core.instrument.Tag
+import org.slf4j.LoggerFactory
 import org.springframework.util.backoff.BackOffExecution
 import org.springframework.util.backoff.ExponentialBackOff
 import reactor.core.Disposable
@@ -38,12 +43,23 @@ import kotlin.concurrent.write
 class WsConnectionMultiPool(
     private val wsConnectionFactory: WsConnectionFactory,
     private val connections: Int,
+    private val upstreamId: String,
 ) : WsConnectionPool {
 
     companion object {
+        private val log = LoggerFactory.getLogger(WsConnectionMultiPool::class.java)
         private const val SCHEDULE_FULL = 60L
         private const val SCHEDULE_GROW = 5L
         private const val SCHEDULE_BROKEN = 15L
+
+        // Adaptive threshold: more generous for smaller pools
+        private fun getLeakMultiplier(targetSize: Int): Double {
+            return when {
+                targetSize <= 5 -> 3.0 // Small pools: 3x threshold
+                targetSize <= 10 -> 2.5 // Medium pools: 2.5x threshold
+                else -> 2.0 // Large pools: 2x threshold
+            }
+        }
     }
 
     private val current = ArrayList<WsConnection>()
@@ -54,6 +70,47 @@ class WsConnectionMultiPool(
     private val connectionSubscriptionMap = mutableMapOf<String, Disposable>()
 
     var scheduler: ScheduledExecutorService = Global.control
+
+    // Metrics
+    private val metricsTags = listOf(
+        Tag.of("upstream", upstreamId),
+    )
+
+    private val connectionsCreatedCounter = Counter.builder("upstream.ws.pool.created")
+        .description("Total number of WebSocket connections created")
+        .tags(metricsTags)
+        .register(Metrics.globalRegistry)
+
+    private val connectionsRemovedCounter = Counter.builder("upstream.ws.pool.removed")
+        .description("Total number of WebSocket connections removed")
+        .tags(metricsTags)
+        .register(Metrics.globalRegistry)
+
+    private val leakDetectedCounter = Counter.builder("upstream.ws.pool.leak.detected")
+        .description("Number of times connection leak was detected")
+        .tags(metricsTags)
+        .register(Metrics.globalRegistry)
+
+    init {
+        Gauge.builder("upstream.ws.pool.size", this) {
+            adjustLock.read { current.size.toDouble() }
+        }
+            .description("Current WebSocket pool size")
+            .tags(metricsTags)
+            .register(Metrics.globalRegistry)
+
+        Gauge.builder("upstream.ws.pool.active", this) {
+            adjustLock.read { current.count { conn -> conn.isConnected }.toDouble() }
+        }
+            .description("Number of active WebSocket connections")
+            .tags(metricsTags)
+            .register(Metrics.globalRegistry)
+
+        Gauge.builder("upstream.ws.pool.target", this) { connections.toDouble() }
+            .description("Target WebSocket pool size")
+            .tags(metricsTags)
+            .register(Metrics.globalRegistry)
+    }
 
     override fun connect() {
         adjust()
@@ -98,6 +155,28 @@ class WsConnectionMultiPool(
 
     private fun adjust() {
         adjustLock.write {
+            // Check for potential leak - only log and increment metric, no intervention
+            val leakThreshold = getLeakMultiplier(connections)
+            if (current.size > connections * leakThreshold) {
+                log.warn(
+                    "Possible WebSocket leak detected for upstream {}: {} connections when max is {}",
+                    upstreamId,
+                    current.size,
+                    connections,
+                )
+                leakDetectedCounter.increment()
+            }
+
+            // Log current state
+            val connectedCount = current.count { it.isConnected }
+            log.debug(
+                "WebSocket pool state for {}: size={}, connected={}, target={}",
+                upstreamId,
+                current.size,
+                connectedCount,
+                connections,
+            )
+
             // add a new connection only if all existing are active or there are no connections at all
             val allOk = current.all { it.isConnected }
             val schedule: Long
@@ -106,6 +185,12 @@ class WsConnectionMultiPool(
                     // recheck the state in a minute and adjust if any connection went bad
                     SCHEDULE_FULL
                 } else {
+                    log.info(
+                        "Creating WebSocket connection {} for upstream {}, pool size: {}",
+                        connIndex,
+                        upstreamId,
+                        current.size + 1,
+                    )
                     current.add(
                         wsConnectionFactory.createWsConnection(connIndex++)
                             .also {
@@ -114,6 +199,7 @@ class WsConnectionMultiPool(
                                     .subscribe { info ->
                                         connectionInfo.emitNext(info) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                                     }
+                                connectionsCreatedCounter.increment()
                             },
                     )
                     SCHEDULE_GROW
@@ -121,17 +207,37 @@ class WsConnectionMultiPool(
             } else {
                 // technically there is no reason to disconnect because it supposed to reconnect,
                 // but to ensure clean start (or other internal state issues) lets completely close all broken and create new
+                val removedCount = current.count { !it.isConnected }
+                if (removedCount > 0) {
+                    log.info(
+                        "Removing {} broken WebSocket connection(s) for upstream {}, remaining: {}",
+                        removedCount,
+                        upstreamId,
+                        current.size - removedCount,
+                    )
+                }
                 current.removeIf {
                     if (!it.isConnected) {
                         // DO NOT FORGET to close the connection, otherwise it would keep reconnecting but unused
                         connectionSubscriptionMap.remove(it.connectionId())?.dispose()
                         it.close()
+                        connectionsRemovedCounter.increment()
                         true
                     } else {
                         false
                     }
                 }
                 schedule = SCHEDULE_BROKEN
+            }
+
+            // Log info when exceeding target but not yet at leak threshold
+            if (current.size > connections && current.size < connections * leakThreshold) {
+                log.info(
+                    "WebSocket pool size {} exceeds target {} for upstream {}",
+                    current.size,
+                    connections,
+                    upstreamId,
+                )
             }
 
             scheduler.schedule({ adjust() }, schedule, TimeUnit.SECONDS)
