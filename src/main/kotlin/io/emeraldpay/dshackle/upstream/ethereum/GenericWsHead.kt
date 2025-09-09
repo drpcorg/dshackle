@@ -16,6 +16,7 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.BlockValidator
@@ -48,7 +49,7 @@ class GenericWsHead(
     private val wsSubscriptions: WsSubscriptions,
     private val wsConnectionResubscribeScheduler: Scheduler,
     headScheduler: Scheduler,
-    upstream: DefaultUpstream,
+    private val upstream: DefaultUpstream,
     private val chainSpecific: ChainSpecific,
     jsonRpcWsClient: JsonRpcWsClient,
     timeout: Duration,
@@ -122,19 +123,30 @@ class GenericWsHead(
                             .flatMap { data ->
                                 chainSpecific.getFromHeader(data, "unknown", api)
                             }
-                            .timeout(wsHeadTimeout, Mono.error(RuntimeException("No response from subscribe to newHeads")))
+                            .timeout(
+                                wsHeadTimeout,
+                                Mono.error(RuntimeException("No response from subscribe to newHeads")),
+                            )
                             .onErrorResume { err ->
                                 log.error("Error getting heads for {}, message {}", upstreamId, err.message)
                                 unsubscribe()
                             }
                     }
+
                     UPSTREAM_SETTINGS_ERROR -> {
-                        log.warn("Couldn't check chain settings via ws connection for {}, ws sub will be recreated", upstreamId)
+                        log.warn(
+                            "Couldn't check chain settings via ws connection for {}, ws sub will be recreated",
+                            upstreamId,
+                        )
                         subscribed.set(false)
                         Mono.empty()
                     }
+
                     UPSTREAM_FATAL_SETTINGS_ERROR -> {
-                        log.error("Chain settings check hasn't been passed via ws connection, upstream {} will be removed", upstreamId)
+                        log.error(
+                            "Chain settings check hasn't been passed via ws connection, upstream {} will be removed",
+                            upstreamId,
+                        )
                         headLivenessSink.emitNext(HeadLivenessState.FATAL_ERROR) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                         Mono.empty()
                     }
@@ -154,7 +166,13 @@ class GenericWsHead(
 
     private fun unsubscribe(): Mono<BlockContainer> {
         subscribed.set(false)
-        return wsSubscriptions.unsubscribe(chainSpecific.unsubscribeNewHeadsRequest(subscriptionId.get()).copy(id = ids.getAndIncrement()))
+        return wsSubscriptions.unsubscribe(
+            chainSpecific.unsubscribeNewHeadsRequest(
+                Global.getSubId(subscriptionId.get(), upstream.getChain()),
+            ).copy(
+                id = ids.getAndIncrement(),
+            ),
+        )
             .flatMap { it.requireResult() }
             .doOnNext { log.warn("{} has just unsubscribed from newHeads", upstreamId) }
             .onErrorResume {
@@ -171,11 +189,13 @@ class GenericWsHead(
             wsSubscriptions.subscribe(chainSpecific.listenNewHeadsRequest().copy(id = ids.getAndIncrement()))
                 .also {
                     connectionId.set(it.connectionId)
-                    subscriptionId.set(it.subId.get())
                     if (!connected.get()) {
                         connected.set(true)
                     }
-                }.data
+                }.data.flatMapMany {
+                    subscriptionId.set(it.t1)
+                    it.t2
+                }
         } catch (e: Exception) {
             Flux.error(e)
         }

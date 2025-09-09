@@ -16,10 +16,12 @@
 package io.emeraldpay.dshackle.upstream.ethereum.subscribe
 
 import io.emeraldpay.dshackle.upstream.ChainRequest
-import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
+import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import reactor.util.function.Tuples
 import spock.lang.Specification
 
 import java.time.Duration
@@ -44,7 +46,7 @@ class WebsocketPendingTxesSpec extends Specification {
 
         then:
         1 * ws.subscribe(new ChainRequest("eth_subscribe", new ListParams(["newPendingTransactions"]))) >> new WsSubscriptions.SubscribeData(
-                Flux.fromIterable(responses), "id", new AtomicReference<String>("")
+                Mono.just(Tuples.of("", Flux.fromIterable(responses))), "id", new AtomicReference<String>("")
         )
         txes.collect {it.toHex() } == [
                 "0xa61bab14fc9720ea8725622688c2f964666d7c2afdae38af7dad53f12f242d5c",

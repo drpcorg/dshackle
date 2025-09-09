@@ -74,7 +74,7 @@ object CosmosChainSpecific : AbstractPollChainSpecific() {
     override fun listenNewHeadsRequest() = throw NotImplementedError()
     // ChainRequest("subscribe", ListParams("tm.event = 'NewBlockHeader'"))
 
-    override fun unsubscribeNewHeadsRequest(subId: String) = throw NotImplementedError()
+    override fun unsubscribeNewHeadsRequest(subId: Any) = throw NotImplementedError()
     // ChainRequest("unsubscribe", ListParams("tm.event = 'NewBlockHeader'"))
 
     override fun upstreamValidators(

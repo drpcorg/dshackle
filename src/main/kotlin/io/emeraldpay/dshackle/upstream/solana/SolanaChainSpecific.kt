@@ -111,7 +111,7 @@ object SolanaChainSpecific : AbstractChainSpecific() {
         )
     }
 
-    override fun unsubscribeNewHeadsRequest(subId: String): ChainRequest {
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
         return ChainRequest("blockUnsubscribe", ListParams(subId))
     }
 
@@ -154,8 +154,8 @@ object SolanaChainSpecific : AbstractChainSpecific() {
         return SolanaUpstreamSettingsDetector(upstream)
     }
 
-    override fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription {
-        return GenericIngressSubscription(ws, DefaultSolanaMethods.subs.map { it.first })
+    override fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription {
+        return GenericIngressSubscription(chain, ws, DefaultSolanaMethods.subs.map { it.first })
     }
 
     override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {

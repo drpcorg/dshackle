@@ -53,6 +53,7 @@ open class GenericConnectorFactory(
         val specific = ChainSpecificRegistry.resolve(chain)
         if (wsFactory != null && connectorType == WS_ONLY) {
             return GenericWsConnector(
+                chain,
                 wsFactory,
                 upstream,
                 forkChoice,

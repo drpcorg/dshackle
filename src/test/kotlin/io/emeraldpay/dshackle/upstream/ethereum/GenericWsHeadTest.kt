@@ -26,6 +26,7 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Schedulers
 import reactor.test.StepVerifier
+import reactor.util.function.Tuples
 import java.math.BigInteger
 import java.time.Duration
 import java.time.Instant
@@ -43,7 +44,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn Flux.empty()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("subId", Flux.just(Global.objectMapper.writeValueAsBytes(block)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection> {
             on { isConnected } doReturn true
@@ -141,7 +142,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn Flux.empty()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("subId", Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection>()
         val wsPool = mock<WsConnectionPool> {
@@ -189,7 +190,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn connectionInfoSink.asFlux()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("subId", Flux.just(Global.objectMapper.writeValueAsBytes(block)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection> {
             on { isConnected } doReturn true
@@ -247,7 +248,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn Flux.empty()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("sudId", Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection> {
             on { isConnected } doReturn true
@@ -299,7 +300,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn Flux.empty()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("subId", Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection> {
             on { isConnected } doReturn true
@@ -351,7 +352,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn Flux.empty()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("subId", Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection> {
             on { isConnected } doReturn true
@@ -405,7 +406,7 @@ class GenericWsHeadTest {
         val wsSub = mock<WsSubscriptions> {
             on { connectionInfoFlux() } doReturn Flux.empty()
             on { subscribe(ChainRequest("eth_subscribe", ListParams("newHeads"))) } doReturn
-                WsSubscriptions.SubscribeData(Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)), "id", AtomicReference("subId"))
+                WsSubscriptions.SubscribeData(Mono.just(Tuples.of("sudId", Flux.just(Global.objectMapper.writeValueAsBytes(block1), Global.objectMapper.writeValueAsBytes(block2)))), "id", AtomicReference("subId"))
         }
         val connection = mock<WsConnection> {
             on { isConnected } doReturn true

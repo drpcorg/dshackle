@@ -37,6 +37,7 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Schedulers
 import reactor.test.StepVerifier
+import reactor.util.function.Tuples
 import spock.lang.Specification
 
 import java.time.Duration
@@ -77,7 +78,7 @@ class GenericWsHeadSpec extends Specification {
         def client = new JsonRpcWsClient(pool)
 
         1 * ws.subscribe(_) >> new WsSubscriptions.SubscribeData(
-                Flux.fromIterable([headBlock]), "id", new AtomicReference<String>("")
+                Mono.just(Tuples.of("", Flux.fromIterable([headBlock]))), "id", new AtomicReference<String>("")
         )
 
         def head = new GenericWsHead(
@@ -130,8 +131,8 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             2 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.error(new RuntimeException()), "id", new AtomicReference<String>("")),
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>(""))
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.error(new RuntimeException()))), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([secondHeadBlock]))), "id", new AtomicReference<String>(""))
             ]
             1 * it.unsubscribe(new ChainRequest("eth_unsubscribe", new ListParams(""), 2, null, null, false, Selector.UpstreamFilter.default)) >>
                     Mono.just(new ChainResponse("".bytes, null))
@@ -202,8 +203,8 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             2 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>(""))
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([firstHeadBlock]))), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([secondHeadBlock]))), "id", new AtomicReference<String>(""))
             ]
         }
 
@@ -259,7 +260,7 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             1 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([firstHeadBlock]))), "id", new AtomicReference<String>("")),
             ]
         }
 
@@ -314,7 +315,7 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             1 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([firstHeadBlock]))), "id", new AtomicReference<String>("")),
             ]
         }
 
@@ -382,8 +383,8 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             2 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([firstHeadBlock]), "id", new AtomicReference<String>("")),
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([firstHeadBlock]))), "id", new AtomicReference<String>("")),
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([secondHeadBlock]))), "id", new AtomicReference<String>("")),
             ]
         }
 
@@ -451,7 +452,7 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> Flux.empty()
             1 * it.subscribe(_) >> new WsSubscriptions.SubscribeData(
-                    Flux.error(new RuntimeException()), "id", new AtomicReference<String>(subId)
+                    Mono.just(Tuples.of(subId, Flux.error(new RuntimeException()))), "id", new AtomicReference<String>(subId)
             )
             1 * it.unsubscribe(new ChainRequest("eth_unsubscribe", new ListParams(subId), 2, null, null, false, Selector.UpstreamFilter.default)) >>
                     Mono.just(new ChainResponse("".bytes, null))
@@ -506,7 +507,7 @@ class GenericWsHeadSpec extends Specification {
         def ws = Mock(WsSubscriptions) {
             1 * it.connectionInfoFlux() >> connectionInfoSink.asFlux()
             1 * subscribe(_) >>> [
-                    new WsSubscriptions.SubscribeData(Flux.fromIterable([secondHeadBlock]), "id", new AtomicReference<String>(""))
+                    new WsSubscriptions.SubscribeData(Mono.just(Tuples.of("", Flux.fromIterable([secondHeadBlock]))), "id", new AtomicReference<String>(""))
             ]
         }
 

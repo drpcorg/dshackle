@@ -72,7 +72,7 @@ abstract class AbstractChainSpecific : ChainSpecific {
         config: UpstreamsConfig.Upstream<*>?,
     ): UpstreamRpcMethodsDetector? = null
 
-    override fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription {
+    override fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription {
         return NoIngressSubscription()
     }
 

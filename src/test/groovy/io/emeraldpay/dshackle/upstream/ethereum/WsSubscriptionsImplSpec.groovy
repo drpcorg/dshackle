@@ -47,7 +47,7 @@ class WsSubscriptionsImplSpec extends Specification {
 
         when:
         def act = ws.subscribe(new ChainRequest("eth_subscribe", new ListParams(["foo_bar"])))
-            .data
+            .data.flatMapMany { it.getT2() }
             .map { new String(it) }
             .take(3)
             .collectList().block(Duration.ofSeconds(1))
@@ -85,7 +85,7 @@ class WsSubscriptionsImplSpec extends Specification {
 
         when:
         def act = ws.subscribe(new ChainRequest("eth_subscribe", new ListParams(["foo_bar"])))
-                .data
+                .data.flatMapMany { it.getT2() }
                 .map { new String(it) }
                 .take(3)
                 .collectList().block(Duration.ofSeconds(1))

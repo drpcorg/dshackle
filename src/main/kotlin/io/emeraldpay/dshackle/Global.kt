@@ -35,6 +35,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.domain.TransactionId
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.TransactionIdSerializer
 import io.emeraldpay.dshackle.upstream.ton.TonMasterchainInfo
 import io.emeraldpay.dshackle.upstream.ton.TonMasterchainInfoDeserializer
+import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -62,6 +63,20 @@ class Global {
             return Chain.values().find { chain ->
                 chain.chainId.lowercase() == id.lowercase()
             } ?: Chain.UNSPECIFIED
+        }
+
+        fun getSubId(subId: String, chain: Chain): Any {
+            return if (isSolana(chain)) {
+                runCatching {
+                    BigInteger(subId) as Any
+                }.getOrElse { subId }
+            } else {
+                subId
+            }
+        }
+
+        private fun isSolana(chain: Chain): Boolean {
+            return chain == Chain.SOLANA__MAINNET || chain == Chain.SOLANA__DEVNET || chain == Chain.SOLANA__TESTNET
         }
 
         @JvmStatic

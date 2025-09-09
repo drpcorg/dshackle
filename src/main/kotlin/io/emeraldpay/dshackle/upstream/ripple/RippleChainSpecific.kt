@@ -61,7 +61,7 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
         throw NotImplementedError()
     }
 
-    override fun unsubscribeNewHeadsRequest(subId: String): ChainRequest {
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
         throw NotImplementedError()
     }
 

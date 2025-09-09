@@ -71,7 +71,7 @@ class GenericRpcConnector(
         pool = wsFactory?.create(upstream)
         wsSubs = pool?.let { WsSubscriptionsImpl(it) }
         jsonRpcWsClient = pool?.let { JsonRpcWsClient(pool) }
-        ingressSubscription = wsSubs?.let { chainSpecific.makeIngressSubscription(it) }
+        ingressSubscription = wsSubs?.let { chainSpecific.makeIngressSubscription(chain, it) }
 
         head = when (connectorType) {
             RPC_ONLY -> {

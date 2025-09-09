@@ -22,6 +22,7 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.util.function.Tuples
 import java.util.concurrent.atomic.AtomicReference
 
 class WsSubscriptionsImpl(
@@ -40,8 +41,8 @@ class WsSubscriptionsImpl(
             .filter { it.result != null } // should never happen
             .map { it.result!! }
 
-        val messageFlux = conn.callRpc(request)
-            .flatMapMany {
+        val message = conn.callRpc(request)
+            .flatMap {
                 if (it.hasError()) {
                     log.warn("Failed to establish subscription: ${it.error?.message}")
                     Mono.error(ChainException(it.id, it.error!!))
@@ -52,11 +53,11 @@ class WsSubscriptionsImpl(
                         it.getResultAsProcessedString()
                     }
                     subscriptionId.set(id)
-                    messages
+                    Mono.just(Tuples.of(subscriptionId.get(), messages))
                 }
             }
 
-        return WsSubscriptions.SubscribeData(messageFlux, conn.connectionId(), subscriptionId)
+        return WsSubscriptions.SubscribeData(message, conn.connectionId(), subscriptionId)
     }
 
     override fun unsubscribe(request: ChainRequest): Mono<ChainResponse> {

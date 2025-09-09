@@ -1,5 +1,7 @@
 package io.emeraldpay.dshackle.upstream.generic
 
+import io.emeraldpay.dshackle.Chain
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.IngressSubscription
 import io.emeraldpay.dshackle.upstream.SubscriptionConnect
@@ -11,9 +13,12 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.log
 
-class GenericIngressSubscription(val conn: WsSubscriptions, val methods: List<String>) : IngressSubscription {
+class GenericIngressSubscription(
+    val chain: Chain,
+    val conn: WsSubscriptions,
+    val methods: List<String>,
+) : IngressSubscription {
     override fun getAvailableTopics(): List<String> {
         return methods
     }
@@ -24,6 +29,7 @@ class GenericIngressSubscription(val conn: WsSubscriptions, val methods: List<St
     override fun <T> get(topic: String, params: Any?, unsubscribeMethod: String): SubscriptionConnect<T> {
         return holders.computeIfAbsent(topic to params) { key ->
             GenericSubscriptionConnect(
+                chain,
                 conn,
                 key.first,
                 key.second,
@@ -34,6 +40,7 @@ class GenericIngressSubscription(val conn: WsSubscriptions, val methods: List<St
 }
 
 class GenericSubscriptionConnect(
+    val chain: Chain,
     val conn: WsSubscriptions,
     val topic: String,
     val params: Any?,
@@ -48,6 +55,7 @@ class GenericSubscriptionConnect(
     override fun createConnection(): Flux<Any> {
         val sub = conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
         return sub.data
+            .flatMapMany { it.t2 }
             .timeout(
                 Duration.ofSeconds(85),
                 Mono.empty<ByteArray?>().doOnEach {
@@ -57,11 +65,18 @@ class GenericSubscriptionConnect(
             .onErrorResume {
                 log.error("Error during subscription to $topic", it)
                 Mono.empty()
-            }.doFinally {
+            }
+            .doFinally {
                 if (unsubscribeMethod != "") {
-                    conn.unsubscribe(ChainRequest(unsubscribeMethod, ListParams(sub.subId.get()))).subscribe {
-                        log.info("unsubscribed from ${sub.subId.get()}")
-                    }
+                    conn.unsubscribe(
+                        ChainRequest(
+                            unsubscribeMethod,
+                            ListParams(Global.getSubId(sub.subId.get(), chain)),
+                        ),
+                    )
+                        .subscribe {
+                            log.info("unsubscribed from ${sub.subId.get()}")
+                        }
                 }
             } as Flux<Any>
     }
