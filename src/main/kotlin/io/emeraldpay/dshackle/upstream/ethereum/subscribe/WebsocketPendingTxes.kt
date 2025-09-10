@@ -15,6 +15,8 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum.subscribe
 
+import io.emeraldpay.dshackle.Chain
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.SubscriptionConnect
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumEgressSubscription
@@ -27,6 +29,7 @@ import reactor.core.publisher.Mono
 import java.time.Duration
 
 class WebsocketPendingTxes(
+    private val chain: Chain,
     private val wsSubscriptions: WsSubscriptions,
 ) : DefaultPendingTxesSource(), SubscriptionConnect<TransactionId> {
 
@@ -35,7 +38,8 @@ class WebsocketPendingTxes(
     }
 
     override fun createConnection(): Flux<TransactionId> {
-        return wsSubscriptions.subscribe(ChainRequest("eth_subscribe", ListParams(EthereumEgressSubscription.METHOD_PENDING_TXES)))
+        val sub = wsSubscriptions.subscribe(ChainRequest("eth_subscribe", ListParams(EthereumEgressSubscription.METHOD_PENDING_TXES)))
+        return sub
             .data
             .flatMapMany { it.t2 }
             .timeout(Duration.ofSeconds(85), Mono.empty())
@@ -44,6 +48,17 @@ class WebsocketPendingTxes(
                 val value = ByteArray(it.size - 2)
                 System.arraycopy(it, 1, value, 0, value.size)
                 TransactionId.from(String(value))
+            }
+            .doFinally {
+                wsSubscriptions.unsubscribe(
+                    ChainRequest(
+                        "eth_unsubscribe",
+                        ListParams(Global.getSubId(sub.subId.get(), chain)),
+                    ),
+                )
+                    .subscribe {
+                        log.info("unsubscribed from ${sub.subId.get()}")
+                    }
             }
             .doOnError { t -> log.warn("Invalid pending transaction", t) }
             .onErrorResume { Mono.empty() }

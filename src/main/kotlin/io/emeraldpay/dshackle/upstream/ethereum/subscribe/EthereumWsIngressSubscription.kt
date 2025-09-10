@@ -15,6 +15,7 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum.subscribe
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.IngressSubscription
 import io.emeraldpay.dshackle.upstream.SubscriptionConnect
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumEgressSubscription
@@ -22,10 +23,11 @@ import io.emeraldpay.dshackle.upstream.ethereum.EthereumIngressSubscription
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
 
 class EthereumWsIngressSubscription(
+    chain: Chain,
     conn: WsSubscriptions,
 ) : IngressSubscription, EthereumIngressSubscription {
 
-    private val pendingTxes = WebsocketPendingTxes(conn)
+    private val pendingTxes = WebsocketPendingTxes(chain, conn)
 
     override fun getAvailableTopics(): List<String> {
         return listOf(EthereumEgressSubscription.METHOD_PENDING_TXES)
