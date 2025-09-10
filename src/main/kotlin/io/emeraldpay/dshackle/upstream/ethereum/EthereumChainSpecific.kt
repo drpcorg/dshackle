@@ -209,7 +209,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
     }
 
     override fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription {
-        return EthereumWsIngressSubscription(ws)
+        return EthereumWsIngressSubscription(chain, ws)
     }
 
     override fun callSelector(caches: Caches): CallSelector {

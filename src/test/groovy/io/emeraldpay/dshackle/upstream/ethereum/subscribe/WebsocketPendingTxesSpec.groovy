@@ -15,6 +15,7 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum.subscribe
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
@@ -38,7 +39,7 @@ class WebsocketPendingTxesSpec extends Specification {
                 '"0xa38173981f8eab96ee70cefe42735af0f574b7ef354565f2fea32a28e5ed9bd2"',
         ].collect { it.bytes }
         def ws = Mock(WsSubscriptions)
-        def pending = new WebsocketPendingTxes(ws)
+        def pending = new WebsocketPendingTxes(Chain.ETHEREUM__MAINNET, ws)
 
         when:
         def txes = pending.connect(Selector.empty).take(3)
