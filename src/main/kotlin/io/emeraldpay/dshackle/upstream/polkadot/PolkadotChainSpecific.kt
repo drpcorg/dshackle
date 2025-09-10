@@ -72,7 +72,7 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
     override fun listenNewHeadsRequest(): ChainRequest =
         ChainRequest("chain_subscribeNewHeads", ListParams())
 
-    override fun unsubscribeNewHeadsRequest(subId: String): ChainRequest =
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest =
         ChainRequest("chain_unsubscribeNewHeads", ListParams(subId))
 
     override fun localReaderBuilder(
@@ -146,8 +146,8 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
         }
     }
 
-    override fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription {
-        return GenericIngressSubscription(ws, DefaultPolkadotMethods.subs.map { it.first })
+    override fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription {
+        return GenericIngressSubscription(chain, ws, DefaultPolkadotMethods.subs.map { it.first })
     }
 
     override fun upstreamRpcMethodsDetector(

@@ -65,7 +65,7 @@ interface ChainSpecific {
 
     fun listenNewHeadsRequest(): ChainRequest
 
-    fun unsubscribeNewHeadsRequest(subId: String): ChainRequest
+    fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest
 
     fun finalizationDetectorBuilder(): FinalizationDetector
 
@@ -96,7 +96,7 @@ interface ChainSpecific {
         config: UpstreamsConfig.Upstream<*>?,
     ): UpstreamRpcMethodsDetector?
 
-    fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription
+    fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription
 
     fun callSelector(caches: Caches): CallSelector?
 

@@ -19,6 +19,7 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.util.function.Tuple2
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -48,7 +49,7 @@ interface WsSubscriptions {
     fun unsubscribe(request: ChainRequest): Mono<ChainResponse>
 
     data class SubscribeData(
-        val data: Flux<ByteArray>,
+        val data: Mono<Tuple2<String, Flux<ByteArray>>>,
         val connectionId: String,
         val subId: AtomicReference<String>,
     )

@@ -57,7 +57,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         ChainRequest("eth_getBlockByNumber", ListParams("latest", false))
     override fun listenNewHeadsRequest(): ChainRequest =
         ChainRequest("eth_subscribe", ListParams("newHeads"))
-    override fun unsubscribeNewHeadsRequest(subId: String): ChainRequest =
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest =
         ChainRequest("eth_unsubscribe", ListParams(subId))
 
     override fun localReaderBuilder(
@@ -208,7 +208,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         return EthereumUpstreamSettingsDetector(upstream, chain)
     }
 
-    override fun makeIngressSubscription(ws: WsSubscriptions): IngressSubscription {
+    override fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription {
         return EthereumWsIngressSubscription(ws)
     }
 

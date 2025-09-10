@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.generic.connectors
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
@@ -19,6 +20,7 @@ import reactor.core.scheduler.Scheduler
 import java.time.Duration
 
 class GenericWsConnector(
+    chain: Chain,
     wsFactory: WsConnectionPoolFactory,
     upstream: DefaultUpstream,
     forkChoice: ForkChoice,
@@ -51,7 +53,7 @@ class GenericWsConnector(
             expectedBlockTime,
         )
         liveness = HeadLivenessValidatorImpl(head, expectedBlockTime, headLivenessScheduler, upstream.getId())
-        subscriptions = chainSpecific.makeIngressSubscription(wsSubscriptions)
+        subscriptions = chainSpecific.makeIngressSubscription(chain, wsSubscriptions)
     }
 
     override fun headLivenessEvents(): Flux<HeadLivenessState> {
