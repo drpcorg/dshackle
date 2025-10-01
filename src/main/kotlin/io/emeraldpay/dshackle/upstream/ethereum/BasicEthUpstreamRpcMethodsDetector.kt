@@ -35,6 +35,9 @@ class BasicEthUpstreamRpcMethodsDetector(
             "eth_getBlockReceipts" to ListParams("latest"),
             "trace_callMany" to ListParams(listOf(listOf<Any>())),
             "eth_simulateV1" to ListParams(listOf()),
+            "debug_storageRangeAt" to ListParams(listOf()),
+            "eth_getTdByNumber" to ListParams(listOf()),
+            "eth_callBundle" to ListParams(listOf()),
         )
 
     private fun parseRpcModules(data: ByteArray): Map<String, Boolean> {
