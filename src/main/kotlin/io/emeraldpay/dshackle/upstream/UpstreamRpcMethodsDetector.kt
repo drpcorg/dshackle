@@ -20,6 +20,8 @@ abstract class UpstreamRpcMethodsDetector(
             "([A-Za-z0-9_]+) found but the containing module is disabled",
             "[Mm]ethod not found",
             "The method ([A-Za-z0-9_]+) is not available",
+            "The method '([A-Za-z0-9_]+)' is not supported.",
+            "No response for method ([A-Za-z0-9_]+)",
         ).map { s -> s.toRegex() }
 
     private val availableRegexps =
