@@ -57,6 +57,33 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             null,
                         ),
                     )
+                on {
+                    read(ChainRequest("debug_storageRangeAt", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getTdByNumber", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_callBundle", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
             }
 
         val upstream =
@@ -115,6 +142,33 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             null,
                         ),
                     )
+                on {
+                    read(ChainRequest("debug_storageRangeAt", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getTdByNumber", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_callBundle", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
             }
 
         val upstream =
@@ -126,9 +180,13 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
         val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
         Assertions.assertThat(detector.detectRpcMethods().block()).apply {
             isNotNull()
-            hasSize(3)
+            hasSize(6)
             containsEntry("eth_getBlockReceipts", true)
             containsEntry("trace_callMany", true)
+            containsEntry("eth_simulateV1", true)
+            containsEntry("debug_storageRangeAt", true)
+            containsEntry("eth_getTdByNumber", true)
+            containsEntry("eth_callBundle", true)
         }
     }
 
@@ -174,6 +232,33 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             ChainCallError(32602, "missing value for required argument 0"),
                         ),
                     )
+                on {
+                    read(ChainRequest("debug_storageRangeAt", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getTdByNumber", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_callBundle", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
             }
 
         val upstream =
@@ -196,6 +281,9 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
             containsEntry("eth_getBlockReceipts", true)
             containsEntry("debug_traceBlock", true)
             containsEntry("eth_simulateV1", true)
+            containsEntry("debug_storageRangeAt", true)
+            containsEntry("eth_getTdByNumber", true)
+            containsEntry("eth_callBundle", true)
         }
     }
 }
