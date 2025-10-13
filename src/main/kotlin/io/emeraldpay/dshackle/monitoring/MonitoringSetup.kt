@@ -35,6 +35,11 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.GZIPOutputStream
 import javax.annotation.PostConstruct
 
@@ -93,6 +98,15 @@ class MonitoringSetup(
             // prometheus is a single thread periodic call, no reason to setup anything complex
             Thread {
                 var started = false
+                val scrapeThreadCounter = AtomicInteger(0)
+                val scrapeExecutor = Executors.newFixedThreadPool(
+                    4,
+                    ThreadFactory { runnable ->
+                        Thread(runnable, "prometheus-scrape-${scrapeThreadCounter.incrementAndGet()}").apply {
+                            isDaemon = true
+                        }
+                    },
+                )
                 while (true) {
                     if (isTcpPortAvailable(monitoringConfig.prometheus.host, monitoringConfig.prometheus.port)) {
                         started = true
@@ -105,15 +119,38 @@ class MonitoringSetup(
                                 ),
                                 0,
                             )
+                            server.executor = scrapeExecutor
                             server.createContext(monitoringConfig.prometheus.path) { httpExchange ->
-                                val response = prometheusRegistry.scrape()
-                                httpExchange.responseHeaders.add("Content-Encoding", "gzip")
-                                httpExchange.responseHeaders.add("Content-Type", "text/plain")
-                                httpExchange.sendResponseHeaders(200, 0)
-                                httpExchange.responseBody.use { os ->
-                                    GZIPOutputStream(os).use { gzos ->
-                                        gzos.write(response.toByteArray())
+                                val startTime = System.nanoTime()
+                                try {
+                                    val response = prometheusRegistry.scrape()
+                                    val responseBytes = response.toByteArray(StandardCharsets.UTF_8)
+                                    httpExchange.responseHeaders.add("Content-Encoding", "gzip")
+                                    httpExchange.responseHeaders.add("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+                                    httpExchange.sendResponseHeaders(200, 0)
+                                    httpExchange.responseBody.use { os ->
+                                        GZIPOutputStream(os).use { gzos ->
+                                            gzos.write(responseBytes)
+                                        }
                                     }
+                                    val durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
+                                    if (durationMs > 5000) {
+                                        log.warn("Prometheus scrape served in {} ms", durationMs)
+                                    } else {
+                                        log.debug("Prometheus scrape served in {} ms", durationMs)
+                                    }
+                                } catch (e: Exception) {
+                                    log.error("Failed to serve Prometheus metrics", e)
+                                    val messageBytes = "internal error".toByteArray(StandardCharsets.UTF_8)
+                                    runCatching {
+                                        httpExchange.responseHeaders.add("Content-Type", "text/plain; charset=utf-8")
+                                        httpExchange.sendResponseHeaders(500, messageBytes.size.toLong())
+                                        httpExchange.responseBody.use { os ->
+                                            os.write(messageBytes)
+                                        }
+                                    }
+                                } finally {
+                                    httpExchange.close()
                                 }
                             }
                             Thread(server::start).start()
