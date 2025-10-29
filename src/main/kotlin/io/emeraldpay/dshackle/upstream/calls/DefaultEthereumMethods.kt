@@ -185,6 +185,7 @@ class DefaultEthereumMethods(
         "eth_getProof",
         "eth_createAccessList",
         "eth_getBlockReceipts",
+        "eth_blobBaseFee",
     )
 
     private val specialMethods = listOf(
