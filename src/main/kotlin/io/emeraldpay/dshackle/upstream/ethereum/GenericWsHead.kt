@@ -204,13 +204,22 @@ class GenericWsHead(
     private fun registerHeadResubscribeFlux(): Disposable {
         val connectionStates = wsSubscriptions.connectionInfoFlux()
             .map {
-                if (it.connectionId == connectionId.get() && it.connectionState == WsConnection.ConnectionState.DISCONNECTED) {
+                val currentConnectionId = connectionId.get()
+                if (
+                    it.connectionState == WsConnection.ConnectionState.DISCONNECTED &&
+                    (currentConnectionId == null || it.connectionId == currentConnectionId)
+                ) {
                     headLivenessSink.emitNext(HeadLivenessState.DISCONNECTED) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                     subscribed.set(false)
                     connected.set(false)
-                    connectionId.set(null)
+                    if (currentConnectionId != null) {
+                        connectionId.compareAndSet(currentConnectionId, null)
+                    }
                 } else if (it.connectionState == WsConnection.ConnectionState.CONNECTED) {
                     connected.set(true)
+                    if (currentConnectionId == null) {
+                        connectionId.compareAndSet(null, it.connectionId)
+                    }
                     return@map true
                 }
                 return@map false
