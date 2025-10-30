@@ -6,8 +6,8 @@ import io.emeraldpay.dshackle.Chain.POLYGON__MAINNET
 import io.emeraldpay.dshackle.Config
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.cache.Caches
-import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.HealthConfigReader
+import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfigReader
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
