@@ -2,6 +2,7 @@ package io.emeraldpay.dshackle.config.reload
 
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global.Companion.chainById
+import io.emeraldpay.dshackle.config.HealthConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import org.slf4j.LoggerFactory
@@ -15,6 +16,7 @@ import java.util.stream.Collectors
 class ReloadConfigSetup(
     private val reloadConfigService: ReloadConfigService,
     private val reloadConfigUpstreamService: ReloadConfigUpstreamService,
+    private val reloadConfigHealthService: ReloadConfigHealthService,
 ) : SignalHandler {
 
     companion object {
@@ -59,28 +61,45 @@ class ReloadConfigSetup(
     private fun reloadConfig(): Boolean {
         val newUpstreamsConfig = reloadConfigService.readUpstreamsConfig()
         val currentUpstreamsConfig = reloadConfigService.currentUpstreamsConfig()
+        val newHealthConfig = reloadConfigService.readHealthConfig()
+        val currentHealthConfig = reloadConfigService.currentHealthConfig()
 
-        if (newUpstreamsConfig == currentUpstreamsConfig) {
+        val upstreamsChanged = newUpstreamsConfig != currentUpstreamsConfig
+        val healthChanged = !healthConfigEquals(newHealthConfig, currentHealthConfig)
+
+        if (!upstreamsChanged && !healthChanged) {
             return false
         }
 
-        val chainsToReload = analyzeDefaultOptions(
-            currentUpstreamsConfig.defaultOptions,
-            newUpstreamsConfig.defaultOptions,
-        )
-        val upstreamsAnalyzeData = analyzeUpstreams(
-            currentUpstreamsConfig.upstreams,
-            newUpstreamsConfig.upstreams,
-        )
+        if (upstreamsChanged) {
+            val chainsToReload = analyzeDefaultOptions(
+                currentUpstreamsConfig.defaultOptions,
+                newUpstreamsConfig.defaultOptions,
+            )
+            val upstreamsAnalyzeData = analyzeUpstreams(
+                currentUpstreamsConfig.upstreams,
+                newUpstreamsConfig.upstreams,
+            )
 
-        val upstreamsToRemove = upstreamsAnalyzeData.removed
-            .filterNot { chainsToReload.contains(it.second) }
-            .toSet()
-        val upstreamsToAdd = upstreamsAnalyzeData.added
+            val upstreamsToRemove = upstreamsAnalyzeData.removed
+                .filterNot { chainsToReload.contains(it.second) }
+                .toSet()
+            val upstreamsToAdd = upstreamsAnalyzeData.added
 
-        reloadConfigService.updateUpstreamsConfig(newUpstreamsConfig)
+            reloadConfigService.updateUpstreamsConfig(newUpstreamsConfig)
 
-        reloadConfigUpstreamService.reloadUpstreams(chainsToReload, upstreamsToRemove, upstreamsToAdd, newUpstreamsConfig)
+            reloadConfigUpstreamService.reloadUpstreams(
+                chainsToReload,
+                upstreamsToRemove,
+                upstreamsToAdd,
+                newUpstreamsConfig,
+            )
+        }
+
+        if (healthChanged) {
+            reloadConfigService.updateHealthConfig(newHealthConfig)
+            reloadConfigHealthService.reloadHealth()
+        }
 
         return true
     }
@@ -163,4 +182,11 @@ class ReloadConfigSetup(
         val added: Set<Pair<String, Chain>> = emptySet(),
         val removed: Set<Pair<String, Chain>> = emptySet(),
     )
+
+    private fun healthConfigEquals(a: HealthConfig, b: HealthConfig): Boolean {
+        return a.host == b.host &&
+            a.port == b.port &&
+            a.path == b.path &&
+            a.chains == b.chains
+    }
 }

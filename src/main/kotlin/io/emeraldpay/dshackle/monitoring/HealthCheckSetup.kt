@@ -37,42 +37,21 @@ class HealthCheckSetup(
         private val log = LoggerFactory.getLogger(HealthCheckSetup::class.java)
     }
 
-    lateinit var server: HttpServer
+    @Volatile
+    private var server: HttpServer? = null
+    private val serverLock = Any()
 
     @PostConstruct
     fun start() {
-        if (!healthConfig.isEnabled()) {
-            return
+        synchronized(serverLock) {
+            startServer()
         }
-        // use standard JVM server with a single thread blocking processing
-        // health check is a rare operation, no reason to set up anything complex
-        try {
-            log.info("Run Health Server on ${healthConfig.host}:${healthConfig.port}${healthConfig.path}")
-            server = HttpServer.create(
-                InetSocketAddress(
-                    healthConfig.host,
-                    healthConfig.port,
-                ),
-                0,
-            )
-            server.createContext(healthConfig.path) { httpExchange ->
-                val response = if (httpExchange.requestURI.query == "detailed") {
-                    getDetailedHealth()
-                } else {
-                    getHealth()
-                }
-                val ok = response.ok
-                val data = response.details.joinToString("\n")
-                val code = if (ok) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
-                log.debug("Health check response: ${code.value()} ${code.reasonPhrase} $data")
-                httpExchange.sendResponseHeaders(code.value(), data.toByteArray().size.toLong())
-                httpExchange.responseBody.use { os ->
-                    os.write(data.toByteArray())
-                }
-            }
-            Thread(server::start).start()
-        } catch (e: IOException) {
-            log.error("Failed to start Health Server", e)
+    }
+
+    fun reload() {
+        synchronized(serverLock) {
+            shutdownServer()
+            startServer()
         }
     }
 
@@ -144,11 +123,56 @@ class HealthCheckSetup(
         )
     }
 
+    private fun startServer() {
+        if (!healthConfig.isEnabled()) {
+            return
+        }
+        // use standard JVM server with a single thread blocking processing
+        // health check is a rare operation, no reason to set up anything complex
+        try {
+            log.info("Run Health Server on ${healthConfig.host}:${healthConfig.port}${healthConfig.path}")
+            val newServer = HttpServer.create(
+                InetSocketAddress(
+                    healthConfig.host,
+                    healthConfig.port,
+                ),
+                0,
+            )
+            newServer.createContext(healthConfig.path) { httpExchange ->
+                val response = if (httpExchange.requestURI.query == "detailed") {
+                    getDetailedHealth()
+                } else {
+                    getHealth()
+                }
+                val ok = response.ok
+                val data = response.details.joinToString("\n")
+                val code = if (ok) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
+                log.debug("Health check response: ${code.value()} ${code.reasonPhrase} $data")
+                httpExchange.sendResponseHeaders(code.value(), data.toByteArray().size.toLong())
+                httpExchange.responseBody.use { os ->
+                    os.write(data.toByteArray())
+                }
+            }
+            server = newServer
+            Thread(newServer::start).start()
+        } catch (e: IOException) {
+            log.error("Failed to start Health Server", e)
+            server = null
+        }
+    }
+
+    private fun shutdownServer() {
+        server?.let {
+            log.info("Shutting down health Server...")
+            it.stop(0)
+            server = null
+        }
+    }
+
     @PreDestroy
     fun shutdown() {
-        if (::server.isInitialized) {
-            log.info("Shutting down health Server...")
-            server.stop(0)
+        synchronized(serverLock) {
+            shutdownServer()
         }
     }
 

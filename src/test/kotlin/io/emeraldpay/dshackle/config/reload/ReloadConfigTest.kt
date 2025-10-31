@@ -6,6 +6,7 @@ import io.emeraldpay.dshackle.Chain.POLYGON__MAINNET
 import io.emeraldpay.dshackle.Config
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.cache.Caches
+import io.emeraldpay.dshackle.config.HealthConfigReader
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfigReader
@@ -43,6 +44,7 @@ class ReloadConfigTest {
 
     private val optionsReader = ChainOptionsReader()
     private val upstreamsConfigReader = UpstreamsConfigReader(fileResolver, optionsReader)
+    private val healthConfigReader = HealthConfigReader()
 
     private val config = mock<Config>()
     private val reloadConfigService = ReloadConfigService(config, fileResolver, mainConfig)
@@ -76,7 +78,8 @@ class ReloadConfigTest {
             currentMultistreamHolder,
             configuredUpstreams,
         )
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService)
+        val reloadConfigHealthService = mock<ReloadConfigHealthService>()
+        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, reloadConfigHealthService)
 
         val initialConfigIs = ResourceUtils.getFile("classpath:configs/upstreams-initial.yaml").inputStream()
         val initialConfig = upstreamsConfigReader.read(initialConfigIs)!!
@@ -95,6 +98,7 @@ class ReloadConfigTest {
         )
         verify(msEth, never()).stop()
         verify(msPoly, never()).stop()
+        verify(reloadConfigHealthService, never()).reloadHealth()
 
         assertEquals(3, mainConfig.upstreams!!.upstreams.size)
         assertEquals(newConfig, mainConfig.upstreams)
@@ -127,7 +131,8 @@ class ReloadConfigTest {
             currentMultistreamHolder,
             configuredUpstreams,
         )
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService)
+        val reloadConfigHealthService = mock<ReloadConfigHealthService>()
+        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, reloadConfigHealthService)
         val initialConfigIs = ResourceUtils.getFile("classpath:configs/upstreams-initial.yaml").inputStream()
         val initialConfig = upstreamsConfigReader.read(initialConfigIs)!!
         val newConfig = upstreamsConfigReader.read(newConfigFile.inputStream())!!
@@ -146,6 +151,36 @@ class ReloadConfigTest {
         assertTrue(msPoly.isRunning())
         assertEquals(1, mainConfig.upstreams!!.upstreams.size)
         assertEquals(newConfig, mainConfig.upstreams)
+        verify(reloadConfigHealthService, never()).reloadHealth()
+    }
+
+    @Test
+    fun `reload health config changes`() {
+        val initialConfigFile = ResourceUtils.getFile("classpath:configs/reload-health-initial.yaml")
+        val newConfigFile = ResourceUtils.getFile("classpath:configs/reload-health-changed.yaml")
+
+        whenever(config.getConfigPath()).thenReturn(newConfigFile)
+
+        val initialUpstreams = initialConfigFile.inputStream().use { upstreamsConfigReader.read(it)!! }
+        mainConfig.upstreams = initialUpstreams
+        val initialHealth = initialConfigFile.inputStream().use { healthConfigReader.read(it)!! }
+        mainConfig.health = initialHealth
+
+        val reloadConfigUpstreamService = mock<ReloadConfigUpstreamService>()
+        val reloadConfigHealthService = mock<ReloadConfigHealthService>()
+        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, reloadConfigHealthService)
+
+        reloadConfig.handle(Signal("HUP"))
+
+        verify(reloadConfigUpstreamService, never()).reloadUpstreams(any(), any(), any(), any())
+        verify(reloadConfigHealthService).reloadHealth()
+
+        assertEquals("0.0.0.0", mainConfig.health.host)
+        assertEquals(10003, mainConfig.health.port)
+        assertEquals("/readyz", mainConfig.health.path)
+        assertEquals(2, mainConfig.health.chains.size)
+        assertEquals(2, mainConfig.health.chains[ETHEREUM__MAINNET]?.minAvailable)
+        assertEquals(1, mainConfig.health.chains[POLYGON__MAINNET]?.minAvailable)
     }
 
     @Test
@@ -156,14 +191,16 @@ class ReloadConfigTest {
         mainConfig.upstreams?.upstreams?.get(0)?.methodGroups = UpstreamsConfig.MethodGroups(setOf("new"), setOf())
 
         val reloadConfigUpstreamService = mock<ReloadConfigUpstreamService>()
+        val reloadConfigHealthService = mock<ReloadConfigHealthService>()
 
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService)
+        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService, reloadConfigHealthService)
 
         whenever(config.getConfigPath()).thenReturn(initialConfigFile)
 
         reloadConfig.handle(Signal("HUP"))
 
         verify(reloadConfigUpstreamService, never()).reloadUpstreams(any(), any(), any(), any())
+        verify(reloadConfigHealthService, never()).reloadHealth()
 
         assertEquals(initialConfig, mainConfig.upstreams)
     }
