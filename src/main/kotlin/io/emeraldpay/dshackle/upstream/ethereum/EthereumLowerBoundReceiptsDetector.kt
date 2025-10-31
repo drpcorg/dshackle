@@ -27,6 +27,7 @@ class EthereumLowerBoundReceiptsDetector(
             "old data not available due to pruning",
             "Unexpected error", // hyperliquid
             "invalid block height", // hyperliquid
+            "header not found",
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
