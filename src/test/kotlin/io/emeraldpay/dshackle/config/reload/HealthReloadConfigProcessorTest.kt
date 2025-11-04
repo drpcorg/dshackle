@@ -75,7 +75,7 @@ class HealthReloadConfigProcessorTest {
         assertThat(mainConfig.health.configs().toSet()).isEqualTo(
             setOf(
                 HealthConfig.ChainConfig(Chain.BSC__MAINNET, 0),
-            )
+            ),
         )
 
         val reloaded = processor.reload()
@@ -87,7 +87,7 @@ class HealthReloadConfigProcessorTest {
                 HealthConfig.ChainConfig(Chain.ARBITRUM__MAINNET, 5),
                 HealthConfig.ChainConfig(Chain.OPTIMISM__MAINNET, 1),
                 HealthConfig.ChainConfig(Chain.BSC__MAINNET, 1),
-            )
+            ),
         )
     }
 }
