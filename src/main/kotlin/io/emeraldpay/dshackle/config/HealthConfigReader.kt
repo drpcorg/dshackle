@@ -54,6 +54,7 @@ class HealthConfigReader : YamlConfigReader<HealthConfig>() {
         if (input == null) {
             return
         }
+        val configs = HashMap<Chain, HealthConfig.ChainConfig>()
         input.value.forEach { conf ->
             val chain = getValueAsString(conf, "chain")
                 ?.let { Global.chainById(it) }
@@ -64,11 +65,12 @@ class HealthConfigReader : YamlConfigReader<HealthConfig>() {
             if (chain == Chain.UNSPECIFIED) {
                 log.warn("Using UNSPECIFIED blockchain for Health Check. Always fails")
             }
-            if (healthConfig.chains.containsKey(chain)) {
+            if (healthConfig.containsChain(chain)) {
                 log.warn("Duplicate Health Check config for $chain. Replace previous with new")
             }
             val minAvailable = getValueAsInt(conf, "min-available") ?: 1
-            healthConfig.chains[chain] = HealthConfig.ChainConfig(chain, minAvailable.coerceAtLeast(0))
+            configs[chain] = HealthConfig.ChainConfig(chain, minAvailable.coerceAtLeast(0))
         }
+        healthConfig.updateChains(configs)
     }
 }

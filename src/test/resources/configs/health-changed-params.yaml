@@ -1,0 +1,7 @@
+health:
+  port: 8081
+  host: 1.0.0.0
+  path: /healtha
+  blockchains:
+    - chain: bsc
+      min-available: 0

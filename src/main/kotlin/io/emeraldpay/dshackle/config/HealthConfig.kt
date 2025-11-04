@@ -16,8 +16,13 @@
 package io.emeraldpay.dshackle.config
 
 import io.emeraldpay.dshackle.Chain
+import java.util.concurrent.atomic.AtomicReference
 
-class HealthConfig {
+class HealthConfig() {
+
+    constructor(newChains: Map<Chain, ChainConfig>) : this() {
+        updateChains(newChains)
+    }
 
     companion object {
         fun default(): HealthConfig {
@@ -28,14 +33,28 @@ class HealthConfig {
     var port: Int = 8082
     var host: String = "127.0.0.1"
     var path: String = "/health"
-    val chains = HashMap<Chain, ChainConfig>()
+    private val chains = AtomicReference<Map<Chain, ChainConfig>>(HashMap<Chain, ChainConfig>())
 
     fun isEnabled(): Boolean {
-        return chains.isNotEmpty()
+        return chains.get().isNotEmpty()
     }
 
+    fun loadChains(): Map<Chain, ChainConfig> = chains.get()
+
     fun configs(): Collection<ChainConfig> {
-        return chains.values
+        return chains.get().values
+    }
+
+    fun containsChain(chain: Chain): Boolean {
+        return chains.get().containsKey(chain)
+    }
+
+    fun config(chain: Chain): ChainConfig? {
+        return chains.get()[chain]
+    }
+
+    fun updateChains(newChains: Map<Chain, ChainConfig>) {
+        chains.set(newChains)
     }
 
     data class ChainConfig(
