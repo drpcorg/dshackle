@@ -237,7 +237,6 @@ class BlockchainRpc(
         val nativeItemResponse = Timer.builder("request.grpc.native.response")
             .tag("chain", chain.chainCode)
             .tag("method", method)
-            .serviceLevelObjectives()
             .publishPercentileHistogram()
             .register(Metrics.globalRegistry)
         val nativeItemResponseErr = Counter.builder("request.grpc.native.request.err")
