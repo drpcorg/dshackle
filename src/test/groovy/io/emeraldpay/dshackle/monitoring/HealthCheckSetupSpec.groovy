@@ -26,11 +26,11 @@ class HealthCheckSetupSpec extends Specification {
 
     def "OK when meets availability - 1"() {
         setup:
-        def config = new HealthConfig().tap {
-            it.chains[Chain.ETHEREUM__MAINNET] = new HealthConfig.ChainConfig(
-                    Chain.ETHEREUM__MAINNET, 1
-            )
-        }
+        def config = new HealthConfig(
+                Collections.singletonMap(
+                        Chain.ETHEREUM__MAINNET, new HealthConfig.ChainConfig(Chain.ETHEREUM__MAINNET, 1)
+                )
+        )
         def up1 = Mock(Upstream)
         def ethereumUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
@@ -50,11 +50,11 @@ class HealthCheckSetupSpec extends Specification {
 
     def "OK when meets availability - 1 - bitcoin"() {
         setup:
-        def config = new HealthConfig().tap {
-            it.chains[Chain.BITCOIN__MAINNET] = new HealthConfig.ChainConfig(
-                    Chain.BITCOIN__MAINNET, 1
-            )
-        }
+        def config = new HealthConfig(
+                Collections.singletonMap(
+                        Chain.BITCOIN__MAINNET, new HealthConfig.ChainConfig(Chain.BITCOIN__MAINNET, 1)
+                )
+        )
         def up1 = Mock(Upstream)
         def bitcoinUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
@@ -74,11 +74,11 @@ class HealthCheckSetupSpec extends Specification {
 
     def "OK when meets availability - 2/3"() {
         setup:
-        def config = new HealthConfig().tap {
-            it.chains[Chain.ETHEREUM__MAINNET] = new HealthConfig.ChainConfig(
-                    Chain.ETHEREUM__MAINNET, 2
-            )
-        }
+        def config = new HealthConfig(
+                Collections.singletonMap(
+                        Chain.ETHEREUM__MAINNET, new HealthConfig.ChainConfig(Chain.ETHEREUM__MAINNET, 1)
+                )
+        )
         def up1 = Mock(Upstream)
         def up2 = Mock(Upstream)
         def up3 = Mock(Upstream)
@@ -102,11 +102,11 @@ class HealthCheckSetupSpec extends Specification {
 
     def "OK when doesn't meet availability - 2/3"() {
         setup:
-        def config = new HealthConfig().tap {
-            it.chains[Chain.ETHEREUM__MAINNET] = new HealthConfig.ChainConfig(
-                    Chain.ETHEREUM__MAINNET, 2
-            )
-        }
+        def config = new HealthConfig(
+                Collections.singletonMap(
+                        Chain.ETHEREUM__MAINNET, new HealthConfig.ChainConfig(Chain.ETHEREUM__MAINNET, 2)
+                )
+        )
         def up1 = Mock(Upstream)
         def up2 = Mock(Upstream)
         def up3 = Mock(Upstream)
@@ -130,11 +130,11 @@ class HealthCheckSetupSpec extends Specification {
 
     def "OK when meets availability - 2/3 - detailed"() {
         setup:
-        def config = new HealthConfig().tap {
-            it.chains[Chain.ETHEREUM__MAINNET] = new HealthConfig.ChainConfig(
-                    Chain.ETHEREUM__MAINNET, 2
-            )
-        }
+        def config = new HealthConfig(
+                Collections.singletonMap(
+                        Chain.ETHEREUM__MAINNET, new HealthConfig.ChainConfig(Chain.ETHEREUM__MAINNET, 1)
+                )
+        )
         def up1 = Mock(Upstream)
         def up2 = Mock(Upstream)
         def up3 = Mock(Upstream)

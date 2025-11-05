@@ -1,0 +1,11 @@
+health:
+  port: 8082
+  host: 0.0.0.0
+  path: /health
+  blockchains:
+    - chain: arbitrum
+      min-available: 5
+    - chain: bsc
+      min-available: 1
+    - chain: optimism
+      min-available: 1

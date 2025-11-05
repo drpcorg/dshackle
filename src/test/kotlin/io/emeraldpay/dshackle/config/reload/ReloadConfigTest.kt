@@ -54,6 +54,20 @@ class ReloadConfigTest {
     }
 
     @Test
+    fun `reload config and use all processors`() {
+        val firstProcessor = mock<ReloadConfigProcessor>()
+        val secondProcessor = mock<ReloadConfigProcessor>()
+        val reloadConfig = ReloadConfigSetup(listOf(firstProcessor, secondProcessor))
+
+        reloadConfig.handle(Signal("HUP"))
+
+        verify(firstProcessor).reload()
+        verify(firstProcessor).configType()
+        verify(secondProcessor).reload()
+        verify(secondProcessor).configType()
+    }
+
+    @Test
     fun `reload upstreams changes`() {
         val up1 = upstream("local1")
         val up2 = upstream("local2")
@@ -76,7 +90,8 @@ class ReloadConfigTest {
             currentMultistreamHolder,
             configuredUpstreams,
         )
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService)
+        val upstreamCfgReloadProcessor = UpstreamConfigReloadConfigProcessor(reloadConfigService, reloadConfigUpstreamService)
+        val reloadConfig = ReloadConfigSetup(listOf(upstreamCfgReloadProcessor))
 
         val initialConfigIs = ResourceUtils.getFile("classpath:configs/upstreams-initial.yaml").inputStream()
         val initialConfig = upstreamsConfigReader.read(initialConfigIs)!!
@@ -127,7 +142,8 @@ class ReloadConfigTest {
             currentMultistreamHolder,
             configuredUpstreams,
         )
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService)
+        val upstreamCfgReloadProcessor = UpstreamConfigReloadConfigProcessor(reloadConfigService, reloadConfigUpstreamService)
+        val reloadConfig = ReloadConfigSetup(listOf(upstreamCfgReloadProcessor))
         val initialConfigIs = ResourceUtils.getFile("classpath:configs/upstreams-initial.yaml").inputStream()
         val initialConfig = upstreamsConfigReader.read(initialConfigIs)!!
         val newConfig = upstreamsConfigReader.read(newConfigFile.inputStream())!!
@@ -157,7 +173,8 @@ class ReloadConfigTest {
 
         val reloadConfigUpstreamService = mock<ReloadConfigUpstreamService>()
 
-        val reloadConfig = ReloadConfigSetup(reloadConfigService, reloadConfigUpstreamService)
+        val upstreamCfgReloadProcessor = UpstreamConfigReloadConfigProcessor(reloadConfigService, reloadConfigUpstreamService)
+        val reloadConfig = ReloadConfigSetup(listOf(upstreamCfgReloadProcessor))
 
         whenever(config.getConfigPath()).thenReturn(initialConfigFile)
 

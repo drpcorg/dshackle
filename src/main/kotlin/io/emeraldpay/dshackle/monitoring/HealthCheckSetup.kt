@@ -102,7 +102,7 @@ class HealthCheckSetup(
         val details = chains.flatMap { chain ->
             var chainUnavailable = false
             val up = multistreamHolder.getUpstream(chain)
-            val required = healthConfig.chains[chain]
+            val required = healthConfig.config(chain)
             if (!up.isAvailable()) {
                 if (required != null) {
                     anyUnavailable = true
