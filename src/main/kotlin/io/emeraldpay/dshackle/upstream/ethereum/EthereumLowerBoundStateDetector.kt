@@ -16,7 +16,18 @@ import reactor.core.publisher.Mono
 class EthereumLowerBoundStateDetector(
     private val upstream: Upstream,
 ) : EthereumLowerBoundDetectorBase(upstream.getChain()) {
-    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.STATE, stateErrors, lowerBounds, commonErrorPatterns)
+    private val recursiveLowerBound = RecursiveLowerBound(
+        upstream,
+        LowerBoundType.STATE,
+        stateErrors,
+        lowerBounds,
+        commonErrorPatterns.plus(
+            setOf(
+                Regex("block #\\d not found"),
+                Regex("state at block #\\d is pruned"),
+            ),
+        ),
+    )
 
     @Volatile
     private var supportsStateOverride: Boolean? = null
@@ -66,6 +77,12 @@ class EthereumLowerBoundStateDetector(
             "No receipts data",
             "No tx data",
             "No block data",
+            "historical state not available in path scheme yet",
+            "historical state is not available",
+            "required historical state unavailable",
+            "state histories haven't been fully indexed yet",
+            "but it out-of-bounds",
+            "not supported",
         )
     }
 
