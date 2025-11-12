@@ -104,6 +104,7 @@ object SolanaChainSpecific : AbstractChainSpecific() {
             ListParams(
                 "all",
                 mapOf(
+                    "commitment" to "confirmed",
                     "showRewards" to false,
                     "transactionDetails" to "none",
                 ),

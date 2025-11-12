@@ -3,6 +3,7 @@ build/
 out/
 ./dshackle.yaml
 dshackle.yaml
+dhackle_key
 ./upstream.yaml
 testsetup/
 .idea/
