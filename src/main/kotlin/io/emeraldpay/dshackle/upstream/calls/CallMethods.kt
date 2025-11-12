@@ -65,4 +65,8 @@ interface CallMethods {
      * Returns list of methods conforming the methods group
      */
     fun getGroupMethods(groupName: String): Set<String>
+
+    fun getDisabledMethods(): Set<String> {
+        return setOf()
+    }
 }

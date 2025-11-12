@@ -52,6 +52,9 @@ class ManagedCallMethods(
     private val allAllowed: Set<String> = Collections.unmodifiableSet(
         delegated.keys + allGroupEnabled - allGroupDisabled.toSet() + enabled - disabled,
     )
+    private val allDisabled: Set<String> = Collections.unmodifiableSet(
+        allGroupDisabled.toSet() + disabled
+    )
     private val quorum: MutableMap<String, Factory<CallQuorum>> = HashMap()
     private val staticResponse: MutableMap<String, String> = HashMap()
 
@@ -99,6 +102,10 @@ class ManagedCallMethods(
 
     override fun getSupportedMethods(): Set<String> {
         return allAllowed
+    }
+
+    override fun getDisabledMethods(): Set<String> {
+        return allDisabled
     }
 
     override fun isHardcoded(method: String): Boolean {

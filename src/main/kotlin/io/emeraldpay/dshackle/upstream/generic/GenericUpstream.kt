@@ -296,6 +296,7 @@ open class GenericUpstream(
                 if (config.methods == null) {
                     config.methods = UpstreamsConfig.Methods(mutableSetOf(), mutableSetOf())
                 }
+                val allDisabled = getMethods().getDisabledMethods()
                 val enableMethods =
                     rpcDetector
                         .filter { (_, enabled) -> enabled }
@@ -312,6 +313,7 @@ open class GenericUpstream(
                     UpstreamsConfig.Methods(
                         enableMethods
                             .minus(disableMethods)
+                            .filter { !allDisabled.contains(it.name) }.toSet()
                             .plus(config.methods!!.enabled),
                         disableMethods
                             .minus(enableMethods)
