@@ -53,7 +53,7 @@ class ManagedCallMethods(
         delegated.keys + allGroupEnabled - allGroupDisabled.toSet() + enabled - disabled,
     )
     private val allDisabled: Set<String> = Collections.unmodifiableSet(
-        allGroupDisabled.toSet() + disabled
+        allGroupDisabled.toSet() + disabled,
     )
     private val quorum: MutableMap<String, Factory<CallQuorum>> = HashMap()
     private val staticResponse: MutableMap<String, String> = HashMap()
