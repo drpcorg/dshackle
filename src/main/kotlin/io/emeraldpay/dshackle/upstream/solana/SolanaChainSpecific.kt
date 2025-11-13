@@ -58,6 +58,7 @@ object SolanaChainSpecific : AbstractChainSpecific() {
                             ListParams(
                                 response.max(),
                                 mapOf(
+                                    "commitment" to "confirmed",
                                     "showRewards" to false,
                                     "transactionDetails" to "none",
                                     "maxSupportedTransactionVersion" to 0,
