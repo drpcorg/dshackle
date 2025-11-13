@@ -2,6 +2,8 @@ package io.emeraldpay.dshackle.upstream.ripple
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
@@ -9,16 +11,20 @@ import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.reader.ChainReader
+import io.emeraldpay.dshackle.upstream.BasicUpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.GenericSingleCallValidator
+import io.emeraldpay.dshackle.upstream.NodeTypeRequest
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.LoggerFactory
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.math.BigInteger
 import java.time.Instant
@@ -28,24 +34,31 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
     private val log = LoggerFactory.getLogger(RippleChainSpecific::class.java)
 
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        val result = Global.objectMapper.readValue(data, RippleBlock::class.java)
-        val block = result.closed.ledger
+        val jsonNode = Global.objectMapper.readTree(data)
+
+        val block: RippleClosedLedger = if (jsonNode.has("ledger")) {
+            Global.objectMapper.treeToValue(jsonNode.get("ledger"), RippleClosedLedger::class.java)
+        } else {
+            val result = Global.objectMapper.readValue(data, RippleBlock::class.java)
+            result.closed.ledger
+        }
+
         var height: Long = 0
         try {
             height = block.ledgerIndex.toLong()
         } catch (e: NumberFormatException) {
-            log.error("Invalid ledgerIndex $block.ledgerIndex, upstreamId:$upstreamId ", result)
+            log.error("Invalid ledgerIndex ${block.ledgerIndex}, upstreamId:$upstreamId")
         }
 
         return Mono.just(
             BlockContainer(
                 height = height,
-                hash = BlockId.from(block.ledgerHash ?: ""),
+                hash = BlockId.from(block.ledgerHash),
                 difficulty = BigInteger.ZERO,
                 timestamp = Instant.EPOCH,
                 full = false,
                 json = data,
-                parsed = result,
+                parsed = block,
                 transactions = emptyList(),
                 upstreamId = upstreamId,
                 parentHash = BlockId.from(block.parentHash),
@@ -100,6 +113,7 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
     }
 
     fun validate(data: ByteArray): UpstreamAvailability {
+        // Check if this is a Clio response (has top-level "ledger" field)
         val resp = Global.objectMapper.readValue(data, RippleState::class.java)
         return when (resp.state.serverState) {
             "full", "proposing" -> UpstreamAvailability.OK
@@ -119,13 +133,68 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
 
     override fun latestBlockRequest(): ChainRequest =
         ChainRequest("ledger", ListParams())
+
+    override fun upstreamSettingsDetector(chain: Chain, upstream: Upstream): UpstreamSettingsDetector? {
+        return RippleUpstreamSettingsDetector(upstream)
+    }
 }
+
+class RippleUpstreamSettingsDetector(val upstream: Upstream) : BasicUpstreamSettingsDetector(upstream) {
+    override fun nodeTypeRequest(): NodeTypeRequest = NodeTypeRequest(clientVersionRequest())
+
+    override fun clientVersion(node: JsonNode): String? {
+        return parse(node).second
+    }
+
+    override fun clientType(node: JsonNode): String? {
+        return parse(node).first
+    }
+
+    override fun internalDetectLabels(): Flux<Pair<String, String>> {
+        return Flux.merge(
+            detectNodeType(),
+        )
+    }
+
+    override fun clientVersionRequest(): ChainRequest = ChainRequest("server_info", ListParams())
+
+    override fun parseClientVersion(data: ByteArray): String {
+        val res = parse(Global.objectMapper.readTree(data))
+        if (res.first == null || res.second == null) {
+            return "unknown"
+        }
+
+        return "${res.first}/${res.second}"
+    }
+
+    private fun parse(node: JsonNode): Pair<String?, String?> {
+        val resp = Global.objectMapper.treeToValue(node, RippleInfoWrapper::class.java)
+        if (resp.info.clio?.isNotEmpty() == true) {
+            return Pair("clio", resp.info.clio)
+        } else if (resp.info.buildVersion?.isNotEmpty() == true) {
+            return Pair("rippled", resp.info.buildVersion)
+        } else {
+            return Pair(null, null)
+        }
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class RippleInfoWrapper(
+    @JsonProperty("info") var info: RippleInfo,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class RippleInfo(
+    @JsonProperty("clio_version") var clio: String?,
+    @JsonProperty("build_version") var buildVersion: String?,
+)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleBlock(
     @JsonProperty("closed") var closed: RippleClosed,
     @JsonProperty("open") var open: RippleOpen?,
-    @JsonProperty("status ") var status: String?,
+    @JsonProperty("status") var status: String?,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
