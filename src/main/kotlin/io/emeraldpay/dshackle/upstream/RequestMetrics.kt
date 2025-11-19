@@ -21,4 +21,5 @@ import io.micrometer.core.instrument.Timer
 class RequestMetrics(
     val timer: Timer,
     val fails: Counter,
+    val nettyMetricsEnabled: Boolean,
 )

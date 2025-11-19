@@ -32,11 +32,20 @@ class MonitoringConfigReader : YamlConfigReader<MonitoringConfig>() {
             return MonitoringConfig.disabled()
         }
         val prometheus = readPrometheus(getMapping(input, "prometheus"))
-        return MonitoringConfig(enabled, prometheus).also { conf ->
+        val netty = readNettyCfg(getMapping(input, "netty-metrics"))
+        return MonitoringConfig(enabled, prometheus, netty).also { conf ->
             getValueAsBool(input, "JVM")?.let { conf.enableJvm = it }
             getValueAsBool(input, "jvm")?.let { conf.enableJvm = it }
             getValueAsBool(input, "extended")?.let { conf.enableExtended = it }
         }
+    }
+
+    private fun readNettyCfg(input: MappingNode?): MonitoringConfig.NettyMetricsConfig {
+        if (input == null) {
+            return MonitoringConfig.NettyMetricsConfig.default()
+        }
+        val enabled = getValueAsBool(input, "enabled") ?: false
+        return MonitoringConfig.NettyMetricsConfig(enabled)
     }
 
     private fun readPrometheus(input: MappingNode?): MonitoringConfig.PrometheusConfig {

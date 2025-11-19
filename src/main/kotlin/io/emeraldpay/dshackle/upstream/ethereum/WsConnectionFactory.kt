@@ -40,6 +40,7 @@ open class WsConnectionFactory(
                 .description("Number of failures of WebSocket JSON RPC requests")
                 .tags(metricsTags)
                 .register(Metrics.globalRegistry),
+            false,
         )
     }
 

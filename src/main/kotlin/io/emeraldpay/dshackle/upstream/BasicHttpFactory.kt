@@ -17,6 +17,7 @@ class BasicHttpFactory(
     private val queueSize: Int,
     private val basicAuth: AuthConfig.ClientBasicAuth?,
     private val tls: ByteArray?,
+    private val nettyMetricsEnabled: Boolean,
 ) : HttpFactory {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -39,6 +40,7 @@ class BasicHttpFactory(
                 .description("Number of failures of HTTP JSON RPC requests")
                 .tags(metricsTags)
                 .register(Metrics.globalRegistry),
+            nettyMetricsEnabled,
         )
 
         if (chain.type.apiType == ApiType.REST) {

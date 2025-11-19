@@ -3,6 +3,7 @@ package io.emeraldpay.dshackle.startup.configure
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.config.ChainsConfig
+import io.emeraldpay.dshackle.config.MonitoringConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.BasicHttpFactory
 import io.emeraldpay.dshackle.upstream.BlockValidator
@@ -24,6 +25,7 @@ open class GenericConnectorFactoryCreator(
     private val headScheduler: Scheduler,
     private val wsScheduler: Scheduler,
     private val headLivenessScheduler: Scheduler,
+    private val monitoringCfg: MonitoringConfig,
 ) : ConnectorFactoryCreator {
     protected val log = LoggerFactory.getLogger(this::class.java)
 
@@ -66,7 +68,14 @@ open class GenericConnectorFactoryCreator(
                 }
             }
             urls?.add(endpoint.url)
-            BasicHttpFactory(endpoint.url.toString(), endpoint.maxConnections, endpoint.queueSize, conn.basicAuth, tls)
+            BasicHttpFactory(
+                endpoint.url.toString(),
+                endpoint.maxConnections,
+                endpoint.queueSize,
+                conn.basicAuth,
+                tls,
+                monitoringCfg.nettyMetricsConfig.enabled,
+            )
         }
     }
 

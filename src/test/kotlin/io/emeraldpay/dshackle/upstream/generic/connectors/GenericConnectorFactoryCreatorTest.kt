@@ -4,6 +4,7 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.ChainsConfigReader
+import io.emeraldpay.dshackle.config.MonitoringConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
 import io.emeraldpay.dshackle.startup.configure.GenericConnectorFactoryCreator
@@ -37,6 +38,7 @@ class GenericConnectorFactoryCreatorTest {
             immediate(),
             immediate(),
             immediate(),
+            MonitoringConfig.default(),
         )
         var args: List<*>? = null
 

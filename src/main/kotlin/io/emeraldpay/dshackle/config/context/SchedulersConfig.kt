@@ -86,7 +86,7 @@ open class SchedulersConfig {
             size * threadsMultiplier,
             60L,
             TimeUnit.SECONDS,
-            LinkedBlockingQueue(1000),
+            LinkedBlockingQueue(10000),
             CustomizableThreadFactory("$name-"),
         )
 

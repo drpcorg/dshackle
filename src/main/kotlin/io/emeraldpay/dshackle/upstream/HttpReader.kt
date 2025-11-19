@@ -38,11 +38,20 @@ abstract class HttpReader(
             .maxConnections(maxConnections)
             .pendingAcquireMaxCount(queueSize)
             .pendingAcquireTimeout(Duration.ofSeconds(10))
+            .apply {
+                if (metrics?.nettyMetricsEnabled ?: false) {
+                    metrics(true)
+                }
+            }
             .build()
 
         var build = HttpClient.create(connectionProvider)
             .compress(true)
             .resolver(DefaultAddressResolverGroup.INSTANCE)
+
+        if (metrics?.nettyMetricsEnabled ?: false) {
+            build = build.metrics(true) { s -> s }
+        }
 
         build = build.headers { h ->
             h.add(HttpHeaderNames.CONTENT_TYPE, "application/json")

@@ -37,7 +37,8 @@ class JsonRpcHttpReaderSpec extends Specification {
     int port = 19332
     RequestMetrics metrics = new RequestMetrics(
             Timer.builder("test1").register(TestingCommons.meterRegistry),
-            Counter.builder("test2").register(TestingCommons.meterRegistry)
+            Counter.builder("test2").register(TestingCommons.meterRegistry),
+            false,
     )
 
     def setup() {
