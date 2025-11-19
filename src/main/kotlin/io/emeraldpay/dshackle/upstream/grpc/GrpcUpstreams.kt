@@ -295,6 +295,7 @@ class GrpcUpstreams(
                 .description("Number of failures of Dshackle/gRPC requests")
                 .tags(metricsTags)
                 .register(Metrics.globalRegistry),
+            false,
         )
     }
 

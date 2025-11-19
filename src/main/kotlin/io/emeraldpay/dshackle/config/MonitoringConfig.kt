@@ -18,20 +18,31 @@ package io.emeraldpay.dshackle.config
 class MonitoringConfig(
     val enabled: Boolean,
     val prometheus: PrometheusConfig,
+    val nettyMetricsConfig: NettyMetricsConfig,
 ) {
 
     companion object {
         fun default(): MonitoringConfig {
-            return MonitoringConfig(true, PrometheusConfig.default())
+            return MonitoringConfig(true, PrometheusConfig.default(), NettyMetricsConfig.default())
         }
 
         fun disabled(): MonitoringConfig {
-            return MonitoringConfig(false, PrometheusConfig.disabled())
+            return MonitoringConfig(false, PrometheusConfig.disabled(), NettyMetricsConfig.default())
         }
     }
 
     var enableJvm: Boolean = true
     var enableExtended: Boolean = false
+
+    data class NettyMetricsConfig(
+        val enabled: Boolean,
+    ) {
+        companion object {
+            fun default(): NettyMetricsConfig {
+                return NettyMetricsConfig(false)
+            }
+        }
+    }
 
     data class PrometheusConfig(
         val enabled: Boolean,

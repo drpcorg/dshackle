@@ -4,6 +4,7 @@ import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.config.ChainsConfig
+import io.emeraldpay.dshackle.config.MonitoringConfig
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.TonCompoundHttpFactory
@@ -20,12 +21,14 @@ class RestConnectorFactoryCreator(
     fileResolver: FileResolver,
     private val headScheduler: Scheduler,
     private val headLivenessScheduler: Scheduler,
+    monitoringCfg: MonitoringConfig,
 ) : GenericConnectorFactoryCreator(
     fileResolver,
     Schedulers.single(),
     headScheduler,
     Schedulers.single(),
     headLivenessScheduler,
+    monitoringCfg,
 ) {
     override fun createConnectorFactory(
         id: String,
