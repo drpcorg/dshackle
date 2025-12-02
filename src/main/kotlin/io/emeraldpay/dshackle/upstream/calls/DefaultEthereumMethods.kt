@@ -611,6 +611,19 @@ class DefaultEthereumMethods(
         "zks_sendRawTransactionWithDetailedOutput",
     )
 
+    private val borMethods = listOf(
+        "bor_getAuthor",
+        "bor_getCurrentValidators",
+        "bor_getCurrentProposer",
+        "bor_getRootHash",
+        "bor_getSigners",
+        "bor_getSignersAtHash",
+        "bor_getSnapshot",
+        "bor_getSnapshotAtHash",
+        "eth_getRootHash",
+        "eth_getTransactionReceiptsByBlock",
+    )
+
     private val allowedMethods: List<String>
 
     init {
@@ -664,14 +677,7 @@ class DefaultEthereumMethods(
                     "rollup_gasPrices",
                     "eth_getBlockRange",
                 )
-            Chain.POLYGON__MAINNET -> listOf(
-                "bor_getAuthor",
-                "bor_getCurrentValidators",
-                "bor_getCurrentProposer",
-                "bor_getRootHash",
-                "bor_getSignersAtHash",
-                "eth_getRootHash",
-            )
+            Chain.POLYGON__MAINNET, Chain.POLYGON__AMOY, Chain.SHIBARIUM__MAINNET -> borMethods
 
             Chain.POLYGON_ZKEVM__MAINNET, Chain.POLYGON_ZKEVM__CARDONA -> listOf(
                 "zkevm_consolidatedBlockNumber",
