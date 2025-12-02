@@ -65,8 +65,7 @@ class DefaultEthereumMethodsSpec extends Specification {
                                   "bor_getSignersAtHash",
                                   "bor_getSnapshot",
                                   "bor_getSnapshotAtHash",
-                                  "eth_getRootHash",
-                                  "eth_getTransactionReceiptsByBlock"]
+                                  "eth_getRootHash"]
         Chain.SHIBARIUM__MAINNET | ["bor_getAuthor",
                                     "bor_getCurrentValidators",
                                     "bor_getCurrentProposer",

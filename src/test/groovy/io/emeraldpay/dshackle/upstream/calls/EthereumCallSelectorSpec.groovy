@@ -419,7 +419,6 @@ class EthereumCallSelectorSpec extends Specification {
         "bor_getRootHash" | '[1000, 1400]' | 1400L
         "bor_getAuthor" | '["latest"]' | 17654321L
         "bor_getAuthor" | '["0xfbfe3b"]' | 16514619L
-        "eth_getTransactionReceiptsByBlock" | '["0xfbfe3b"]' | 16514619L
         "bor_getSigners" | '["0xfbfe3b"]' | 16514619L
         "bor_getSnapshot" | '["0xfbfe3b"]' | 16514619L
     }

@@ -621,7 +621,6 @@ class DefaultEthereumMethods(
         "bor_getSnapshot",
         "bor_getSnapshotAtHash",
         "eth_getRootHash",
-        "eth_getTransactionReceiptsByBlock",
     )
 
     private val allowedMethods: List<String>
@@ -677,7 +676,8 @@ class DefaultEthereumMethods(
                     "rollup_gasPrices",
                     "eth_getBlockRange",
                 )
-            Chain.POLYGON__MAINNET, Chain.POLYGON__AMOY, Chain.SHIBARIUM__MAINNET -> borMethods
+            Chain.POLYGON__MAINNET, Chain.POLYGON__AMOY -> borMethods
+            Chain.SHIBARIUM__MAINNET -> borMethods + listOf("eth_getTransactionReceiptsByBlock")
 
             Chain.POLYGON_ZKEVM__MAINNET, Chain.POLYGON_ZKEVM__CARDONA -> listOf(
                 "zkevm_consolidatedBlockNumber",
