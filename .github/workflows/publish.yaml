@@ -12,8 +12,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
           submodules: recursive
-          fetch-tags: true
-          fetch-depth: 0
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -34,8 +32,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
           submodules: recursive
-          fetch-tags: true
-          fetch-depth: 0
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
