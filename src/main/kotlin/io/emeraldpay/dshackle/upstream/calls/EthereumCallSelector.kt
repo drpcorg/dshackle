@@ -58,8 +58,7 @@ class EthereumCallSelector(
             "eth_getBlockByHash", "eth_getBlockByNumber", "bor_getSignersAtHash",
             "eth_getTransactionByBlockHashAndIndex", "eth_getTransactionByBlockNumberAndIndex",
             "eth_getBlockTransactionCountByNumber", "bor_getAuthor", "eth_getUncleCountByBlockNumber",
-            "eth_getUncleByBlockNumberAndIndex", "eth_getTransactionReceiptsByBlock", "bor_getSigners",
-            "bor_getSnapshot", "bor_getSnapshotAtHash",
+            "eth_getUncleByBlockNumberAndIndex",
         )
     }
 
