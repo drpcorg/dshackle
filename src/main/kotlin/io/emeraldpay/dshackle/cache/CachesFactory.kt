@@ -91,7 +91,13 @@ open class CachesFactory(
 
     private fun initCache(chain: Chain): Caches {
         val caches = Caches.newBuilder()
-        if (chain == Chain.ZIRCUIT__MAINNET || chain == Chain.ZIRCUIT__TESTNET) {
+        val disableCacheNetworks = setOf(
+            Chain.ZIRCUIT__MAINNET,
+            Chain.ZIRCUIT__TESTNET,
+            Chain.HYPERLIQUID__MAINNET,
+            Chain.HYPERLIQUID__TESTNET,
+        )
+        if (chain in disableCacheNetworks) {
             caches.setCacheEnabled(false)
         }
         redis?.let { redis ->
