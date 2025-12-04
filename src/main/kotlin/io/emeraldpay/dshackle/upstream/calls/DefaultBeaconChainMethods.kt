@@ -29,6 +29,7 @@ class DefaultBeaconChainMethods : CallMethods {
         getMethod("/eth/v1/beacon/blocks/*/root"),
         getMethod("/eth/v1/beacon/blocks/*/attestations"),
         getMethod("/eth/v1/beacon/blob_sidecars/*"),
+        getMethod("/eth/v1/beacon/blobs/*"),
         postMethod("/eth/v1/beacon/rewards/sync_committee/*"),
         getMethod("/eth/v1/beacon/deposit_snapshot"),
         getMethod("/eth/v1/beacon/rewards/blocks/*"),
