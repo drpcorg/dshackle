@@ -25,7 +25,7 @@ class EthereumLowerBoundStateDetector(
             setOf(
                 Regex("block #\\d not found"),
                 Regex("state at block #\\d is pruned"),
-                Regex("historical state .+ is not available")
+                Regex("historical state .+ is not available"),
             ),
         ),
     )
