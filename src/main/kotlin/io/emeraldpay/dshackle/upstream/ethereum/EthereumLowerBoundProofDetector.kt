@@ -32,7 +32,19 @@ class EthereumLowerBoundProofDetector(
         )
     }
 
-    private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.PROOF, NO_PROOF_ERRORS, lowerBounds, commonErrorPatterns)
+    private val recursiveLowerBound = RecursiveLowerBound(
+        upstream,
+        LowerBoundType.PROOF,
+        NO_PROOF_ERRORS,
+        lowerBounds,
+        commonErrorPatterns.plus(
+            setOf(
+                Regex("block #\\d not found"),
+                Regex("state at block #\\d is pruned"),
+                Regex("historical state .+ is not available")
+            ),
+        ),
+    )
 
     override fun period(): Long {
         return 3
