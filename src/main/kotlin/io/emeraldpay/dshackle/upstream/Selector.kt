@@ -25,6 +25,7 @@ import io.emeraldpay.dshackle.upstream.MatchesResponse.GrpcResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.HeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.LowerHeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.NotMatchedResponse
+import io.emeraldpay.dshackle.upstream.MatchesResponse.ExactVersionResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SameNodeResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SlotHeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.Success
@@ -692,5 +693,35 @@ class Selector {
         override fun describeInternal(): String = "availability"
 
         override fun toString(): String = "Matcher: ${describeInternal()}"
+    }
+
+    class ExactVersionMatcher(private val expected: String) : Matcher() {
+        override fun matchesWithCause(up: Upstream): MatchesResponse {
+
+            val actual = up.getUpstreamSettingsData()?.nodeVersion ?: return ExactVersionResponse(expected)
+
+            if (actual == expected) {
+                return Success
+            }
+            return ExactVersionResponse(expected)
+        }
+
+        override fun describeInternal(): String {
+            return "exact-version '$expected'"
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is ExactVersionMatcher) return false
+            return expected == other.expected
+        }
+
+        override fun toString(): String {
+            return "Matcher: ${describeInternal()}"
+        }
+
+        override fun hashCode(): Int {
+            return expected.hashCode()
+        }
     }
 }

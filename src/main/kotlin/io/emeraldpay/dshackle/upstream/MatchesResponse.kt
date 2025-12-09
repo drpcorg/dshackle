@@ -34,6 +34,7 @@ sealed class MatchesResponse {
                     "Upstream lower height ${this.predictedHeight} of type ${this.boundType} is greater than ${this.lowerHeight}"
                 }
             }
+            is ExactVersionResponse -> "Exact upstream version ${this.version} is not available"
             else -> null
         }
 
@@ -98,6 +99,10 @@ sealed class MatchesResponse {
 
     data class SameNodeResponse(
         val upstreamHash: Short,
+    ) : MatchesResponse()
+
+    data class ExactVersionResponse(
+        val version: String,
     ) : MatchesResponse()
 
     object AvailabilityResponse : MatchesResponse()
