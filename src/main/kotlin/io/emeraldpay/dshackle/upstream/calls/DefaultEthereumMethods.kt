@@ -728,6 +728,10 @@ class DefaultEthereumMethods(
                 "buildTransaction",
             )
 
+            Chain.MONAD__MAINNET, Chain.MONAD__TESTNET -> listOf(
+                "eth_sendRawTransactionSync",
+            )
+
             Chain.FILECOIN__MAINNET, Chain.FILECOIN__CALIBRATION_TESTNET -> filecoinMethods
 
             Chain.SEI__MAINNET, Chain.SEI__TESTNET, Chain.SEI__DEVNET -> seiMethods
