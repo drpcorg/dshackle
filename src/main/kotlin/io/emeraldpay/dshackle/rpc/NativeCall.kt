@@ -106,11 +106,15 @@ open class NativeCall(
                             CallResult.fail(id, 0, err, null),
                         )
                     }
-                    .doOnNext {
-                            callRes ->
-                        val isMethodNotAvailable = callRes.error?.message?.contains(Regex("method ([A-Za-z0-9_]+) does not exist/is not available")) == true
-                        val isMethodDisabled = callRes.error?.message?.contains("method is disabled", ignoreCase = true) == true
-                        val isTraceOrDebugMethod = it is ValidCallContext<*> && it.payload is ParsedCallDetails && (it.payload.method.startsWith("trace_") || it.payload.method.startsWith("debug_"))
+                    .doOnNext { callRes ->
+                        val isMethodNotAvailable =
+                            callRes.error?.message?.contains(Regex("method ([A-Za-z0-9_]+) does not exist/is not available")) == true
+                        val isMethodDisabled =
+                            callRes.error?.message?.contains("method is disabled", ignoreCase = true) == true
+                        val isTraceOrDebugMethod =
+                            it is ValidCallContext<*> && it.payload is ParsedCallDetails && (it.payload.method.startsWith(
+                                "trace_",
+                            ) || it.payload.method.startsWith("debug_"))
 
                         if (isMethodNotAvailable || (isMethodDisabled && isTraceOrDebugMethod)) {
                             if (it is ValidCallContext<*>) {
@@ -366,9 +370,15 @@ open class NativeCall(
         val upstreamFilter = requestItem.selectorsList
             .takeIf { it.isNotEmpty() }
             ?.run { Selector.convertToUpstreamFilter(this) }
+        log.info("selected upstream filter: {}", upstreamFilter?.matcher?.toString())
         // for ethereum the actual block needed for the call may be specified in the call parameters
         val callSpecificMatcher: Mono<Selector.Matcher> =
-            upstreamFilter?.matcher?.let { Mono.just(it) } ?: upstream.callSelector?.getMatcher(method, params, upstream.getHead(), passthrough) ?: Mono.empty()
+            upstreamFilter?.matcher?.let { Mono.just(it) } ?: upstream.callSelector?.getMatcher(
+                method,
+                params,
+                upstream.getHead(),
+                passthrough,
+            ) ?: Mono.empty()
         return callSpecificMatcher.defaultIfEmpty(Selector.empty).map { csm ->
             val matcher = Selector.Builder()
                 .withMatcher(csm)
@@ -460,7 +470,15 @@ open class NativeCall(
                             } else {
                                 ctx.upstream.getId()
                             }
-                            CallResult.ok(ctx.id, ctx.nonce, result, signer.sign(ctx.nonce, result, source), resolvedUpstreamData, ctx, it.finalization)
+                            CallResult.ok(
+                                ctx.id,
+                                ctx.nonce,
+                                result,
+                                signer.sign(ctx.nonce, result, source),
+                                resolvedUpstreamData,
+                                ctx,
+                                it.finalization,
+                            )
                         } else {
                             CallResult.ok(ctx.id, null, result, null, resolvedUpstreamData, ctx, it.finalization)
                         }
@@ -656,6 +674,7 @@ open class NativeCall(
         companion object {
             const val quoteCode = '"'.code.toByte()
         }
+
         override fun processResult(result: RequestReader.Result): ByteArray {
             val bytes = result.value
             if (bytes.last() == quoteCode && result.resolvedUpstreamData.isNotEmpty()) {
@@ -799,9 +818,17 @@ open class NativeCall(
                     }
                 }
             }
+
             fun from(t: Throwable): CallError {
                 return when (t) {
-                    is ChainException -> CallError(t.error.code, t.error.message, t.error, getDataAsSting(t.error.details), t.upstreamSettingsData)
+                    is ChainException -> CallError(
+                        t.error.code,
+                        t.error.message,
+                        t.error,
+                        getDataAsSting(t.error.details),
+                        t.upstreamSettingsData,
+                    )
+
                     is RpcException -> CallError(t.code, t.rpcMessage, null, getDataAsSting(t.details))
                     is CallFailure -> CallError(t.id, t.reason.message ?: "Upstream Error", null, null)
                     else -> {
@@ -840,15 +867,38 @@ open class NativeCall(
         ) : this(id, nonce, result, callError, signature, callError?.upstreamSettingsData ?: emptyList(), ctx)
 
         companion object {
-            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?): CallResult {
+            fun ok(
+                id: Int,
+                nonce: Long?,
+                result: ByteArray,
+                signature: ResponseSigner.Signature?,
+                upstreamSettingsData: List<Upstream.UpstreamSettingsData>,
+                ctx: ValidCallContext<ParsedCallDetails>?,
+            ): CallResult {
                 return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx)
             }
 
-            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, final: FinalizationData?): CallResult {
+            fun ok(
+                id: Int,
+                nonce: Long?,
+                result: ByteArray,
+                signature: ResponseSigner.Signature?,
+                upstreamSettingsData: List<Upstream.UpstreamSettingsData>,
+                ctx: ValidCallContext<ParsedCallDetails>?,
+                final: FinalizationData?,
+            ): CallResult {
                 return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, null, final)
             }
 
-            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, stream: Flux<Chunk>?): CallResult {
+            fun ok(
+                id: Int,
+                nonce: Long?,
+                result: ByteArray,
+                signature: ResponseSigner.Signature?,
+                upstreamSettingsData: List<Upstream.UpstreamSettingsData>,
+                ctx: ValidCallContext<ParsedCallDetails>?,
+                stream: Flux<Chunk>?,
+            ): CallResult {
                 return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, stream)
             }
 
