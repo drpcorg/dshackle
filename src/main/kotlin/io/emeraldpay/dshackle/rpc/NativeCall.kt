@@ -112,9 +112,10 @@ open class NativeCall(
                         val isMethodDisabled =
                             callRes.error?.message?.contains("method is disabled", ignoreCase = true) == true
                         val isTraceOrDebugMethod =
-                            it is ValidCallContext<*> && it.payload is ParsedCallDetails && (it.payload.method.startsWith(
-                                "trace_",
-                            ) || it.payload.method.startsWith("debug_"))
+                            it is ValidCallContext<*> && it.payload is ParsedCallDetails && (
+                                it.payload.method.startsWith("trace_") ||
+                                    it.payload.method.startsWith("debug_")
+                                )
 
                         if (isMethodNotAvailable || (isMethodDisabled && isTraceOrDebugMethod)) {
                             if (it is ValidCallContext<*>) {
