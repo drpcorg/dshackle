@@ -35,6 +35,7 @@ sealed class MatchesResponse {
                 }
             }
             is ExactVersionResponse -> "Exact upstream version ${this.version} is not available"
+            is RangeVersionResponse -> "Upstream version is not within the range ${this.minVersion}-${this.maxVersion}"
             else -> null
         }
 
@@ -103,6 +104,11 @@ sealed class MatchesResponse {
 
     data class ExactVersionResponse(
         val version: String,
+    ) : MatchesResponse()
+
+    data class RangeVersionResponse(
+        val minVersion: String,
+        val maxVersion: String,
     ) : MatchesResponse()
 
     object AvailabilityResponse : MatchesResponse()

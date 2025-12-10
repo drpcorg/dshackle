@@ -16,16 +16,19 @@
  */
 package io.emeraldpay.dshackle.upstream
 
+import com.vdurmont.semver4j.Semver
+import com.vdurmont.semver4j.SemverException
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.MatchesResponse.AvailabilityResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.CapabilityResponse
+import io.emeraldpay.dshackle.upstream.MatchesResponse.ExactVersionResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.ExistsResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.GrpcResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.HeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.LowerHeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.NotMatchedResponse
-import io.emeraldpay.dshackle.upstream.MatchesResponse.ExactVersionResponse
+import io.emeraldpay.dshackle.upstream.MatchesResponse.RangeVersionResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SameNodeResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.SlotHeightResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.Success
@@ -36,7 +39,6 @@ import org.apache.commons.lang3.StringUtils
 import java.util.Collections
 
 class Selector {
-
     companion object {
 
         @JvmStatic
@@ -56,6 +58,7 @@ class Selector {
                             } else {
                                 Number(selector.height)
                             }
+
                         BlockchainOuterClass.HeightSelector.HeightOrNumberCase.NUMBER -> Number(selector.number)
                         BlockchainOuterClass.HeightSelector.HeightOrNumberCase.TAG -> when (selector.tag) {
                             BlockchainOuterClass.BlockTag.SAFE -> Safe
@@ -64,10 +67,12 @@ class Selector {
                             BlockchainOuterClass.BlockTag.FINALIZED -> Finalized
                             else -> null
                         }
+
                         else -> null
                     }
                 }
             }
+
             class Number(val num: Long) : HeightNumberOrTag()
             object Pending : HeightNumberOrTag()
             object Latest : HeightNumberOrTag()
@@ -98,12 +103,14 @@ class Selector {
                         it.hasSlotHeightSelector() -> {
                             SlotMatcher(it.slotHeightSelector.slotHeight)
                         }
+
                         it.hasHeightSelector() -> {
                             when (val selector = HeightNumberOrTag.fromHeightSelector(it.heightSelector)) {
                                 is HeightNumberOrTag.Number -> HeightMatcher(selector.num)
                                 else -> empty
                             }
                         }
+
                         it.hasLowerHeightSelector() -> {
                             if (it.lowerHeightSelector.height > 0) {
                                 LowerHeightMatcher(
@@ -116,6 +123,34 @@ class Selector {
                                 empty
                             }
                         }
+
+                        it.hasExactVersionSelector() -> {
+                            if (it.exactVersionSelector.version.isNotEmpty()) {
+                                ExactVersionMatcher(it.exactVersionSelector.version)
+                            } else {
+                                empty
+                            }
+                        }
+
+                        it.hasMinVersionSelector() || it.hasMaxVersionSelector() -> {
+                            val min = if (it.hasMinVersionSelector()) {
+                                it.minVersionSelector.version
+                            } else {
+                                ""
+                            }
+                            val max = if (it.hasMaxVersionSelector()) {
+                                it.maxVersionSelector.version
+                            } else {
+                                ""
+                            }
+
+                            if (min.isEmpty() && max.isEmpty()) {
+                                empty
+                            } else {
+                                ExcludingRangeVersionMatcher(min, max)
+                            }
+                        }
+
                         else -> empty
                     }
                 }.run {
@@ -127,7 +162,8 @@ class Selector {
         private fun getSort(selectors: List<BlockchainOuterClass.Selector>): Sort {
             selectors.forEach { selector ->
                 if (selector.hasHeightSelector()) {
-                    val heightSort = HeightNumberOrTag.fromHeightSelector(selector.heightSelector)?.getSort() ?: Sort.default
+                    val heightSort =
+                        HeightNumberOrTag.fromHeightSelector(selector.heightSelector)?.getSort() ?: Sort.default
                     if (heightSort != Sort.default) {
                         return heightSort
                     }
@@ -160,6 +196,7 @@ class Selector {
                         anyLabel
                     }
                 }
+
                 req.hasAndSelector() -> AndMatcher(
                     Collections.unmodifiableCollection(
                         req.andSelector.selectorsList.map {
@@ -169,6 +206,7 @@ class Selector {
                         },
                     ),
                 )
+
                 req.hasOrSelector() -> OrMatcher(
                     Collections.unmodifiableCollection(
                         req.orSelector.selectorsList.map {
@@ -178,6 +216,7 @@ class Selector {
                         },
                     ),
                 )
+
                 req.hasNotSelector() -> NotMatcher(convertToMatcher(req.notSelector.selector))
                 req.hasExistsSelector() -> ExistsMatcher(req.existsSelector.name)
                 else -> anyLabel
@@ -695,25 +734,34 @@ class Selector {
         override fun toString(): String = "Matcher: ${describeInternal()}"
     }
 
-    class ExactVersionMatcher(private val expected: String) : Matcher() {
+    class ExactVersionMatcher(private val expectedRawVersion: String) : Matcher() {
         override fun matchesWithCause(up: Upstream): MatchesResponse {
+            val actualRawVersion = up.getUpstreamSettingsData()?.nodeVersion ?: return ExactVersionResponse(
+                expectedRawVersion,
+            )
 
-            val actual = up.getUpstreamSettingsData()?.nodeVersion ?: return ExactVersionResponse(expected)
-
-            if (actual == expected) {
-                return Success
+            try {
+                val actualSemver = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                val expectedSemver = Semver(expectedRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                if (actualSemver.isEquivalentTo(expectedSemver)) {
+                    return Success
+                }
+            } catch (_: SemverException) {
+                if (actualRawVersion == expectedRawVersion) {
+                    return Success
+                }
             }
-            return ExactVersionResponse(expected)
+            return ExactVersionResponse(expectedRawVersion)
         }
 
         override fun describeInternal(): String {
-            return "exact-version '$expected'"
+            return "exact version '$expectedRawVersion'"
         }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is ExactVersionMatcher) return false
-            return expected == other.expected
+            return expectedRawVersion == other.expectedRawVersion
         }
 
         override fun toString(): String {
@@ -721,7 +769,72 @@ class Selector {
         }
 
         override fun hashCode(): Int {
-            return expected.hashCode()
+            return expectedRawVersion.hashCode()
+        }
+    }
+
+    class ExcludingRangeVersionMatcher(private val minRawVersion: String, private val maxRawVersion: String) :
+        Matcher() {
+        override fun matchesWithCause(up: Upstream): MatchesResponse {
+            val actualRawVersion =
+                up.getUpstreamSettingsData()?.nodeVersion ?: return RangeVersionResponse(minRawVersion, maxRawVersion)
+
+            var actualSemver: Semver
+            try {
+                actualSemver = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+            } catch (_: SemverException) {
+                return RangeVersionResponse(minRawVersion, maxRawVersion)
+            }
+
+            var isGreater = false
+            var isLess = false
+
+            if (minRawVersion.isNotEmpty()) {
+                try {
+                    val expectedMinSemver = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                    if (actualSemver.isGreaterThan(expectedMinSemver)) {
+                        isGreater = true
+                    }
+                } catch (_: SemverException) {
+                    isGreater = false
+                }
+            } else {
+                isGreater = true
+            }
+            if (maxRawVersion.isNotEmpty()) {
+                try {
+                    val expectedMaxSemver = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                    if (actualSemver.isLowerThan(expectedMaxSemver)) {
+                        isLess = true
+                    }
+                } catch (_: SemverException) {
+                    isLess = false
+                }
+            } else {
+                isLess = true
+            }
+            if (isGreater && isLess) {
+                return Success
+            }
+            return RangeVersionResponse(minRawVersion, maxRawVersion)
+        }
+
+        override fun describeInternal(): String {
+            return "version range from '$minRawVersion' to '$maxRawVersion'"
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is ExcludingRangeVersionMatcher) return false
+            return minRawVersion == other.minRawVersion && maxRawVersion == other.maxRawVersion
+        }
+
+        override fun toString(): String {
+            return "Matcher: ${describeInternal()}"
+        }
+
+        override fun hashCode(): Int {
+            return minRawVersion.hashCode() xor maxRawVersion.hashCode()
         }
     }
 }
