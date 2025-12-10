@@ -147,7 +147,7 @@ class Selector {
                             if (min.isEmpty() && max.isEmpty()) {
                                 empty
                             } else {
-                                ExcludingRangeVersionMatcher(min, max)
+                                RangeVersionMatcher(min, max)
                             }
                         }
 
@@ -773,7 +773,7 @@ class Selector {
         }
     }
 
-    class ExcludingRangeVersionMatcher(private val minRawVersion: String, private val maxRawVersion: String) :
+    class RangeVersionMatcher(private val minRawVersion: String, private val maxRawVersion: String) :
         Matcher() {
         override fun matchesWithCause(up: Upstream): MatchesResponse {
             val actualRawVersion =
@@ -825,7 +825,7 @@ class Selector {
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
-            if (other !is ExcludingRangeVersionMatcher) return false
+            if (other !is RangeVersionMatcher) return false
             return minRawVersion == other.minRawVersion && maxRawVersion == other.maxRawVersion
         }
 
