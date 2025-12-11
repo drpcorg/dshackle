@@ -781,25 +781,33 @@ class Selector {
             }
 
             val greaterOk =
-                if (minRawVersion.isEmpty()) true
-                else try {
-                    val min = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                    actualSemver.isGreaterThan(min)
-                } catch (_: SemverException) {
-                    false
+                if (minRawVersion.isEmpty()) {
+                    true
+                } else {
+                    try {
+                        val min = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                        actualSemver.isGreaterThan(min)
+                    } catch (_: SemverException) {
+                        false
+                    }
                 }
-
             val lessOk =
-                if (maxRawVersion.isEmpty()) true
-                else try {
-                    val max = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                    actualSemver.isLowerThan(max)
-                } catch (_: SemverException) {
-                    false
+                if (maxRawVersion.isEmpty()) {
+                    true
+                } else {
+                    try {
+                        val max = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                        actualSemver.isLowerThan(max)
+                    } catch (_: SemverException) {
+                        false
+                    }
                 }
 
-            return if (greaterOk && lessOk) Success
-            else RangeVersionResponse(minRawVersion, maxRawVersion)
+            return if (greaterOk && lessOk) {
+                Success
+            } else {
+                RangeVersionResponse(minRawVersion, maxRawVersion)
+            }
         }
 
         override fun asProto(): BlockchainOuterClass.Selector =
@@ -832,5 +840,4 @@ class Selector {
         override fun toString(): String =
             "Matcher: ${describeInternal()}"
     }
-
 }
