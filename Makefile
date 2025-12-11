@@ -2,6 +2,9 @@ all: build-foundation build-main
 build-foundation:
 	cd foundation && ../gradlew build publishToMavenLocal
 
+run-main:
+	./gradlew run
+
 build-main:
 	./gradlew build
 

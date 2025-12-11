@@ -34,6 +34,8 @@ sealed class MatchesResponse {
                     "Upstream lower height ${this.predictedHeight} of type ${this.boundType} is greater than ${this.lowerHeight}"
                 }
             }
+            is ExactVersionResponse -> "Exact upstream version ${this.version} is not available"
+            is RangeVersionResponse -> "Upstream version is not within the range ${this.minVersion}-${this.maxVersion}"
             else -> null
         }
 
@@ -98,6 +100,15 @@ sealed class MatchesResponse {
 
     data class SameNodeResponse(
         val upstreamHash: Short,
+    ) : MatchesResponse()
+
+    data class ExactVersionResponse(
+        val version: String,
+    ) : MatchesResponse()
+
+    data class RangeVersionResponse(
+        val minVersion: String,
+        val maxVersion: String,
     ) : MatchesResponse()
 
     object AvailabilityResponse : MatchesResponse()

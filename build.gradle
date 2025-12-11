@@ -97,6 +97,7 @@ dependencies {
     implementation libs.javax.annotations
 
     implementation libs.auth0.jwt
+    implementation libs.semver4j
 
     testImplementation libs.cglib.nodep
     testImplementation libs.spockframework.core
