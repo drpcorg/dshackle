@@ -371,7 +371,6 @@ open class NativeCall(
         val upstreamFilter = requestItem.selectorsList
             .takeIf { it.isNotEmpty() }
             ?.run { Selector.convertToUpstreamFilter(this) }
-        log.debug("selected upstream filter: {}", upstreamFilter?.matcher?.toString())
         // for ethereum the actual block needed for the call may be specified in the call parameters
         val callSpecificMatcher: Mono<Selector.Matcher> =
             upstreamFilter?.matcher?.let { Mono.just(it) } ?: upstream.callSelector?.getMatcher(

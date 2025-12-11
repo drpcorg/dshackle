@@ -124,33 +124,6 @@ class Selector {
                             }
                         }
 
-                        it.hasExactVersionSelector() -> {
-                            if (it.exactVersionSelector.version.isNotEmpty()) {
-                                ExactVersionMatcher(it.exactVersionSelector.version)
-                            } else {
-                                empty
-                            }
-                        }
-
-                        it.hasMinVersionSelector() || it.hasMaxVersionSelector() -> {
-                            val min = if (it.hasMinVersionSelector()) {
-                                it.minVersionSelector.version
-                            } else {
-                                ""
-                            }
-                            val max = if (it.hasMaxVersionSelector()) {
-                                it.maxVersionSelector.version
-                            } else {
-                                ""
-                            }
-
-                            if (min.isEmpty() && max.isEmpty()) {
-                                empty
-                            } else {
-                                RangeVersionMatcher(min, max)
-                            }
-                        }
-
                         else -> empty
                     }
                 }.run {
@@ -219,6 +192,34 @@ class Selector {
 
                 req.hasNotSelector() -> NotMatcher(convertToMatcher(req.notSelector.selector))
                 req.hasExistsSelector() -> ExistsMatcher(req.existsSelector.name)
+
+                req.hasExactVersionSelector() -> {
+                    if (req.exactVersionSelector.version.isNotEmpty()) {
+                        ExactVersionMatcher(req.exactVersionSelector.version)
+                    } else {
+                        anyLabel
+                    }
+                }
+
+                req.hasMinVersionSelector() || req.hasMaxVersionSelector() -> {
+                    val min = if (req.hasMinVersionSelector()) {
+                        req.minVersionSelector.version
+                    } else {
+                        ""
+                    }
+                    val max = if (req.hasMaxVersionSelector()) {
+                        req.maxVersionSelector.version
+                    } else {
+                        ""
+                    }
+
+                    if (min.isEmpty() && max.isEmpty()) {
+                        anyLabel
+                    } else {
+                        RangeVersionMatcher(min, max)
+                    }
+                }
+
                 else -> anyLabel
             }
         }
@@ -734,107 +735,102 @@ class Selector {
         override fun toString(): String = "Matcher: ${describeInternal()}"
     }
 
-    class ExactVersionMatcher(private val expectedRawVersion: String) : Matcher() {
-        override fun matchesWithCause(up: Upstream): MatchesResponse {
-            val actualRawVersion = up.getUpstreamSettingsData()?.nodeVersion ?: return ExactVersionResponse(
-                expectedRawVersion,
-            )
+    class ExactVersionMatcher(
+        private val expectedRawVersion: String,
+    ) : LabelSelectorMatcher() {
 
-            try {
-                val actualSemver = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                val expectedSemver = Semver(expectedRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                if (actualSemver.isEquivalentTo(expectedSemver)) {
-                    return Success
-                }
+        override fun matchesWithCause(labels: UpstreamsConfig.Labels): MatchesResponse {
+            val actualRawVersion = labels["client_version"] ?: return ExactVersionResponse(expectedRawVersion)
+
+            return try {
+                val actual = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                val expected = Semver(expectedRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                if (actual.isEquivalentTo(expected)) Success else ExactVersionResponse(expectedRawVersion)
             } catch (_: SemverException) {
-                if (actualRawVersion == expectedRawVersion) {
-                    return Success
-                }
+                if (actualRawVersion == expectedRawVersion) Success else ExactVersionResponse(expectedRawVersion)
             }
-            return ExactVersionResponse(expectedRawVersion)
         }
 
-        override fun describeInternal(): String {
-            return "exact version '$expectedRawVersion'"
-        }
+        override fun asProto(): BlockchainOuterClass.Selector =
+            BlockchainOuterClass.Selector.newBuilder().setExactVersionSelector(
+                BlockchainOuterClass.ExactVersionSelector.newBuilder()
+                    .setVersion(expectedRawVersion)
+                    .build(),
+            ).build()
 
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is ExactVersionMatcher) return false
-            return expectedRawVersion == other.expectedRawVersion
-        }
+        override fun describeInternal(): String =
+            "exact version '$expectedRawVersion'"
 
-        override fun toString(): String {
-            return "Matcher: ${describeInternal()}"
-        }
-
-        override fun hashCode(): Int {
-            return expectedRawVersion.hashCode()
-        }
+        override fun toString(): String =
+            "Matcher: ${describeInternal()}"
     }
 
-    class RangeVersionMatcher(private val minRawVersion: String, private val maxRawVersion: String) :
-        Matcher() {
-        override fun matchesWithCause(up: Upstream): MatchesResponse {
-            val actualRawVersion =
-                up.getUpstreamSettingsData()?.nodeVersion ?: return RangeVersionResponse(minRawVersion, maxRawVersion)
+    class RangeVersionMatcher(
+        private val minRawVersion: String,
+        private val maxRawVersion: String,
+    ) : LabelSelectorMatcher() {
 
-            var actualSemver: Semver
-            try {
-                actualSemver = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+        override fun matchesWithCause(labels: UpstreamsConfig.Labels): MatchesResponse {
+            val actualRawVersion = labels["client_version"]
+                ?: return RangeVersionResponse(minRawVersion, maxRawVersion)
+
+            val actualSemver = try {
+                Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
             } catch (_: SemverException) {
                 return RangeVersionResponse(minRawVersion, maxRawVersion)
             }
 
-            var isGreater = false
-            var isLess = false
-
-            if (minRawVersion.isNotEmpty()) {
-                try {
-                    val expectedMinSemver = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                    if (actualSemver.isGreaterThan(expectedMinSemver)) {
-                        isGreater = true
-                    }
+            val greaterOk =
+                if (minRawVersion.isEmpty()) true
+                else try {
+                    val min = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                    actualSemver.isGreaterThan(min)
                 } catch (_: SemverException) {
-                    isGreater = false
+                    false
                 }
-            } else {
-                isGreater = true
-            }
-            if (maxRawVersion.isNotEmpty()) {
-                try {
-                    val expectedMaxSemver = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                    if (actualSemver.isLowerThan(expectedMaxSemver)) {
-                        isLess = true
-                    }
+
+            val lessOk =
+                if (maxRawVersion.isEmpty()) true
+                else try {
+                    val max = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
+                    actualSemver.isLowerThan(max)
                 } catch (_: SemverException) {
-                    isLess = false
+                    false
                 }
-            } else {
-                isLess = true
-            }
-            if (isGreater && isLess) {
-                return Success
-            }
-            return RangeVersionResponse(minRawVersion, maxRawVersion)
+
+            return if (greaterOk && lessOk) Success
+            else RangeVersionResponse(minRawVersion, maxRawVersion)
         }
 
-        override fun describeInternal(): String {
-            return "version range from '$minRawVersion' to '$maxRawVersion'"
-        }
+        override fun asProto(): BlockchainOuterClass.Selector =
+            BlockchainOuterClass.Selector.newBuilder().setAndSelector(
+                BlockchainOuterClass.AndSelector.newBuilder().apply {
+                    if (minRawVersion.isNotEmpty()) {
+                        addSelectors(
+                            BlockchainOuterClass.Selector.newBuilder().setMinVersionSelector(
+                                BlockchainOuterClass.MinVersionSelector.newBuilder()
+                                    .setVersion(minRawVersion)
+                                    .build(),
+                            ),
+                        )
+                    }
+                    if (maxRawVersion.isNotEmpty()) {
+                        addSelectors(
+                            BlockchainOuterClass.Selector.newBuilder().setMaxVersionSelector(
+                                BlockchainOuterClass.MaxVersionSelector.newBuilder()
+                                    .setVersion(maxRawVersion)
+                                    .build(),
+                            ),
+                        )
+                    }
+                },
+            ).build()
 
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is RangeVersionMatcher) return false
-            return minRawVersion == other.minRawVersion && maxRawVersion == other.maxRawVersion
-        }
+        override fun describeInternal(): String =
+            "version range from '$minRawVersion' to '$maxRawVersion'"
 
-        override fun toString(): String {
-            return "Matcher: ${describeInternal()}"
-        }
-
-        override fun hashCode(): Int {
-            return minRawVersion.hashCode() xor maxRawVersion.hashCode()
-        }
+        override fun toString(): String =
+            "Matcher: ${describeInternal()}"
     }
+
 }
