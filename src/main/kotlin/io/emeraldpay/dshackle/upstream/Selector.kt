@@ -17,7 +17,6 @@
 package io.emeraldpay.dshackle.upstream
 
 import com.vdurmont.semver4j.Semver
-import com.vdurmont.semver4j.SemverException
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.MatchesResponse.AvailabilityResponse
@@ -742,11 +741,11 @@ class Selector {
         override fun matchesWithCause(labels: UpstreamsConfig.Labels): MatchesResponse {
             val actualRawVersion = labels["client_version"] ?: return ExactVersionResponse(expectedRawVersion)
 
-            return try {
+            return runCatching {
                 val actual = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
                 val expected = Semver(expectedRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
                 if (actual.isEquivalentTo(expected)) Success else ExactVersionResponse(expectedRawVersion)
-            } catch (_: SemverException) {
+            }.getOrElse {
                 if (actualRawVersion == expectedRawVersion) Success else ExactVersionResponse(expectedRawVersion)
             }
         }
@@ -774,9 +773,9 @@ class Selector {
             val actualRawVersion = labels["client_version"]
                 ?: return RangeVersionResponse(minRawVersion, maxRawVersion)
 
-            val actualSemver = try {
+            val actualSemver = runCatching {
                 Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-            } catch (_: SemverException) {
+            }.getOrElse {
                 return RangeVersionResponse(minRawVersion, maxRawVersion)
             }
 
@@ -784,10 +783,10 @@ class Selector {
                 if (minRawVersion.isEmpty()) {
                     true
                 } else {
-                    try {
+                    runCatching {
                         val min = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
                         actualSemver.isGreaterThan(min)
-                    } catch (_: SemverException) {
+                    }.getOrElse {
                         false
                     }
                 }
@@ -795,10 +794,10 @@ class Selector {
                 if (maxRawVersion.isEmpty()) {
                     true
                 } else {
-                    try {
+                    runCatching {
                         val max = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
                         actualSemver.isLowerThan(max)
-                    } catch (_: SemverException) {
+                    }.getOrElse {
                         false
                     }
                 }
