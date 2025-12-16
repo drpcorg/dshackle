@@ -46,7 +46,8 @@ class WsConnectionImplSpec extends Specification {
                         Chain.ETHEREUM__MAINNET,
                         new URI("http://localhost"),
                         new URI("http://localhost"),
-                        Schedulers.boundedElastic()
+                        Schedulers.boundedElastic(),
+                        Schedulers.boundedElastic(),
                 )
         )
         def apiMock = TestingCommons.api()
@@ -81,7 +82,8 @@ class WsConnectionImplSpec extends Specification {
                         Chain.ETHEREUM__MAINNET,
                         new URI("http://localhost"),
                         new URI("http://localhost"),
-                        Schedulers.boundedElastic()
+                        Schedulers.boundedElastic(),
+                        Schedulers.boundedElastic(),
                 )
         )
         def apiMock = TestingCommons.api()
@@ -114,7 +116,8 @@ class WsConnectionImplSpec extends Specification {
                         Chain.ETHEREUM__MAINNET,
                         new URI("http://localhost"),
                         new URI("http://localhost"),
-                        Schedulers.boundedElastic()
+                        Schedulers.boundedElastic(),
+                        Schedulers.boundedElastic(),
                 )
         )
         def apiMock = TestingCommons.api()

@@ -10,6 +10,7 @@ import io.micrometer.core.instrument.Metrics
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
 import org.slf4j.LoggerFactory
+import reactor.core.scheduler.Scheduler
 
 class BasicHttpFactory(
     private val url: String,
@@ -18,6 +19,7 @@ class BasicHttpFactory(
     private val basicAuth: AuthConfig.ClientBasicAuth?,
     private val tls: ByteArray?,
     private val nettyMetricsEnabled: Boolean,
+    private val httpScheduler: Scheduler,
 ) : HttpFactory {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -44,8 +46,8 @@ class BasicHttpFactory(
         )
 
         if (chain.type.apiType == ApiType.REST) {
-            return RestHttpReader(url, maxConnections, queueSize, metrics, basicAuth, tls)
+            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls)
         }
-        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, basicAuth, tls)
+        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls)
     }
 }

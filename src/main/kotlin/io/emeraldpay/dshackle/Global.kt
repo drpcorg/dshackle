@@ -35,6 +35,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.domain.TransactionId
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.TransactionIdSerializer
 import io.emeraldpay.dshackle.upstream.ton.TonMasterchainInfo
 import io.emeraldpay.dshackle.upstream.ton.TonMasterchainInfoDeserializer
+import reactor.netty.resources.LoopResources
 import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -45,6 +46,8 @@ import java.util.concurrent.ScheduledExecutorService
 class Global {
 
     companion object {
+
+        val wsLoops: LoopResources = LoopResources.create("reactor-ws")
 
         val nullValue: ByteArray = "null".toByteArray()
 
