@@ -143,7 +143,7 @@ open class NativeCall(
                     Flux.concat(
                         Mono.just(firstChunk)
                             .map {
-                                val result = buildStreamResult(it, callResult.id)
+                                val result = buildStreamResult(it, callResult.id, callResult.responseHeaders)
                                 if (callResult.upstreamSettingsData.isNotEmpty()) {
                                     getUpstreamIdsAndVersions(callResult.upstreamSettingsData)
                                         .let { idsAndVersions ->
@@ -160,13 +160,22 @@ open class NativeCall(
         }
     }
 
-    private fun buildStreamResult(chunk: Chunk, id: Int): BlockchainOuterClass.NativeCallReplyItem.Builder {
-        return BlockchainOuterClass.NativeCallReplyItem.newBuilder()
+    private fun buildStreamResult(chunk: Chunk, id: Int, headers: Map<String, String> = emptyMap()): BlockchainOuterClass.NativeCallReplyItem.Builder {
+        val builder = BlockchainOuterClass.NativeCallReplyItem.newBuilder()
             .setSucceed(true)
             .setFinalChunk(chunk.finalChunk)
             .setChunked(true)
             .setPayload(ByteString.copyFrom(chunk.chunkData))
             .setId(id)
+        headers.forEach { (key, value) ->
+            builder.addResponseHeaders(
+                BlockchainOuterClass.KeyValue.newBuilder()
+                    .setKey(key)
+                    .setValue(value)
+                    .build(),
+            )
+        }
+        return builder
     }
 
     private fun completeSpan(callResult: CallResult, requestCount: Int) {
@@ -262,6 +271,14 @@ open class NativeCall(
                 .setHeight(it.height)
                 .setType(it.type.toProtoFinalizationType())
                 .build()
+        }
+        it.responseHeaders.forEach { (key, value) ->
+            result.addResponseHeaders(
+                BlockchainOuterClass.KeyValue.newBuilder()
+                    .setKey(key)
+                    .setValue(value)
+                    .build(),
+            )
         }
         return result.build()
     }
@@ -460,9 +477,9 @@ open class NativeCall(
                             } else {
                                 ctx.upstream.getId()
                             }
-                            CallResult.ok(ctx.id, ctx.nonce, result, signer.sign(ctx.nonce, result, source), resolvedUpstreamData, ctx, it.finalization)
+                            CallResult.ok(ctx.id, ctx.nonce, result, signer.sign(ctx.nonce, result, source), resolvedUpstreamData, ctx, it.finalization, it.responseHeaders)
                         } else {
-                            CallResult.ok(ctx.id, null, result, null, resolvedUpstreamData, ctx, it.finalization)
+                            CallResult.ok(ctx.id, null, result, null, resolvedUpstreamData, ctx, it.finalization, it.responseHeaders)
                         }
                     }
             }.switchIfEmpty(
@@ -505,7 +522,7 @@ open class NativeCall(
                         callResult(ctx, it, resolvedUpstreamData)
                     }
                 } else {
-                    CallResult.ok(ctx.id, ctx.nonce, ByteArray(0), it.signature, resolvedUpstreamData, ctx, it.stream)
+                    CallResult.ok(ctx.id, ctx.nonce, ByteArray(0), it.signature, resolvedUpstreamData, ctx, it.stream, it.responseHeaders)
                 }
             }
             .onErrorResume { t ->
@@ -534,7 +551,7 @@ open class NativeCall(
     ): CallResult {
         val bytes = ctx.resultDecorator.processResult(it)
         validateResult(bytes, "remote", ctx)
-        return CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, resolvedUpstreamData, ctx)
+        return CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, resolvedUpstreamData, ctx, it.responseHeaders)
     }
 
     private fun callRippleResult(
@@ -828,6 +845,7 @@ open class NativeCall(
         val ctx: ValidCallContext<ParsedCallDetails>?,
         val stream: Flux<Chunk>? = null,
         val finalization: FinalizationData? = null,
+        val responseHeaders: Map<String, String> = emptyMap(),
     ) {
 
         constructor(
@@ -840,16 +858,16 @@ open class NativeCall(
         ) : this(id, nonce, result, callError, signature, callError?.upstreamSettingsData ?: emptyList(), ctx)
 
         companion object {
-            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?): CallResult {
-                return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx)
+            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, responseHeaders: Map<String, String> = emptyMap()): CallResult {
+                return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, null, null, responseHeaders)
             }
 
-            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, final: FinalizationData?): CallResult {
-                return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, null, final)
+            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, final: FinalizationData?, responseHeaders: Map<String, String> = emptyMap()): CallResult {
+                return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, null, final, responseHeaders)
             }
 
-            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, stream: Flux<Chunk>?): CallResult {
-                return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, stream)
+            fun ok(id: Int, nonce: Long?, result: ByteArray, signature: ResponseSigner.Signature?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>, ctx: ValidCallContext<ParsedCallDetails>?, stream: Flux<Chunk>?, responseHeaders: Map<String, String> = emptyMap()): CallResult {
+                return CallResult(id, nonce, result, null, signature, upstreamSettingsData, ctx, stream, null, responseHeaders)
             }
 
             fun fail(id: Int, nonce: Long?, error: CallError, ctx: ValidCallContext<ParsedCallDetails>?): CallResult {

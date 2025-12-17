@@ -121,6 +121,15 @@ object BeaconChainSpecific : AbstractPollChainSpecific() {
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
         return BeaconChainLowerBoundService(chain, upstream)
     }
+
+    override fun getResponseHeadersToForward(): List<String> = listOf(
+        "Eth-Consensus-Version",
+        "Eth-Consensus-Finalized",
+        "Eth-Execution-Optimistic",
+        "Eth-Execution-Payload-Blinded",
+        "Eth-Execution-Payload-Value",
+        "Eth-Consensus-Block-Value",
+    )
 }
 
 data class BeaconChainBlockHeader(

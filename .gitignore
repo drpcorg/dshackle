@@ -26,3 +26,4 @@ http-client.env.json
 
 .DS_Store
 mise.toml
+.claude/
