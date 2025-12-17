@@ -21,7 +21,6 @@ import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.upstream.MatchesResponse.AvailabilityResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.CapabilityResponse
-import io.emeraldpay.dshackle.upstream.MatchesResponse.ExactVersionResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.ExistsResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.GrpcResponse
 import io.emeraldpay.dshackle.upstream.MatchesResponse.HeightResponse
@@ -191,14 +190,6 @@ class Selector {
 
                 req.hasNotSelector() -> NotMatcher(convertToMatcher(req.notSelector.selector))
                 req.hasExistsSelector() -> ExistsMatcher(req.existsSelector.name)
-
-                req.hasExactVersionSelector() -> {
-                    if (req.exactVersionSelector.version.isNotEmpty()) {
-                        ExactVersionMatcher(req.exactVersionSelector.version)
-                    } else {
-                        anyLabel
-                    }
-                }
 
                 req.hasMinVersionSelector() || req.hasMaxVersionSelector() -> {
                     val min = if (req.hasMinVersionSelector()) {
@@ -732,36 +723,6 @@ class Selector {
         override fun describeInternal(): String = "availability"
 
         override fun toString(): String = "Matcher: ${describeInternal()}"
-    }
-
-    class ExactVersionMatcher(
-        private val expectedRawVersion: String,
-    ) : LabelSelectorMatcher() {
-
-        override fun matchesWithCause(labels: UpstreamsConfig.Labels): MatchesResponse {
-            val actualRawVersion = labels["client_version"] ?: return ExactVersionResponse(expectedRawVersion)
-
-            return runCatching {
-                val actual = Semver(actualRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                val expected = Semver(expectedRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                if (actual.isEquivalentTo(expected)) Success else ExactVersionResponse(expectedRawVersion)
-            }.getOrElse {
-                if (actualRawVersion == expectedRawVersion) Success else ExactVersionResponse(expectedRawVersion)
-            }
-        }
-
-        override fun asProto(): BlockchainOuterClass.Selector =
-            BlockchainOuterClass.Selector.newBuilder().setExactVersionSelector(
-                BlockchainOuterClass.ExactVersionSelector.newBuilder()
-                    .setVersion(expectedRawVersion)
-                    .build(),
-            ).build()
-
-        override fun describeInternal(): String =
-            "exact version '$expectedRawVersion'"
-
-        override fun toString(): String =
-            "Matcher: ${describeInternal()}"
     }
 
     class RangeVersionMatcher(
