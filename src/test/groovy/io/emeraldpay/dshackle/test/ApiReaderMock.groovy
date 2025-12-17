@@ -227,7 +227,15 @@ class ApiReaderMock implements Reader<ChainRequest, ChainResponse> {
 
         @Override
         ByteBufFlux receive() {
-            throw new UnsupportedOperationException()
+            return ByteBufFlux
+                    .fromString(
+                        Flux.merge(
+                            jsonResponses,
+                            responses.map {
+                                Global.objectMapper.writeValueAsString(it)
+                            }
+                        )
+                    )
         }
 
         @Override

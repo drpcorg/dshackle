@@ -29,6 +29,7 @@ import io.emeraldpay.dshackle.upstream.stream.StreamResponse
 import io.netty.buffer.Unpooled
 import org.apache.commons.lang3.time.StopWatch
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
 import java.util.concurrent.TimeUnit
 import java.util.function.Function
 
@@ -40,6 +41,7 @@ class JsonRpcHttpReader(
     maxConnections: Int,
     queueSize: Int,
     metrics: RequestMetrics,
+    private val httpScheduler: Scheduler,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
 ) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth) {
@@ -59,15 +61,20 @@ class JsonRpcHttpReader(
             response.response { header, bytes ->
                 val statusCode = header.status().code()
 
-                bytes.aggregate().asByteArray().map {
-                    AggregateResponse(it, statusCode)
-                }
+                bytes.aggregate().asByteArray()
+                    .publishOn(httpScheduler)
+                    .map {
+                        AggregateResponse(it, statusCode)
+                    }
             }.single()
         } else {
             response.responseConnection { t, u ->
                 streamParser.streamParse(
                     t.status().code(),
-                    u.inbound().receive().asByteArray(),
+                    u.inbound()
+                        .receive()
+                        .asByteArray()
+                        .publishOn(httpScheduler),
                 )
             }.single()
         }

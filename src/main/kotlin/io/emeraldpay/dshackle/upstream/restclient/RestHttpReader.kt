@@ -17,6 +17,7 @@ import io.netty.handler.codec.http.HttpMethod
 import org.apache.commons.lang3.time.StopWatch
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
 import reactor.kotlin.core.publisher.switchIfEmpty
 import java.util.concurrent.TimeUnit
 
@@ -25,6 +26,7 @@ class RestHttpReader(
     maxConnections: Int,
     queueSize: Int,
     metrics: RequestMetrics,
+    private val httpScheduler: Scheduler,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
 ) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth) {
@@ -86,7 +88,7 @@ class RestHttpReader(
             response.response { header, bytes ->
                 val statusCode = header.status().code()
 
-                bytes.aggregate().asByteArray().map {
+                bytes.aggregate().asByteArray().publishOn(httpScheduler).map {
                     AggregateResponse(it, statusCode)
                 }.switchIfEmpty {
                     Mono.just(AggregateResponse(ByteArray(0), statusCode))
@@ -95,13 +97,13 @@ class RestHttpReader(
         } else {
             response.responseConnection { t, u ->
                 if (t.status().code() != 200) {
-                    u.inbound().receive().aggregate().asByteArray()
+                    u.inbound().receive().aggregate().asByteArray().publishOn(httpScheduler)
                         .map { AggregateResponse(it, t.status().code()) }
                 } else {
                     Mono.just(
                         StreamResponse(
                             Flux.concat(
-                                u.inbound().receive().asByteArray()
+                                u.inbound().receive().asByteArray().publishOn(httpScheduler)
                                     .map { Chunk(it, false) },
                                 Mono.just(Chunk(ByteArray(0), true)),
                             ),

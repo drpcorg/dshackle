@@ -19,6 +19,7 @@ import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mockito.mockConstruction
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import reactor.core.scheduler.Schedulers
 import reactor.core.scheduler.Schedulers.immediate
 import java.io.File
 import java.net.URI
@@ -39,6 +40,8 @@ class GenericConnectorFactoryCreatorTest {
             immediate(),
             immediate(),
             MonitoringConfig.default(),
+            Schedulers.boundedElastic(),
+            Schedulers.boundedElastic(),
         )
         var args: List<*>? = null
 

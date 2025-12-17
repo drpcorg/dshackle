@@ -26,6 +26,8 @@ open class GenericConnectorFactoryCreator(
     private val wsScheduler: Scheduler,
     private val headLivenessScheduler: Scheduler,
     private val monitoringCfg: MonitoringConfig,
+    private val httpScheduler: Scheduler,
+    private val eventsScheduler: Scheduler,
 ) : ConnectorFactoryCreator {
     protected val log = LoggerFactory.getLogger(this::class.java)
 
@@ -75,6 +77,7 @@ open class GenericConnectorFactoryCreator(
                 conn.basicAuth,
                 tls,
                 monitoringCfg.nettyMetricsConfig.enabled,
+                httpScheduler,
             )
         }
     }
@@ -92,6 +95,7 @@ open class GenericConnectorFactoryCreator(
                 endpoint.url,
                 endpoint.origin ?: URI("http://localhost"),
                 wsScheduler,
+                eventsScheduler,
             ).apply {
                 config = endpoint
                 basicAuth = endpoint.basicAuth
