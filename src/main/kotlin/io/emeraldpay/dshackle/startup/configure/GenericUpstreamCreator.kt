@@ -64,6 +64,7 @@ open class GenericUpstreamCreator(
             NoChoiceWithPriorityForkChoice(nodeRating, config.id!!),
             BlockValidator.ALWAYS_VALID,
             chainConfig,
+            config.customHeaders,
         ) ?: return UpstreamCreationData.default()
 
         val hashUrl = connection.let {

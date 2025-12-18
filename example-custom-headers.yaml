@@ -1,0 +1,38 @@
+version: v1
+
+upstreams:
+  # Example with custom headers
+  - id: my-ethereum-node
+    chain: ethereum
+    custom-headers:
+      # Add custom HTTP headers that will be sent with all requests to this upstream
+      X-Custom-Header: "my-custom-value"
+      X-API-Key: "your-api-key-here"
+      Authorization: "Bearer your-token-here"
+    connection:
+      ethereum:
+        rpc:
+          url: "https://eth-mainnet.example.com"
+          max-connections: 50
+          queue-size: 500
+
+  # Example without custom headers (optional)
+  - id: local-ethereum
+    chain: ethereum
+    connection:
+      ethereum:
+        rpc:
+          url: "http://localhost:8545"
+
+  # Example for Bitcoin with custom headers
+  - id: bitcoin-with-auth
+    chain: bitcoin
+    custom-headers:
+      X-Client-ID: "dshackle-instance-1"
+    connection:
+      bitcoin:
+        rpc:
+          url: "http://localhost:8332"
+          basic-auth:
+            username: "bitcoin"
+            password: "password"

@@ -19,9 +19,14 @@ interface ConnectorFactoryCreator {
         forkChoice: ForkChoice,
         blockValidator: BlockValidator,
         chainsConf: ChainsConfig.ChainConfig,
+        customHeaders: Map<String, String> = emptyMap(),
     ): ConnectorFactory?
 
-    fun buildHttpFactory(conn: UpstreamsConfig.HttpEndpoint?, urls: ArrayList<URI>? = null): HttpFactory?
+    fun buildHttpFactory(
+        conn: UpstreamsConfig.HttpEndpoint?,
+        urls: ArrayList<URI>? = null,
+        customHeaders: Map<String, String> = emptyMap(),
+    ): HttpFactory?
 }
 
 @Component

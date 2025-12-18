@@ -38,10 +38,11 @@ open class GenericConnectorFactoryCreator(
         forkChoice: ForkChoice,
         blockValidator: BlockValidator,
         chainsConf: ChainsConfig.ChainConfig,
+        customHeaders: Map<String, String>,
     ): ConnectorFactory? {
         val urls = ArrayList<URI>()
-        val wsFactoryApi = buildWsFactory(id, chain, conn, urls)
-        val httpFactory = buildHttpFactory(conn.rpc, urls)
+        val wsFactoryApi = buildWsFactory(id, chain, conn, urls, customHeaders)
+        val httpFactory = buildHttpFactory(conn.rpc, urls, customHeaders)
         log.info("Using ${chain.chainName} upstream, at ${urls.joinToString()}")
         val connectorFactory =
             GenericConnectorFactory(
@@ -62,7 +63,11 @@ open class GenericConnectorFactoryCreator(
         return connectorFactory
     }
 
-    override fun buildHttpFactory(conn: UpstreamsConfig.HttpEndpoint?, urls: ArrayList<URI>?): HttpFactory? {
+    override fun buildHttpFactory(
+        conn: UpstreamsConfig.HttpEndpoint?,
+        urls: ArrayList<URI>?,
+        customHeaders: Map<String, String>,
+    ): HttpFactory? {
         return conn?.let { endpoint ->
             val tls = conn.tls?.let { tls ->
                 tls.ca?.let { ca ->
@@ -78,6 +83,7 @@ open class GenericConnectorFactoryCreator(
                 tls,
                 monitoringCfg.nettyMetricsConfig.enabled,
                 httpScheduler,
+                customHeaders,
             )
         }
     }
@@ -87,6 +93,7 @@ open class GenericConnectorFactoryCreator(
         chain: Chain,
         conn: UpstreamsConfig.RpcConnection,
         urls: ArrayList<URI>? = null,
+        customHeaders: Map<String, String> = emptyMap(),
     ): WsConnectionPoolFactory? {
         return conn.ws?.let { endpoint ->
             val wsConnectionFactory = WsConnectionFactory(
@@ -99,6 +106,7 @@ open class GenericConnectorFactoryCreator(
             ).apply {
                 config = endpoint
                 basicAuth = endpoint.basicAuth
+                this.customHeaders = customHeaders
             }
             val wsApi = WsConnectionPoolFactory(
                 id,

@@ -53,7 +53,7 @@ class JsonRpcHttpReaderSpec extends Specification {
 
     def "Make a request"() {
         setup:
-        JsonRpcHttpReader client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(),null, null)
+        JsonRpcHttpReader client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(),null, null, [:])
         def resp = '{' +
                 '  "jsonrpc": "2.0",' +
                 '  "result": "0x98de45",' +
@@ -74,8 +74,7 @@ class JsonRpcHttpReaderSpec extends Specification {
 
     def "Produces RPC Exception on error status code"() {
         setup:
-        def client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null)
-
+        def client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
         mockServer.when(
                 HttpRequest.request()
         ).respond(
@@ -98,7 +97,7 @@ class JsonRpcHttpReaderSpec extends Specification {
 
     def "Tries to extract message if HTTP error if it still contains a JSON RPC message"() {
         setup:
-        def client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null)
+        def client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
 
         mockServer.when(
                 HttpRequest.request()

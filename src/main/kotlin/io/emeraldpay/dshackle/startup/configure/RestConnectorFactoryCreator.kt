@@ -41,10 +41,11 @@ class RestConnectorFactoryCreator(
         forkChoice: ForkChoice,
         blockValidator: BlockValidator,
         chainsConf: ChainsConfig.ChainConfig,
+        customHeaders: Map<String, String>,
     ): ConnectorFactory? {
         val urls = ArrayList<URI>()
-        val httpFactory = buildHttpFactory(conn.rpc, urls)
-        val tonV3HttpFactory = buildHttpFactory(conn.getEndpointByTag("ton_v3")?.rpc, urls)
+        val httpFactory = buildHttpFactory(conn.rpc, urls, customHeaders)
+        val tonV3HttpFactory = buildHttpFactory(conn.getEndpointByTag("ton_v3")?.rpc, urls, customHeaders)
         val upstreamHttpFactory = if (httpFactory != null && chain.type == BlockchainType.TON) {
             TonCompoundHttpFactory(httpFactory, tonV3HttpFactory)
         } else {

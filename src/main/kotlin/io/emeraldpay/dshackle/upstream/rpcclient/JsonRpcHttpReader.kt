@@ -44,7 +44,8 @@ class JsonRpcHttpReader(
     private val httpScheduler: Scheduler,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
-) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth) {
+    customHeaders: Map<String, String> = emptyMap(),
+) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth, customHeaders) {
 
     private val parser = ResponseRpcParser()
     private val streamParser = JsonRpcStreamParser()

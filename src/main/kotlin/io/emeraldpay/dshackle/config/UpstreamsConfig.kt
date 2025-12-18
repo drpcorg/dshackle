@@ -41,6 +41,7 @@ data class UpstreamsConfig(
         var methods: Methods? = null,
         var methodGroups: MethodGroups? = null,
         var role: UpstreamRole = UpstreamRole.PRIMARY,
+        var customHeaders: Map<String, String> = emptyMap(),
     ) {
 
         @Suppress("UNCHECKED_CAST")
