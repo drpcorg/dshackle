@@ -101,6 +101,12 @@ interface ChainSpecific {
     fun callSelector(caches: Caches): CallSelector?
 
     fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService
+
+    /**
+     * List of HTTP response header names to forward from upstream to client.
+     * Override in chain-specific implementations to specify relevant headers.
+     */
+    fun getResponseHeadersToForward(): List<String> = emptyList()
 }
 
 object ChainSpecificRegistry {

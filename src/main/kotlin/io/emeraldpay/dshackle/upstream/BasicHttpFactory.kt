@@ -46,7 +46,7 @@ class BasicHttpFactory(
         )
 
         if (chain.type.apiType == ApiType.REST) {
-            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls)
+            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls)
         }
         return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls)
     }

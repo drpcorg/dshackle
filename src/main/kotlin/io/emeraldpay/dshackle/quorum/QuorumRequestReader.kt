@@ -135,7 +135,7 @@ class QuorumRequestReader(
                 .map { quorum ->
                     val response = quorum.getResponse()!!
                     // TODO find actual quorum number
-                    Result(response.getResult(), quorum.getSignature(), 1, resolvedBy(), response.stream)
+                    Result(response.getResult(), quorum.getSignature(), 1, resolvedBy(), response.stream, response.responseHeaders)
                 }
                 .switchIfEmpty(defaultResult)
         }
@@ -236,7 +236,7 @@ class QuorumRequestReader(
             val cause = getCause(method) ?: return Mono.error(RpcException(1, "No response for method $method", getFullCause()))
             if (cause.shouldReturnNull) {
                 Mono.just(
-                    Result(Global.nullValue, null, 1, emptyList(), null),
+                    Result(Global.nullValue, null, 1, emptyList(), null, emptyMap()),
                 )
             } else {
                 Mono.error(RpcException(1, "No response for method $method. Cause - ${cause.cause}"))

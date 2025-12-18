@@ -117,7 +117,13 @@ class DefaultBeaconChainMethods : CallMethods {
     }
 
     override fun isCallable(method: String): Boolean {
-        return allowedMethods.contains(method)
+        if (allowedMethods.contains(method)) {
+            return true
+        }
+        // Check wildcard patterns (e.g., GET#/eth/v1/beacon/headers/* matches GET#/eth/v1/beacon/headers/head)
+        return allowedMethods.any { pattern ->
+            pattern.contains("*") && method.matches(pattern.replace("*", "[^/]+").toRegex())
+        }
     }
 
     override fun getSupportedMethods(): Set<String> {

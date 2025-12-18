@@ -64,6 +64,7 @@ class BroadcastReader(
                         upstreams.size,
                         upsData,
                         null,
+                        quorum.getResponse()!!.responseHeaders,
                     )
                     Mono.just(res)
                 } else {

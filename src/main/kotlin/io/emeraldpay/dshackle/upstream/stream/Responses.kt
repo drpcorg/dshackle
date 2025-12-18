@@ -35,11 +35,13 @@ data class SingleResponse(
 
 data class StreamResponse(
     val stream: Flux<Chunk>,
+    val headers: Map<String, String> = emptyMap(),
 ) : Response()
 
 data class AggregateResponse(
     val response: ByteArray,
     val code: Int,
+    val headers: Map<String, String> = emptyMap(),
 ) : Response() {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
