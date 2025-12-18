@@ -20,6 +20,7 @@ class BasicHttpFactory(
     private val tls: ByteArray?,
     private val nettyMetricsEnabled: Boolean,
     private val httpScheduler: Scheduler,
+    private val customHeaders: Map<String, String> = emptyMap(),
 ) : HttpFactory {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -46,8 +47,8 @@ class BasicHttpFactory(
         )
 
         if (chain.type.apiType == ApiType.REST) {
-            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls)
+            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls, customHeaders)
         }
-        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls)
+        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls, customHeaders)
     }
 }

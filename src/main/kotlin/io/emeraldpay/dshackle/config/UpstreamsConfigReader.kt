@@ -300,6 +300,15 @@ class UpstreamsConfigReader(
                     }
             }
         }
+        if (hasAny(upNode, "custom-headers")) {
+            getMapping(upNode, "custom-headers")?.let { headers ->
+                val headersMap = headers.value
+                    .map { it.keyNode.valueAsString() to it.valueNode.valueAsString() }
+                    .filter { StringUtils.isNotBlank(it.first) && StringUtils.isNotBlank(it.second) }
+                    .associate { it.first!!.trim() to it.second!!.trim() }
+                upstream.customHeaders = headersMap
+            }
+        }
     }
 
     private fun readUpstreamGrpc(

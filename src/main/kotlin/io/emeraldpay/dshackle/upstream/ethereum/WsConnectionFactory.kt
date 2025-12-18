@@ -22,6 +22,7 @@ open class WsConnectionFactory(
 
     var basicAuth: AuthConfig.ClientBasicAuth? = null
     var config: UpstreamsConfig.WsEndpoint? = null
+    var customHeaders: Map<String, String> = emptyMap()
 
     private fun metrics(connIndex: Int): RequestMetrics {
         val metricsTags = listOf(
@@ -46,7 +47,7 @@ open class WsConnectionFactory(
     }
 
     open fun createWsConnection(connIndex: Int = 0): WsConnection =
-        WsConnectionImpl(uri, origin, basicAuth, metrics(connIndex), scheduler, eventsScheduler).also { ws ->
+        WsConnectionImpl(uri, origin, basicAuth, metrics(connIndex), scheduler, eventsScheduler, customHeaders).also { ws ->
             config?.frameSize?.let {
                 ws.frameSize = it
             }

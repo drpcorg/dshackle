@@ -38,7 +38,7 @@ class BitcoinUpstreamCreator(
     ): UpstreamCreationData {
         val config = upstreamsConfig.cast(UpstreamsConfig.BitcoinConnection::class.java)
         val conn = config.connection!!
-        val httpFactory = genericConnectorFactoryCreator.buildHttpFactory(conn.rpc)
+        val httpFactory = genericConnectorFactoryCreator.buildHttpFactory(conn.rpc, customHeaders = config.customHeaders)
         if (httpFactory == null) {
             log.warn("Upstream doesn't have API configuration")
             return UpstreamCreationData.default()
