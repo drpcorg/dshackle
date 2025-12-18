@@ -234,6 +234,10 @@ class DefaultEthereumMethods(
         "eth_chainId",
     )
 
+    private val avalancheMethods = listOf(
+        "eth_baseFee",
+    )
+
     private val filecoinMethods = listOf(
         "Filecoin.ChainBlockstoreInfo",
         "Filecoin.ChainExport",
@@ -733,6 +737,8 @@ class DefaultEthereumMethods(
             )
 
             Chain.FILECOIN__MAINNET, Chain.FILECOIN__CALIBRATION_TESTNET -> filecoinMethods
+
+            Chain.AVALANCHE__MAINNET, Chain.AVALANCHE__FUJI -> avalancheMethods
 
             Chain.SEI__MAINNET, Chain.SEI__TESTNET, Chain.SEI__DEVNET -> seiMethods
 
