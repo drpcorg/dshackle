@@ -25,6 +25,7 @@ sealed class MatchesResponse {
                 this.allResponses
                     .filter { it !is Success }
                     .joinToString("; ") { it.getCause()!! }
+
             is NotMatchedResponse -> "Not matched - ${response.getCause()}"
             is SameNodeResponse -> "Upstream does not have hash ${this.upstreamHash}"
             is LowerHeightResponse -> {
@@ -34,6 +35,8 @@ sealed class MatchesResponse {
                     "Upstream lower height ${this.predictedHeight} of type ${this.boundType} is greater than ${this.lowerHeight}"
                 }
             }
+
+            is RangeVersionResponse -> "Upstream version is not within the range ${this.minVersion}-${this.maxVersion}"
             else -> null
         }
 
@@ -98,6 +101,11 @@ sealed class MatchesResponse {
 
     data class SameNodeResponse(
         val upstreamHash: Short,
+    ) : MatchesResponse()
+
+    data class RangeVersionResponse(
+        val minVersion: String,
+        val maxVersion: String,
     ) : MatchesResponse()
 
     object AvailabilityResponse : MatchesResponse()
