@@ -234,6 +234,10 @@ class DefaultEthereumMethods(
         "eth_chainId",
     )
 
+    private val avalancheMethods = listOf(
+        "eth_baseFee",
+    )
+
     private val filecoinMethods = listOf(
         "Filecoin.ChainBlockstoreInfo",
         "Filecoin.ChainExport",
@@ -611,6 +615,18 @@ class DefaultEthereumMethods(
         "zks_sendRawTransactionWithDetailedOutput",
     )
 
+    private val borMethods = listOf(
+        "bor_getAuthor",
+        "bor_getCurrentValidators",
+        "bor_getCurrentProposer",
+        "bor_getRootHash",
+        "bor_getSigners",
+        "bor_getSignersAtHash",
+        "bor_getSnapshot",
+        "bor_getSnapshotAtHash",
+        "eth_getRootHash",
+    )
+
     private val allowedMethods: List<String>
 
     init {
@@ -664,14 +680,8 @@ class DefaultEthereumMethods(
                     "rollup_gasPrices",
                     "eth_getBlockRange",
                 )
-            Chain.POLYGON__MAINNET -> listOf(
-                "bor_getAuthor",
-                "bor_getCurrentValidators",
-                "bor_getCurrentProposer",
-                "bor_getRootHash",
-                "bor_getSignersAtHash",
-                "eth_getRootHash",
-            )
+            Chain.POLYGON__MAINNET, Chain.POLYGON__AMOY -> borMethods
+            Chain.SHIBARIUM__MAINNET -> borMethods + listOf("eth_getTransactionReceiptsByBlock")
 
             Chain.POLYGON_ZKEVM__MAINNET, Chain.POLYGON_ZKEVM__CARDONA -> listOf(
                 "zkevm_consolidatedBlockNumber",
@@ -722,7 +732,13 @@ class DefaultEthereumMethods(
                 "buildTransaction",
             )
 
+            Chain.MONAD__MAINNET, Chain.MONAD__TESTNET -> listOf(
+                "eth_sendRawTransactionSync",
+            )
+
             Chain.FILECOIN__MAINNET, Chain.FILECOIN__CALIBRATION_TESTNET -> filecoinMethods
+
+            Chain.AVALANCHE__MAINNET, Chain.AVALANCHE__FUJI -> avalancheMethods
 
             Chain.SEI__MAINNET, Chain.SEI__TESTNET, Chain.SEI__DEVNET -> seiMethods
 

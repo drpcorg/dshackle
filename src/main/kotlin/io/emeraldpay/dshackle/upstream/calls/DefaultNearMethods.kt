@@ -20,6 +20,7 @@ class DefaultNearMethods : CallMethods {
         "tx",
         "EXPERIMENTAL_tx_status",
         "EXPERIMENTAL_receipt",
+        "EXPERIMENTAL_protocol_config",
     )
 
     private val add = setOf(

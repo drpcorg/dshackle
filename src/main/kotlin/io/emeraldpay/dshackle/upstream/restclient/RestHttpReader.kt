@@ -1,11 +1,13 @@
 package io.emeraldpay.dshackle.upstream.restclient
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.AuthConfig
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.HttpReader
 import io.emeraldpay.dshackle.upstream.RequestMetrics
+import io.emeraldpay.dshackle.upstream.generic.ChainSpecificRegistry
 import io.emeraldpay.dshackle.upstream.rpcclient.ResponseRpcParser
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import io.emeraldpay.dshackle.upstream.stream.AggregateResponse
@@ -17,7 +19,9 @@ import io.netty.handler.codec.http.HttpMethod
 import org.apache.commons.lang3.time.StopWatch
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
 import reactor.kotlin.core.publisher.switchIfEmpty
+import reactor.netty.http.client.HttpClientResponse
 import java.util.concurrent.TimeUnit
 
 class RestHttpReader(
@@ -25,12 +29,21 @@ class RestHttpReader(
     maxConnections: Int,
     queueSize: Int,
     metrics: RequestMetrics,
+    private val httpScheduler: Scheduler,
+    private val chain: Chain,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
 ) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth) {
 
     private val parser = ResponseRpcParser()
     private val requestParser = RestRequestParser
+    private val headersToForward = ChainSpecificRegistry.resolve(chain).getResponseHeadersToForward()
+
+    private fun extractResponseHeaders(header: HttpClientResponse): Map<String, String> {
+        return headersToForward
+            .mapNotNull { name -> header.responseHeaders().get(name)?.let { name to it } }
+            .toMap()
+    }
 
     override fun internalRead(key: ChainRequest): Mono<ChainResponse> {
         val startTime = StopWatch()
@@ -48,13 +61,13 @@ class RestHttpReader(
             }
             .handle { it, sink ->
                 when (it) {
-                    is StreamResponse -> sink.next(ChainResponse(it.stream, key.id))
+                    is StreamResponse -> sink.next(ChainResponse(it.stream, key.id, it.headers))
                     is AggregateResponse -> {
                         if (it.code != 200) {
                             val error = parser.readError(Global.objectMapper.createParser(it.response))
-                            sink.next(ChainResponse(null, error))
+                            sink.next(ChainResponse(null, error, it.headers))
                         } else {
-                            sink.next(ChainResponse(it.response, null))
+                            sink.next(ChainResponse(it.response, null, it.headers))
                         }
                     }
                     else -> sink.error(IllegalStateException("Wrong response type"))
@@ -85,26 +98,30 @@ class RestHttpReader(
         return if (!key.isStreamed) {
             response.response { header, bytes ->
                 val statusCode = header.status().code()
+                val responseHeaders = extractResponseHeaders(header)
 
-                bytes.aggregate().asByteArray().map {
-                    AggregateResponse(it, statusCode)
+                bytes.aggregate().asByteArray().publishOn(httpScheduler).map {
+                    AggregateResponse(it, statusCode, responseHeaders)
                 }.switchIfEmpty {
-                    Mono.just(AggregateResponse(ByteArray(0), statusCode))
+                    Mono.just(AggregateResponse(ByteArray(0), statusCode, responseHeaders))
                 }
             }.single()
         } else {
             response.responseConnection { t, u ->
+                val responseHeaders = extractResponseHeaders(t)
+
                 if (t.status().code() != 200) {
-                    u.inbound().receive().aggregate().asByteArray()
-                        .map { AggregateResponse(it, t.status().code()) }
+                    u.inbound().receive().aggregate().asByteArray().publishOn(httpScheduler)
+                        .map { AggregateResponse(it, t.status().code(), responseHeaders) }
                 } else {
                     Mono.just(
                         StreamResponse(
                             Flux.concat(
-                                u.inbound().receive().asByteArray()
+                                u.inbound().receive().asByteArray().publishOn(httpScheduler)
                                     .map { Chunk(it, false) },
                                 Mono.just(Chunk(ByteArray(0), true)),
                             ),
+                            responseHeaders,
                         ),
                     )
                 }

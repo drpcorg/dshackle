@@ -49,12 +49,13 @@ abstract class RequestReader(
                 null
             }
 
-    class Result(
+    class Result @JvmOverloads constructor(
         val value: ByteArray,
         val signature: ResponseSigner.Signature?,
         val quorum: Int,
         val resolvedUpstreamData: List<Upstream.UpstreamSettingsData>,
         val stream: Flux<Chunk>?,
+        val responseHeaders: Map<String, String> = emptyMap(),
     )
 }
 

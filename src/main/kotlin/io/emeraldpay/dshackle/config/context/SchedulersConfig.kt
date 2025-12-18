@@ -76,6 +76,16 @@ open class SchedulersConfig {
         return makeScheduler("auth-scheduler", 4, monitoringConfig)
     }
 
+    @Bean
+    open fun httpScheduler(monitoringConfig: MonitoringConfig): Scheduler {
+        return makeScheduler("http-scheduler", 30, monitoringConfig)
+    }
+
+    @Bean
+    open fun eventsScheduler(monitoringConfig: MonitoringConfig): Scheduler {
+        return makeScheduler("ws-events-scheduler", 30, monitoringConfig)
+    }
+
     private fun makeScheduler(name: String, size: Int, monitoringConfig: MonitoringConfig): Scheduler {
         return Schedulers.fromExecutorService(makePool(name, size, monitoringConfig))
     }

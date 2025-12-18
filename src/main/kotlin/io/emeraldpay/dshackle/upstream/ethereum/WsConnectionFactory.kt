@@ -17,6 +17,7 @@ open class WsConnectionFactory(
     private val uri: URI,
     private val origin: URI,
     private val scheduler: Scheduler,
+    private val eventsScheduler: Scheduler,
 ) {
 
     var basicAuth: AuthConfig.ClientBasicAuth? = null
@@ -45,7 +46,7 @@ open class WsConnectionFactory(
     }
 
     open fun createWsConnection(connIndex: Int = 0): WsConnection =
-        WsConnectionImpl(uri, origin, basicAuth, metrics(connIndex), scheduler).also { ws ->
+        WsConnectionImpl(uri, origin, basicAuth, metrics(connIndex), scheduler, eventsScheduler).also { ws ->
             config?.frameSize?.let {
                 ws.frameSize = it
             }

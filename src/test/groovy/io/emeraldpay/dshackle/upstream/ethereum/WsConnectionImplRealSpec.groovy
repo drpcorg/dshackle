@@ -43,6 +43,7 @@ class WsConnectionImplRealSpec extends Specification {
                         Chain.ETHEREUM__MAINNET,
                         "ws://localhost:${port}".toURI(),
                         "http://localhost:${port}".toURI(),
+                        Schedulers.boundedElastic(),
                         Schedulers.boundedElastic()
                 )
         ).create(upstream).getConnection()

@@ -22,6 +22,8 @@ class RestConnectorFactoryCreator(
     private val headScheduler: Scheduler,
     private val headLivenessScheduler: Scheduler,
     monitoringCfg: MonitoringConfig,
+    httpScheduler: Scheduler,
+    eventsScheduler: Scheduler,
 ) : GenericConnectorFactoryCreator(
     fileResolver,
     Schedulers.single(),
@@ -29,6 +31,8 @@ class RestConnectorFactoryCreator(
     Schedulers.single(),
     headLivenessScheduler,
     monitoringCfg,
+    httpScheduler,
+    eventsScheduler,
 ) {
     override fun createConnectorFactory(
         id: String,

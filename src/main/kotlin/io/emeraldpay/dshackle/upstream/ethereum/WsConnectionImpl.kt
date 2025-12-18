@@ -29,7 +29,6 @@ import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcWsMessage
 import io.emeraldpay.dshackle.upstream.rpcclient.ResponseWSParser
 import io.micrometer.core.instrument.Metrics
-import io.netty.buffer.ByteBufInputStream
 import io.netty.handler.codec.http.HttpHeaderNames
 import io.netty.resolver.DefaultAddressResolverGroup
 import org.reactivestreams.Publisher
@@ -66,6 +65,7 @@ open class WsConnectionImpl(
     private val basicAuth: AuthConfig.ClientBasicAuth?,
     private val requestMetrics: RequestMetrics?,
     private val scheduler: Scheduler,
+    private val eventsScheduler: Scheduler,
 ) : AutoCloseable, WsConnection, Cloneable {
 
     companion object {
@@ -193,6 +193,7 @@ open class WsConnectionImpl(
         log.info("Connecting to WebSocket: $uri")
         connection?.dispose()
         connection = HttpClient.create()
+            .runOn(Global.wsLoops)
             .resolver(DefaultAddressResolverGroup.INSTANCE)
             .doOnDisconnected {
                 disconnects.tryEmitNext(Instant.now())
@@ -251,8 +252,9 @@ open class WsConnectionImpl(
         var read = false
         val consumer = inbound
             .aggregateFrames(msgSizeLimit)
-            .receiveFrames()
-            .map { ByteBufInputStream(it.content()).readAllBytes() }
+            .receive()
+            .asByteArray()
+            .publishOn(eventsScheduler)
             .filter { it.isNotEmpty() }
             .flatMap {
                 try {

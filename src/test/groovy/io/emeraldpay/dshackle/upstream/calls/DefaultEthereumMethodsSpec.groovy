@@ -58,11 +58,24 @@ class DefaultEthereumMethodsSpec extends Specification {
         where:
         chain          | methods
         Chain.POLYGON__MAINNET | ["bor_getAuthor",
-                                      "bor_getCurrentValidators",
-                                      "bor_getCurrentProposer",
-                                      "bor_getRootHash",
-                                      "bor_getSignersAtHash",
-                                      "eth_getRootHash"]
+                                  "bor_getCurrentValidators",
+                                  "bor_getCurrentProposer",
+                                  "bor_getRootHash",
+                                  "bor_getSigners",
+                                  "bor_getSignersAtHash",
+                                  "bor_getSnapshot",
+                                  "bor_getSnapshotAtHash",
+                                  "eth_getRootHash"]
+        Chain.SHIBARIUM__MAINNET | ["bor_getAuthor",
+                                    "bor_getCurrentValidators",
+                                    "bor_getCurrentProposer",
+                                    "bor_getRootHash",
+                                    "bor_getSigners",
+                                    "bor_getSignersAtHash",
+                                    "bor_getSnapshot",
+                                    "bor_getSnapshotAtHash",
+                                    "eth_getRootHash",
+                                    "eth_getTransactionReceiptsByBlock"]
         Chain.OPTIMISM__MAINNET | ["rollup_gasPrices"]
     }
 

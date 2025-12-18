@@ -35,17 +35,25 @@ class ChainResponse @JvmOverloads constructor(
     val providedSignature: ResponseSigner.Signature? = null,
     val resolvedUpstreamData: List<Upstream.UpstreamSettingsData> = emptyList(),
     val finalization: FinalizationData? = null,
+    val responseHeaders: Map<String, String> = emptyMap(),
 ) {
 
     constructor(stream: Flux<Chunk>, id: Int) :
-        this(null, null, NumberId(id.toLong()), stream, null, emptyList(), null)
+        this(null, null, NumberId(id.toLong()), stream, null, emptyList(), null, emptyMap())
+
+    constructor(stream: Flux<Chunk>, id: Int, responseHeaders: Map<String, String>) :
+        this(null, null, NumberId(id.toLong()), stream, null, emptyList(), null, responseHeaders)
 
     constructor(result: ByteArray?, error: ChainCallError?) : this(result, error, NumberId(0), null, null)
 
+    constructor(result: ByteArray?, error: ChainCallError?, responseHeaders: Map<String, String>) :
+        this(result, error, NumberId(0), null, null, emptyList(), null, responseHeaders)
+
     constructor(result: ByteArray?, error: ChainCallError?, resolvedUpstreamData: List<Upstream.UpstreamSettingsData>) :
-        this(result, error, NumberId(0), null, null, resolvedUpstreamData, null)
+        this(result, error, NumberId(0), null, null, resolvedUpstreamData, null, emptyMap())
+
     constructor(result: ByteArray?, resolvedUpstreamData: List<Upstream.UpstreamSettingsData>, finalization: FinalizationData) :
-        this(result, null, NumberId(0), null, null, resolvedUpstreamData, finalization)
+        this(result, null, NumberId(0), null, null, resolvedUpstreamData, finalization, emptyMap())
 
     companion object {
         private val NULL_VALUE = "null".toByteArray()
@@ -139,7 +147,7 @@ class ChainResponse @JvmOverloads constructor(
     }
 
     fun copyWithId(id: Id): ChainResponse {
-        return ChainResponse(result, error, id, stream, providedSignature, resolvedUpstreamData)
+        return ChainResponse(result, error, id, stream, providedSignature, resolvedUpstreamData, finalization, responseHeaders)
     }
 
     override fun equals(other: Any?): Boolean {
