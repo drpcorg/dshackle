@@ -174,6 +174,41 @@ In case of rpc and ws connection we can specify different modes of works togethe
 
 You can specify this modes through `connector-mode` parameter in connection config.
 
+=== Custom Headers
+
+Dshackle allows you to add custom HTTP headers to all requests sent to an upstream.
+This is useful when connecting to providers that require API keys, authentication tokens, or other custom headers.
+
+Custom headers are configured at the upstream level and will be added to:
+
+- All HTTP JSON RPC requests
+- WebSocket connection handshakes (initial HTTP upgrade request)
+
+NOTE: Custom headers are supported for all connection types except gRPC connections.
+
+==== Configuration
+
+Custom headers are specified using the `custom-headers` parameter in your upstream configuration:
+
+[source,yaml]
+----
+version: v1
+
+upstreams:
+  - id: my-ethereum-node
+    chain: ethereum
+    custom-headers:
+      X-API-Key: "your-api-key-here"
+      X-Custom-Header: "custom-value"
+      Authorization: "Bearer your-token"
+    connection:
+      generic:
+        rpc:
+          url: "https://api.example.com/rpc"
+        ws:
+          url: "wss://api.example.com/ws"
+----
+
 === Bitcoin Methods
 
 .By default an ethereum upstream allows call to the following JSON RPC methods:
