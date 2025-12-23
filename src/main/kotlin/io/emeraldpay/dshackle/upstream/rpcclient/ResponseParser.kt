@@ -97,7 +97,8 @@ abstract class ResponseParser<T> {
                 state.copy(result = result)
             }
         } else if (field == "error") {
-            val err = readError(parser)
+            val errorValue = Global.getErrorValueAsIs(json)
+            val err = readError(parser, errorValue)
             if (err != null) {
                 return state.copy(error = err)
             }
@@ -154,6 +155,10 @@ abstract class ResponseParser<T> {
     }
 
     fun readError(parser: JsonParser): ChainCallError? {
+        return readError(parser, null)
+    }
+
+    fun readError(parser: JsonParser, errorAsIs: ByteArray?): ChainCallError? {
         var code = 0
         var message = ""
         var details: Any? = null
@@ -204,7 +209,7 @@ abstract class ResponseParser<T> {
                 }
             }
         }
-        return ChainCallError(code, message, details)
+        return ChainCallError(code, message, details, errorAsIs)
     }
 
     data class Preparsed(

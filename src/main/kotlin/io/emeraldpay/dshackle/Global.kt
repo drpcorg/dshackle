@@ -78,6 +78,18 @@ class Global {
             }
         }
 
+        fun getErrorValueAsIs(errorResp: ByteArray): ByteArray? {
+            return runCatching {
+                Global.objectMapper.readTree(errorResp)
+                    ?.get("error")
+                    ?.let {
+                        Global.objectMapper.writeValueAsBytes(it)
+                    }
+            }.getOrElse {
+                null
+            }
+        }
+
         private fun isSolana(chain: Chain): Boolean {
             return chain == Chain.SOLANA__MAINNET || chain == Chain.SOLANA__DEVNET || chain == Chain.SOLANA__TESTNET
         }
