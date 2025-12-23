@@ -3,6 +3,7 @@ package io.emeraldpay.dshackle.upstream.rpcclient.stream
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonToken
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.ChainCallError
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.rpcclient.ResponseRpcParser
@@ -233,7 +234,8 @@ class JsonRpcStreamParser(
                                 return response
                             }
                         } else if (parser.currentName == "error") {
-                            return SingleResponse(response?.result, responseRpcParser.readError(parser))
+                            val errorValue = Global.getErrorValueAsIs(firstBytes)
+                            return SingleResponse(response?.result, responseRpcParser.readError(parser, errorValue))
                         }
                     }
                 }

@@ -254,6 +254,9 @@ open class NativeCall(
                 error.data?.let { data ->
                     result.setErrorData(data)
                 }
+                if (error.errorAsIs != null) {
+                    result.errorAsIs = ByteString.copyFrom(error.errorAsIs)
+                }
             }
         } else {
             result.payload = ByteString.copyFrom(it.result)
@@ -801,6 +804,7 @@ open class NativeCall(
         val upstreamError: ChainCallError?,
         val data: String?,
         val upstreamSettingsData: List<Upstream.UpstreamSettingsData> = emptyList(),
+        val errorAsIs: ByteArray? = null,
     ) {
 
         companion object {
@@ -818,7 +822,7 @@ open class NativeCall(
             }
             fun from(t: Throwable): CallError {
                 return when (t) {
-                    is ChainException -> CallError(t.error.code, t.error.message, t.error, getDataAsSting(t.error.details), t.upstreamSettingsData)
+                    is ChainException -> CallError(t.error.code, t.error.message, t.error, getDataAsSting(t.error.details), t.upstreamSettingsData, t.error.errorAsIs)
                     is RpcException -> CallError(t.code, t.rpcMessage, null, getDataAsSting(t.details))
                     is CallFailure -> CallError(t.id, t.reason.message ?: "Upstream Error", null, null)
                     else -> {
@@ -832,6 +836,28 @@ open class NativeCall(
                     }
                 }
             }
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is CallError) return false
+
+            if (id != other.id) return false
+            if (message != other.message) return false
+            if (upstreamError != other.upstreamError) return false
+            if (data != other.data) return false
+            if (upstreamSettingsData != other.upstreamSettingsData) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = id
+            result = 31 * result + message.hashCode()
+            result = 31 * result + (upstreamError?.hashCode() ?: 0)
+            result = 31 * result + (data?.hashCode() ?: 0)
+            result = 31 * result + upstreamSettingsData.hashCode()
+            return result
         }
     }
 

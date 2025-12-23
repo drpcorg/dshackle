@@ -17,7 +17,12 @@ package io.emeraldpay.dshackle.upstream
 
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
-data class ChainCallError(val code: Int, val message: String, val details: Any?) {
+data class ChainCallError(
+    val code: Int,
+    val message: String,
+    val details: Any?,
+    val errorAsIs: ByteArray? = null,
+) {
 
     constructor(code: Int, message: String) : this(code, message, null)
 
@@ -38,5 +43,23 @@ data class ChainCallError(val code: Int, val message: String, val details: Any?)
 
     fun asException(id: ChainResponse.Id?, upstreamSettingsData: List<Upstream.UpstreamSettingsData>): ChainException {
         return ChainException(id ?: ChainResponse.NumberId(-1), this, upstreamSettingsData, false)
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is ChainCallError) return false
+
+        if (code != other.code) return false
+        if (message != other.message) return false
+        if (details != other.details) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = code
+        result = 31 * result + message.hashCode()
+        result = 31 * result + (details?.hashCode() ?: 0)
+        return result
     }
 }

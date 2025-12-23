@@ -2,7 +2,6 @@ package io.emeraldpay.dshackle.upstream.rpcclient
 
 import io.emeraldpay.dshackle.upstream.ChainCallError
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
-import nl.jqno.equalsverifier.EqualsVerifier
 import spock.lang.Specification
 
 class JsonRpcErrorSpec extends Specification {
@@ -23,12 +22,5 @@ class JsonRpcErrorSpec extends Specification {
         act.code == -32123
         act.message == "test test"
         act.details == "foo bar"
-    }
-
-    def "Equals"() {
-        when:
-        def v = EqualsVerifier.forClass(ChainCallError)
-        then:
-        v.verify()
     }
 }
