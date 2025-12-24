@@ -1,8 +1,8 @@
 package io.emeraldpay.dshackle.upstream.calls
 
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
-import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
+import io.emeraldpay.dshackle.quorum.JsonBroadcastQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
 class DefaultRippleMethods : CallMethods {
@@ -66,7 +66,7 @@ class DefaultRippleMethods : CallMethods {
 
     override fun createQuorumFor(method: String): CallQuorum {
         if (add.contains(method)) {
-            return BroadcastQuorum()
+            return JsonBroadcastQuorum()
         }
         return AlwaysQuorum()
     }
