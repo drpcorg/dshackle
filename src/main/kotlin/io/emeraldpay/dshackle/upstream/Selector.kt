@@ -746,7 +746,7 @@ class Selector {
                 } else {
                     runCatching {
                         val min = Semver(minRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                        actualSemver.isGreaterThan(min)
+                        actualSemver.isGreaterThanOrEqualTo(min)
                     }.getOrElse {
                         false
                     }
@@ -757,7 +757,7 @@ class Selector {
                 } else {
                     runCatching {
                         val max = Semver(maxRawVersion.removePrefix("v"), Semver.SemverType.STRICT)
-                        actualSemver.isLowerThan(max)
+                        actualSemver.isLowerThanOrEqualTo(max)
                     }.getOrElse {
                         false
                     }
