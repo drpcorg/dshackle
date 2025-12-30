@@ -29,7 +29,6 @@ class AutoReloadbleConfig<T>(
             if (response != null) {
                 instance.set(parseConfig(response))
             }
-            println()
         } catch (e: Exception) {
             log.error("Failed to reload config from $configUrl for type $type", e)
         }
