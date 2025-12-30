@@ -157,7 +157,7 @@ application {
 
 jib {
     from {
-        image = 'eclipse-temurin:21'
+        image = 'docker://drpc-dshackle'
     }
     to {
         // by default publish as:
