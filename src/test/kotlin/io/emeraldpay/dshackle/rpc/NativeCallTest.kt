@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.spy
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -29,7 +28,6 @@ class NativeCallTest {
                 mock<MultistreamHolder>(),
                 mock<ResponseSigner>(),
                 MainConfig(),
-                mock<Tracer>(),
             ),
         ) {
             on { nativeCallResult(request) } doReturn Flux.just(
@@ -59,7 +57,6 @@ class NativeCallTest {
                 mock<MultistreamHolder>(),
                 mock<ResponseSigner>(),
                 MainConfig(),
-                mock<Tracer>(),
             ),
         ) {
             on { nativeCallResult(request) } doReturn Flux.just(
@@ -95,7 +92,6 @@ class NativeCallTest {
                 mock<MultistreamHolder>(),
                 mock<ResponseSigner>(),
                 MainConfig(),
-                mock<Tracer>(),
             ),
         ) {
             on { nativeCallResult(request) } doReturn Flux.just(

@@ -50,7 +50,7 @@ class EcdsaSignerSpec extends Specification {
         def conf = new SignatureConfig()
         conf.enabled = true
         conf.privateKey = "src/test/resources/signer/test_key"
-        def signer = new ResponseSignerFactory(conf).getObject() as EcdsaSigner
+        def signer = new ResponseSignerFactory(conf).createSigner() as EcdsaSigner
 
         // To verify the test, check the hash of test key above:
         //
@@ -123,7 +123,7 @@ class EcdsaSignerSpec extends Specification {
         verifier.initVerify(pk)
         verifier.update("DSHACKLESIG/10/infura/${Hex.encodeHexString(sha256.digest(result))}".getBytes())
 
-        def signer = factory.getObject() as EcdsaSigner
+        def signer = factory.createSigner() as EcdsaSigner
 
         when:
         def sig = signer.sign(10, result, up.id)

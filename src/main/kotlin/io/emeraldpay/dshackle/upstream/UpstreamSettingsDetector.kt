@@ -54,7 +54,7 @@ abstract class BasicUpstreamSettingsDetector(
     protected abstract fun clientVersion(node: JsonNode): String?
     protected abstract fun clientType(node: JsonNode): String?
 
-    protected fun detectNodeType(): Flux<Pair<String, String>?> {
+    protected fun detectNodeType(): Flux<Pair<String, String>> {
         val nodeTypeRequest = nodeTypeRequest()
         return upstream
             .getIngressReader()

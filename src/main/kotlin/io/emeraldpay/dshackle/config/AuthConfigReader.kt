@@ -91,7 +91,6 @@ class AuthConfigReader : YamlConfigReader<AuthConfig>() {
                     auth.clientCAs.add(it)
                 }
                 getList<ScalarNode>(clientNode, "cas")?.let {
-                    println(it)
                     it.value?.let { crt ->
                         auth.clientCAs.addAll(crt.map { v -> v.value })
                     }

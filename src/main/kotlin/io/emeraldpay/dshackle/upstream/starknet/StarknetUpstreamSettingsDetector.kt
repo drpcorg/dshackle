@@ -18,7 +18,7 @@ class StarknetUpstreamSettingsDetector(
         )
     }
 
-    private fun detectNodeType(): Flux<Pair<String, String>?> {
+    private fun detectNodeType(): Flux<Pair<String, String>> {
         return upstream
             .getIngressReader()
             .read(pathfinderVersionRequest())

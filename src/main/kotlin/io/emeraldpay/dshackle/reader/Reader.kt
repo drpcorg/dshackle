@@ -18,7 +18,7 @@ package io.emeraldpay.dshackle.reader
 
 import reactor.core.publisher.Mono
 
-interface Reader<in K, D> {
+interface Reader<in K, D : Any> {
 
     fun read(key: K): Mono<D>
 }

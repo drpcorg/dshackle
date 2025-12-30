@@ -20,7 +20,7 @@ import reactor.core.publisher.Flux
 /**
  * Note that T is supposed to be serializable as JSON
  */
-interface SubscriptionConnect<T> {
+interface SubscriptionConnect<T : Any> {
 
     fun connect(matcher: Selector.Matcher): Flux<T>
 }

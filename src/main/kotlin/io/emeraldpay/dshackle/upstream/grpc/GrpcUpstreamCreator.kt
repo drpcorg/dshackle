@@ -22,11 +22,11 @@ class GrpcUpstreamCreator(
     private val authorizationConfig: AuthorizationConfig,
     private val compressionConfig: CompressionConfig,
     private val fileResolver: FileResolver,
-    @Qualifier("grpcChannelExecutor")
+    @param:Qualifier("grpcChannelExecutor")
     private val channelExecutor: Executor,
-    private val grpcTracing: GrpcTracing,
-    @Qualifier("headScheduler")
+    @param:Qualifier("headScheduler")
     private val headScheduler: Scheduler,
+    private val grpcTracing: GrpcTracing,
     private val grpcAuthContext: GrpcAuthContext,
 ) {
     @Value("\${spring.application.max-metadata-size}")

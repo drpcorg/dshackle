@@ -38,7 +38,7 @@ class TokensConfig(
                 id.isNullOrBlank() -> "id"
                 blockchain == null -> "blockchain"
                 name.isNullOrBlank() -> "name"
-                type == null -> type
+                type == null -> "type"
                 address.isNullOrBlank() -> "address"
                 blockchain != null &&
                     (blockchain!!.type == BlockchainType.ETHEREUM) &&

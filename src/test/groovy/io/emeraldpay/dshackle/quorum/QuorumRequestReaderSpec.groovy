@@ -29,7 +29,6 @@ import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import spock.lang.Specification
@@ -55,7 +54,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new AlwaysQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new AlwaysQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -87,7 +86,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new AlwaysQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new AlwaysQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -125,7 +124,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new AlwaysQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new AlwaysQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -158,7 +157,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new NotNullQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new NotNullQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -191,7 +190,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new NotNullQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new NotNullQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -224,7 +223,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new NotNullQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new NotNullQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -255,7 +254,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new AlwaysQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new AlwaysQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -289,7 +288,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new NotLaggingQuorum(1), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new NotLaggingQuorum(1))
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -315,7 +314,7 @@ class QuorumRequestReaderSpec extends Specification {
                 Chain.ETHEREUM__MAINNET,
                 [up], Selector.empty
         )
-        def reader = new QuorumRequestReader(apis, new AlwaysQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new AlwaysQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))
@@ -365,7 +364,7 @@ class QuorumRequestReaderSpec extends Specification {
                         new Selector.HeightMatcher(100000000),
                 )
         ))
-        def reader = new QuorumRequestReader(apis, new AlwaysQuorum(), Stub(Tracer))
+        def reader = new QuorumRequestReader(apis, new AlwaysQuorum())
 
         when:
         def act = reader.read(new ChainRequest("eth_test", new ListParams()))

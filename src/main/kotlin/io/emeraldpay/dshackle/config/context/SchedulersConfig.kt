@@ -1,12 +1,11 @@
 package io.emeraldpay.dshackle.config.context
 
-import io.emeraldpay.dshackle.config.MonitoringConfig
 import io.micrometer.core.instrument.Metrics
-import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.DependsOn
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory
 import reactor.core.scheduler.Scheduler
 import reactor.core.scheduler.Schedulers
@@ -17,6 +16,7 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 @Configuration
+@DependsOn("monitoringSetup")
 open class SchedulersConfig {
 
     companion object {
@@ -32,65 +32,65 @@ open class SchedulersConfig {
     }
 
     @Bean
-    open fun rpcScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("blockchain-rpc-scheduler", 20, monitoringConfig)
+    open fun rpcScheduler(): Scheduler {
+        return makeScheduler("blockchain-rpc-scheduler", 20)
     }
 
     @Bean
-    open fun headScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("head-scheduler", 4, monitoringConfig)
+    open fun headScheduler(): Scheduler {
+        return makeScheduler("head-scheduler", 4)
     }
 
     @Bean
-    open fun subScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("sub-scheduler", 4, monitoringConfig)
+    open fun subScheduler(): Scheduler {
+        return makeScheduler("sub-scheduler", 4)
     }
 
     @Bean
-    open fun multistreamEventsScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("events-scheduler", 4, monitoringConfig)
+    open fun multistreamEventsScheduler(): Scheduler {
+        return makeScheduler("events-scheduler", 4)
     }
 
     @Bean
-    open fun wsConnectionResubscribeScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("ws-connection-resubscribe-scheduler", 2, monitoringConfig)
+    open fun wsConnectionResubscribeScheduler(): Scheduler {
+        return makeScheduler("ws-connection-resubscribe-scheduler", 2)
     }
 
     @Bean
-    open fun wsScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("ws-scheduler", 4, monitoringConfig)
+    open fun wsScheduler(): Scheduler {
+        return makeScheduler("ws-scheduler", 4)
     }
 
     @Bean
-    open fun headLivenessScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("head-liveness-scheduler", 4, monitoringConfig)
+    open fun headLivenessScheduler(): Scheduler {
+        return makeScheduler("head-liveness-scheduler", 4)
     }
 
     @Bean
-    open fun grpcChannelExecutor(monitoringConfig: MonitoringConfig): Executor {
-        return makePool("grpc-client-channel", 10, monitoringConfig)
+    open fun grpcChannelExecutor(): Executor {
+        return makePool("grpc-client-channel", 10)
     }
 
     @Bean
-    open fun authScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("auth-scheduler", 4, monitoringConfig)
+    open fun authScheduler(): Scheduler {
+        return makeScheduler("auth-scheduler", 4)
     }
 
     @Bean
-    open fun httpScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("http-scheduler", 30, monitoringConfig)
+    open fun httpScheduler(): Scheduler {
+        return makeScheduler("http-scheduler", 30)
     }
 
     @Bean
-    open fun eventsScheduler(monitoringConfig: MonitoringConfig): Scheduler {
-        return makeScheduler("ws-events-scheduler", 30, monitoringConfig)
+    open fun eventsScheduler(): Scheduler {
+        return makeScheduler("ws-events-scheduler", 30)
     }
 
-    private fun makeScheduler(name: String, size: Int, monitoringConfig: MonitoringConfig): Scheduler {
-        return Schedulers.fromExecutorService(makePool(name, size, monitoringConfig))
+    private fun makeScheduler(name: String, size: Int): Scheduler {
+        return Schedulers.fromExecutorService(makePool(name, size))
     }
 
-    private fun makePool(name: String, size: Int, monitoringConfig: MonitoringConfig): ExecutorService {
+    private fun makePool(name: String, size: Int): ExecutorService {
         val cachedPool = ThreadPoolExecutor(
             size,
             size * threadsMultiplier,
@@ -100,15 +100,10 @@ open class SchedulersConfig {
             CustomizableThreadFactory("$name-"),
         )
 
-        return if (monitoringConfig.enableExtended) {
-            ExecutorServiceMetrics.monitor(
-                Metrics.globalRegistry,
-                cachedPool,
-                name,
-                Tag.of("reactor_scheduler_id", "_"),
-            )
-        } else {
-            cachedPool
-        }
+        return ExecutorServiceMetrics.monitor(
+            Metrics.globalRegistry,
+            cachedPool,
+            name,
+        )
     }
 }

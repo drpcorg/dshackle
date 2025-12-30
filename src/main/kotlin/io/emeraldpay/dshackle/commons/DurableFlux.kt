@@ -13,7 +13,7 @@ import java.time.Duration
 /**
  * A flux holder that reconnects to it on failure taking into account a back off strategy
  */
-class DurableFlux<T>(
+class DurableFlux<T : Any>(
     private val provider: () -> Flux<T>,
     private val errorBackOff: BackOff,
     private val log: Logger,
@@ -55,7 +55,7 @@ class DurableFlux<T>(
             }
     }
 
-    class Builder<T> {
+    class Builder<T : Any> {
 
         private var provider: (() -> Flux<T>)? = null
 
@@ -63,7 +63,7 @@ class DurableFlux<T>(
         protected var log: Logger = DurableFlux.defaultLog
 
         @Suppress("UNCHECKED_CAST")
-        fun <X> using(provider: () -> Flux<X>): Builder<X> {
+        fun <X : Any> using(provider: () -> Flux<X>): Builder<X> {
             this.provider = provider as () -> Flux<T>
             return this as Builder<X>
         }

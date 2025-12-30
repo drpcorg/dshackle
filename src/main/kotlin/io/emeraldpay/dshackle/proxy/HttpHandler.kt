@@ -24,9 +24,9 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import org.apache.hc.core5.http.HttpHeaders
 import org.reactivestreams.Publisher
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpHeaders
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.netty.http.server.HttpServerRequest

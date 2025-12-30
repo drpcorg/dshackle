@@ -21,7 +21,7 @@ import java.util.function.Function
 /**
  * Reader wrapper that maps the input key from ne value to another (ex. convert from Long to String)
  */
-class RekeyingReader<K, K1, D>(
+class RekeyingReader<K : Any, K1 : Any, D : Any>(
     /**
      * Mapping between original Key and Key supported by the reader
      */
