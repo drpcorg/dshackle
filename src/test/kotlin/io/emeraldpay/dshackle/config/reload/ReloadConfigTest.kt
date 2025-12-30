@@ -29,7 +29,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.springframework.cloud.sleuth.Tracer
 import org.springframework.util.ResourceUtils
 import reactor.core.publisher.Flux
 import reactor.core.scheduler.Schedulers
@@ -194,7 +193,7 @@ class ReloadConfigTest {
             ArrayList(),
             Caches.default(),
             Schedulers.boundedElastic(),
-            cs.makeCachingReaderBuilder(mock<Tracer>()),
+            cs.makeCachingReaderBuilder(),
             cs::localReaderBuilder,
             cs.subscriptionBuilder(Schedulers.boundedElastic()),
         )

@@ -24,16 +24,15 @@ import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.codec.ByteArrayCodec
 import io.lettuce.core.codec.RedisCodec
 import io.lettuce.core.codec.StringCodec
+import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Repository
 import java.util.EnumMap
-import javax.annotation.PostConstruct
 import kotlin.system.exitProcess
 
 @Repository
 open class CachesFactory(
-    @Autowired private val cacheConfig: CacheConfig,
+    private val cacheConfig: CacheConfig,
 ) {
 
     companion object {

@@ -45,10 +45,6 @@ class NativeSubscribeSpec extends Specification {
         }
         def up = Mock(GenericMultistream) {
             1 * it.start()
-            _ * it.getSubscriptionTopics() >> { 
-                println("getSubscriptionTopics called")
-                return ["newHeads"] 
-            }
             _ * it.tryProxySubscribe(_, _) >> { 
                 println("tryProxySubscribe called")
                 return null 

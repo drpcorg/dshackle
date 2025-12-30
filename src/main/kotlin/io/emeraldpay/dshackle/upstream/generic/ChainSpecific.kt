@@ -48,7 +48,6 @@ import io.emeraldpay.dshackle.upstream.solana.SolanaChainSpecific
 import io.emeraldpay.dshackle.upstream.starknet.StarknetChainSpecific
 import io.emeraldpay.dshackle.upstream.ton.TonHttpSpecific
 import org.apache.commons.collections4.Factory
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import java.util.function.Supplier
@@ -77,7 +76,7 @@ interface ChainSpecific {
 
     fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription
 
-    fun makeCachingReaderBuilder(tracer: Tracer): CachingReaderBuilder
+    fun makeCachingReaderBuilder(): CachingReaderBuilder
 
     fun validator(
         chain: Chain,

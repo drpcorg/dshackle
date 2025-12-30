@@ -119,14 +119,14 @@ object StarknetChainSpecific : AbstractPollChainSpecific() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StarknetBlock(
-    @JsonProperty("block_hash") var hash: String,
-    @JsonProperty("block_number") var number: Long,
-    @JsonProperty("timestamp") var timestamp: Instant,
-    @JsonProperty("parent_hash") var parent: String,
+    @param:JsonProperty("block_hash") var hash: String,
+    @param:JsonProperty("block_number") var number: Long,
+    @param:JsonProperty("timestamp") var timestamp: Instant,
+    @param:JsonProperty("parent_hash") var parent: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StarknetSyncing(
-    @JsonProperty("current_block_num") var current: Long,
-    @JsonProperty("highest_block_num") var highest: Long,
+    @param:JsonProperty("current_block_num") var current: Long,
+    @param:JsonProperty("highest_block_num") var highest: Long,
 )

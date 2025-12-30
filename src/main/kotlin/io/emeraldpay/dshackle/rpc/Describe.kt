@@ -21,14 +21,13 @@ import io.emeraldpay.api.proto.Common
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.Capability
 import io.emeraldpay.dshackle.upstream.MultistreamHolder
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
 @Service
 class Describe(
-    @Autowired private val multistreamHolder: MultistreamHolder,
-    @Autowired private val subscribeStatus: SubscribeStatus,
+    private val multistreamHolder: MultistreamHolder,
+    private val subscribeStatus: SubscribeStatus,
 ) {
 
     fun describe(requestMono: Mono<BlockchainOuterClass.DescribeRequest>): Mono<BlockchainOuterClass.DescribeResponse> {

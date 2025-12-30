@@ -21,7 +21,7 @@ import java.util.function.Function
 /**
  * Reader wrapper that transforms output of the reader to a different format
  */
-class TransformingReader<K, D0, D>(
+class TransformingReader<K, D0 : Any, D : Any>(
     /**
      * Actual reader
      */

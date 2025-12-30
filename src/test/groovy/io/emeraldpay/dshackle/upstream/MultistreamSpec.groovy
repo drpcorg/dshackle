@@ -55,7 +55,7 @@ class MultistreamSpec extends Specification {
         def up2 = new GenericUpstreamMock("test1", Chain.ETHEREUM__MAINNET, TestingCommons.api(), new DirectCallMethods(["eth_test2", "eth_test3"]))
         def aggr = new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.immediate(), null, [up1, up2], Caches.default(),
                 Schedulers.boundedElastic(),
-                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
         when:
@@ -190,7 +190,7 @@ class MultistreamSpec extends Specification {
         def up3 = TestingCommons.upstream("test-3", "external")
         def multistream = new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.immediate(), null, [up1, up2, up3], Caches.default(),
                 Schedulers.boundedElastic(),
-                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
 
@@ -263,7 +263,7 @@ class MultistreamSpec extends Specification {
         def up2 = new GenericUpstreamMock("test2", Chain.ETHEREUM__MAINNET, TestingCommons.api(), new DirectCallMethods(["eth_test1", "eth_test2"]))
         def ms = new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.immediate(), null, new ArrayList<GenericMultistream>(), Caches.default(),
                 Schedulers.boundedElastic(),
-                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
         when:
@@ -294,7 +294,7 @@ class MultistreamSpec extends Specification {
         def up2 = new GenericUpstreamMock("test2", Chain.ETHEREUM__MAINNET, TestingCommons.api(), new DirectCallMethods(["eth_test1", "eth_test2"]))
         def ms = new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.immediate(), null, new ArrayList<GenericMultistream>(), Caches.default(),
                 Schedulers.boundedElastic(),
-                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
         def head1 = createBlock(250, "0x0d050c785de17179f935b9b93aca09c442964cc59972c71ae68e74731448401b")
@@ -329,7 +329,7 @@ class MultistreamSpec extends Specification {
         def up3 = TestingCommons.upstream("test-3", "external")
         def multistream = new GenericMultistream(Chain.ETHEREUM__MAINNET, Schedulers.immediate(), null, new ArrayList<Upstream>(), Caches.default(),
                 Schedulers.boundedElastic(),
-                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(),
                 EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                 EthereumChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
         multistream.processUpstreamsEvents(
@@ -367,7 +367,7 @@ class MultistreamSpec extends Specification {
         TestEthereumPosMultistream(@NotNull Chain chain, @NotNull List<GenericUpstream> upstreams, @NotNull Caches caches) {
             super(chain, Schedulers.immediate(), null, upstreams, caches,
                     Schedulers.boundedElastic(),
-                    EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(TestingCommons.tracerMock()),
+                    EthereumChainSpecific.INSTANCE.makeCachingReaderBuilder(),
                     EthereumChainSpecific.INSTANCE.&localReaderBuilder,
                     StarknetChainSpecific.INSTANCE.subscriptionBuilder(Schedulers.boundedElastic()))
         }

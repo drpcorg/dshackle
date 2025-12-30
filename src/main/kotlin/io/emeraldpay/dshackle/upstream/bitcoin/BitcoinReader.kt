@@ -84,7 +84,7 @@ open class BitcoinReader(
         mempool.stop()
     }
 
-    fun <T> castedRead(req: ChainRequest, clazz: Class<T>): Mono<T> {
+    fun <T : Any> castedRead(req: ChainRequest, clazz: Class<T>): Mono<T> {
         return upstreams.getDirectApi(Selector.empty).flatMap { api ->
             api.read(req)
                 .flatMap(ChainResponse::requireResult)

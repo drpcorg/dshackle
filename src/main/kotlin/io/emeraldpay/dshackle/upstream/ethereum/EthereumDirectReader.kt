@@ -37,7 +37,6 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.apache.commons.collections4.Factory
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.util.retry.Retry
 import java.time.Duration
@@ -51,7 +50,6 @@ class EthereumDirectReader(
     private val caches: Caches,
     private val balanceCache: CurrentBlockCache<Address, Wei>,
     private val callMethodsFactory: Factory<CallMethods>,
-    private val tracer: Tracer,
 ) {
 
     companion object {
@@ -257,7 +255,6 @@ class EthereumDirectReader(
                         Selector.UpstreamFilter(sort, matcher),
                         callMethodsFactory.create().createQuorumFor(request.method),
                         null,
-                        tracer,
                     ),
                 )
             }.flatMap {

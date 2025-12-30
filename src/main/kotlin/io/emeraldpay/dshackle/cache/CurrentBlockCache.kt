@@ -5,7 +5,7 @@ import reactor.core.publisher.Mono
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicReference
 
-class CurrentBlockCache<K, D> : Reader<K, D> {
+class CurrentBlockCache<K, D : Any> : Reader<K, D> {
 
     private val cache = AtomicReference(ConcurrentHashMap<K, D>())
 

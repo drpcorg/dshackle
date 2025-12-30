@@ -8,9 +8,9 @@ import org.bouncycastle.math.ec.ECPoint
 import org.bouncycastle.util.io.pem.PemObject
 import org.bouncycastle.util.io.pem.PemReader
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.FactoryBean
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Repository
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.stereotype.Component
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
@@ -20,10 +20,17 @@ import java.security.PublicKey
 import java.security.interfaces.ECPrivateKey
 import java.security.spec.PKCS8EncodedKeySpec
 
-@Repository
+@Configuration
+open class SignatureBeans {
+    @Bean
+    open fun signer(factory: ResponseSignerFactory): ResponseSigner =
+        factory.createSigner()
+}
+
+@Component
 open class ResponseSignerFactory(
-    @Autowired private val config: SignatureConfig,
-) : FactoryBean<ResponseSigner> {
+    private val signatureConfig: SignatureConfig,
+) {
 
     companion object {
         private val log = LoggerFactory.getLogger(ResponseSignerFactory::class.java)
@@ -70,19 +77,15 @@ open class ResponseSignerFactory(
         return ByteBuffer.wrap(fullId).asLongBuffer().get()
     }
 
-    override fun getObject(): ResponseSigner {
-        if (!config.enabled) {
+    fun createSigner(): ResponseSigner {
+        if (!signatureConfig.enabled) {
             return NoSigner()
         }
-        if (config.privateKey == null) {
+        if (signatureConfig.privateKey == null) {
             log.warn("Private Key for response signature is not set")
             return NoSigner()
         }
-        val key = readKey(config.algorithm, config.privateKey!!)
+        val key = readKey(signatureConfig.algorithm, signatureConfig.privateKey!!)
         return EcdsaSigner(key.first, key.second)
-    }
-
-    override fun getObjectType(): Class<*>? {
-        return ResponseSigner::class.java
     }
 }

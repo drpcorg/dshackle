@@ -26,14 +26,13 @@ import io.emeraldpay.dshackle.upstream.MultistreamHolder
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Service
 class StreamHead(
-    @Autowired private val multistreamHolder: MultistreamHolder,
+    private val multistreamHolder: MultistreamHolder,
 ) {
     private val log = LoggerFactory.getLogger(StreamHead::class.java)
 

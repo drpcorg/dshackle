@@ -16,19 +16,16 @@
  */
 package io.emeraldpay.dshackle.rpc
 
-import brave.Tracer
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.api.proto.Common
 import io.emeraldpay.api.proto.ReactorBlockchainGrpc
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.ChainValue
-import io.emeraldpay.dshackle.config.spans.ProviderSpanHandler
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Metrics
 import io.micrometer.core.instrument.Timer
 import org.apache.commons.lang3.RandomStringUtils
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.DependsOn
 import org.springframework.stereotype.Service
@@ -47,11 +44,8 @@ class BlockchainRpc(
     private val describe: Describe,
     private val subscribeStatus: SubscribeStatus,
     private val subscribeNodeStatus: SubscribeNodeStatus,
-    @Qualifier("rpcScheduler")
+    @param:Qualifier("rpcScheduler")
     private val scheduler: Scheduler,
-    @Autowired(required = false)
-    private val providerSpanHandler: ProviderSpanHandler?,
-    private val tracer: Tracer,
     private val subscribeChainStatus: SubscribeChainStatus,
 ) : ReactorBlockchainGrpc.BlockchainImplBase() {
 
@@ -100,10 +94,6 @@ class BlockchainRpc(
             }
         }.doOnError {
             failMetric.increment()
-        }.doFinally {
-            tracer.currentSpan()?.run {
-                providerSpanHandler?.sendSpans(this.context())
-            }
         }
     }
 

@@ -32,7 +32,7 @@ class KadenaUpstreamSettingsDetector(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class KadenaHeader(
-        @JsonProperty("instance") var instance: String,
+        @param:JsonProperty("instance") var instance: String,
     )
 
     override fun nodeTypeRequest(): NodeTypeRequest = NodeTypeRequest(clientVersionRequest())

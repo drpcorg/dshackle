@@ -32,13 +32,13 @@ class NearUpstreamSettingsDetector(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private data class NearVersionResponse(
-        @JsonProperty("version")
+        @param:JsonProperty("version")
         val nearVersion: NearVersion,
     )
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private data class NearVersion(
-        @JsonProperty("version")
+        @param:JsonProperty("version")
         val version: String,
     )
 
