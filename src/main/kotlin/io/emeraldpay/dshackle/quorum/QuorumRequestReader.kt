@@ -16,12 +16,9 @@
 package io.emeraldpay.dshackle.quorum
 
 import io.emeraldpay.dshackle.Global
-import io.emeraldpay.dshackle.commons.API_READER
-import io.emeraldpay.dshackle.commons.SPAN_NO_RESPONSE_MESSAGE
 import io.emeraldpay.dshackle.commons.SPAN_REQUEST_API_TYPE
 import io.emeraldpay.dshackle.commons.SPAN_REQUEST_UPSTREAM_ID
 import io.emeraldpay.dshackle.reader.RequestReader
-import io.emeraldpay.dshackle.reader.SpannedReader
 import io.emeraldpay.dshackle.upstream.ApiSource
 import io.emeraldpay.dshackle.upstream.ChainCallUpstreamException
 import io.emeraldpay.dshackle.upstream.ChainException
@@ -32,7 +29,6 @@ import io.emeraldpay.dshackle.upstream.error.UpstreamErrorHandler
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.util.function.Tuple2
@@ -50,7 +46,6 @@ class QuorumRequestReader(
     private val apiControl: ApiSource,
     private val quorum: CallQuorum,
     signer: ResponseSigner?,
-    private val tracer: Tracer,
 ) : RequestReader(signer) {
     private val errorHandler = UpstreamErrorHandler
 
@@ -58,7 +53,7 @@ class QuorumRequestReader(
         private val log = LoggerFactory.getLogger(QuorumRequestReader::class.java)
     }
 
-    constructor(apiControl: ApiSource, quorum: CallQuorum, tracer: Tracer) : this(apiControl, quorum, null, tracer)
+    constructor(apiControl: ApiSource, quorum: CallQuorum) : this(apiControl, quorum, null)
 
     override fun attempts(): AtomicInteger = apiControl.attempts()
 
@@ -147,7 +142,7 @@ class QuorumRequestReader(
             SPAN_REQUEST_API_TYPE to apiReader.javaClass.name,
             SPAN_REQUEST_UPSTREAM_ID to api.getId(),
         )
-        return SpannedReader(apiReader, tracer, API_READER, spanParams)
+        return apiReader
             .read(key)
             .flatMap { response ->
                 log.trace("Received response from upstream ${api.getId()} for method ${key.method}")
@@ -173,7 +168,7 @@ class QuorumRequestReader(
         }
     }
 
-    private fun <T> withErrorResume(api: Upstream, key: ChainRequest): Function<Mono<T>, Mono<T>> {
+    private fun <T : Any> withErrorResume(api: Upstream, key: ChainRequest): Function<Mono<T>, Mono<T>> {
         return Function { src ->
             src.onErrorResume { err ->
                 errorHandler.handle(api, key, err.message)
@@ -232,7 +227,6 @@ class QuorumRequestReader(
 
     private fun noResponse(method: String, q: CallQuorum): Mono<Result> {
         return apiControl.upstreamsMatchesResponse()?.run {
-            tracer.currentSpan()?.tag(SPAN_NO_RESPONSE_MESSAGE, getFullCause())
             val cause = getCause(method) ?: return Mono.error(RpcException(1, "No response for method $method", getFullCause()))
             if (cause.shouldReturnNull) {
                 Mono.just(

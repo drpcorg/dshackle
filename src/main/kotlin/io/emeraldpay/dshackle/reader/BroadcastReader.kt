@@ -1,7 +1,5 @@
 package io.emeraldpay.dshackle.reader
 
-import io.emeraldpay.dshackle.commons.BROADCAST_READER
-import io.emeraldpay.dshackle.commons.SPAN_REQUEST_UPSTREAM_ID
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.upstream.ChainException
 import io.emeraldpay.dshackle.upstream.ChainRequest
@@ -11,7 +9,6 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.error.UpstreamErrorHandler
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.concurrent.atomic.AtomicInteger
@@ -21,7 +18,6 @@ class BroadcastReader(
     matcher: Selector.Matcher,
     signer: ResponseSigner?,
     private val quorum: CallQuorum,
-    private val tracer: Tracer,
 ) : RequestReader(signer) {
     private val errorHandler = UpstreamErrorHandler
     private val internalMatcher = Selector.MultiMatcher(
@@ -77,12 +73,7 @@ class BroadcastReader(
         key: ChainRequest,
         upstream: Upstream,
     ): Mono<BroadcastResponse> =
-        SpannedReader(
-            upstream.getIngressReader(),
-            tracer,
-            BROADCAST_READER,
-            mapOf(SPAN_REQUEST_UPSTREAM_ID to upstream.getId()),
-        )
+        upstream.getIngressReader()
             .read(key)
             .map { BroadcastResponse(it, upstream) }
             .onErrorResume {

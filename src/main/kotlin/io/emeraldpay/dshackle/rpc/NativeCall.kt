@@ -25,19 +25,12 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.Global.Companion.nullValue
 import io.emeraldpay.dshackle.SilentException
-import io.emeraldpay.dshackle.commons.LOCAL_READER
-import io.emeraldpay.dshackle.commons.RPC_READER
-import io.emeraldpay.dshackle.commons.SPAN_ERROR
-import io.emeraldpay.dshackle.commons.SPAN_REQUEST_CANCELLED
-import io.emeraldpay.dshackle.commons.SPAN_REQUEST_ID
-import io.emeraldpay.dshackle.commons.SPAN_STATUS_MESSAGE
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.quorum.NotLaggingQuorum
 import io.emeraldpay.dshackle.reader.RequestReader
 import io.emeraldpay.dshackle.reader.RequestReaderFactory
 import io.emeraldpay.dshackle.reader.RequestReaderFactory.ReaderData
-import io.emeraldpay.dshackle.reader.SpannedReader
 import io.emeraldpay.dshackle.upstream.ApiSource
 import io.emeraldpay.dshackle.upstream.ChainCallError
 import io.emeraldpay.dshackle.upstream.ChainException
@@ -61,21 +54,16 @@ import io.micrometer.core.instrument.Metrics
 import org.apache.commons.lang3.StringUtils
 import org.reactivestreams.Publisher
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.sleuth.Span
-import org.springframework.cloud.sleuth.Tracer
-import org.springframework.cloud.sleuth.instrument.reactor.ReactorSleuth
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toMono
-import reactor.util.context.Context
 
 @Service
 open class NativeCall(
     private val multistreamHolder: MultistreamHolder,
     private val signer: ResponseSigner,
     config: MainConfig,
-    private val tracer: Tracer,
 ) {
 
     private val log = LoggerFactory.getLogger(NativeCall::class.java)
@@ -92,13 +80,10 @@ open class NativeCall(
     }
 
     open fun nativeCallResult(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<CallResult> {
-        val requestSpan = tracer.currentSpan()
         return requestMono.flatMapMany(this::prepareCall)
             .flatMap {
-                val requestId = it.requestId
-                val requestCount = it.requestCount
                 val id = it.getContextId()
-                val result = processCallContext(it, requestSpan)
+                val result = processCallContext(it)
 
                 return@flatMap result
                     .onErrorResume { err ->
@@ -122,12 +107,8 @@ open class NativeCall(
                                 }
                             }
                         }
-                        completeSpan(callRes, requestCount)
                     }
-                    .doOnCancel {
-                        tracer.currentSpan()?.tag(SPAN_STATUS_MESSAGE, SPAN_REQUEST_CANCELLED)?.end()
-                    }
-                    .contextWrite { ctx -> createTracingReactorContext(ctx, requestCount, requestId, requestSpan) }
+                    .contextWrite { ctx -> ctx }
             }
     }
 
@@ -178,42 +159,8 @@ open class NativeCall(
         return builder
     }
 
-    private fun completeSpan(callResult: CallResult, requestCount: Int) {
-        val span = tracer.currentSpan()
-        if (callResult.isError()) {
-            errorSpan(span, callResult.error?.message ?: "Internal error")
-        }
-        if (requestCount > 1) {
-            span?.end()
-        }
-    }
-
-    private fun errorSpan(span: Span?, message: String) {
-        span?.apply {
-            tag(SPAN_ERROR, "true")
-            tag(SPAN_STATUS_MESSAGE, message)
-        }
-    }
-
-    private fun createTracingReactorContext(
-        ctx: Context,
-        requestCount: Int,
-        requestId: String,
-        requestSpan: Span?,
-    ): Context {
-        if (requestCount > 1) {
-            val span = tracer.nextSpan(requestSpan)
-                .name("emerald.blockchain/nativecall")
-                .tag(SPAN_REQUEST_ID, requestId)
-                .start()
-            return ReactorSleuth.putSpanInScope(tracer, ctx, span)
-        }
-        return ctx
-    }
-
     private fun processCallContext(
         callContext: CallContext,
-        requestSpan: Span?,
     ): Mono<CallResult> {
         return if (callContext.isValid()) {
             run {
@@ -221,9 +168,6 @@ open class NativeCall(
                     parseParams(callContext.get())
                 } catch (e: Exception) {
                     return@run Mono.error(e)
-                }
-                if (callContext.requestCount == 1 && callContext.requestId.isNotBlank()) {
-                    requestSpan?.tag(SPAN_REQUEST_ID, callContext.requestId)
                 }
                 this.fetch(parsed)
                     .doOnError { e -> log.warn("Error during native call: ${e.message}") }
@@ -306,7 +250,6 @@ open class NativeCall(
             0
         }
         val message = it?.message ?: "Internal error"
-        errorSpan(tracer.currentSpan(), message)
         return BlockchainOuterClass.NativeCallReplyItem.newBuilder()
             .setSucceed(false)
             .setErrorMessage(message)
@@ -466,7 +409,7 @@ open class NativeCall(
     fun fetch(ctx: ValidCallContext<ParsedCallDetails>): Mono<CallResult> {
         return ctx.upstream.getLocalReader()
             .flatMap { api ->
-                SpannedReader(api, tracer, LOCAL_READER)
+                api
                     .read(ctx.payload.toChainRequest(ctx.nonce, ctx.forwardedSelector, false, ctx.upstreamFilter))
                     .map {
                         val result = it.getResult()
@@ -503,7 +446,7 @@ open class NativeCall(
             return Mono.error(RpcException(RpcResponseError.CODE_METHOD_NOT_EXIST, "Unsupported method"))
         }
         val reader = requestReaderFactory.create(
-            ReaderData(ctx.upstream, ctx.upstreamFilter, ctx.callQuorum, signer, tracer),
+            ReaderData(ctx.upstream, ctx.upstreamFilter, ctx.callQuorum, signer),
         )
         val counter = reader.attempts()
         val isRipple = ctx.upstream.getChain() in listOf(Chain.RIPPLE__MAINNET, Chain.RIPPLE__TESTNET)
@@ -512,7 +455,7 @@ open class NativeCall(
             streamRequest = false
         }
 
-        return SpannedReader(reader, tracer, RPC_READER)
+        return reader
             .read(ctx.payload.toChainRequest(ctx.nonce, ctx.forwardedSelector, streamRequest))
             .map {
                 val resolvedUpstreamData = it.resolvedUpstreamData.ifEmpty {

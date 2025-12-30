@@ -29,7 +29,7 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
 
-abstract class OnBlockRedisCache<T>(
+abstract class OnBlockRedisCache<T : Any>(
     private val redis: RedisReactiveCommands<String, ByteArray>,
     private val chain: Chain,
     private val valueType: ValueContainer.ValueType,

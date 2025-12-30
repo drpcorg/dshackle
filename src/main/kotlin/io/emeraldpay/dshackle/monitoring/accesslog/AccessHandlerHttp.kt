@@ -5,7 +5,6 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.rpc.NativeCall
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import reactor.netty.http.server.HttpServerRequest
 import reactor.netty.http.websocket.WebsocketInbound
@@ -20,8 +19,8 @@ import kotlin.concurrent.withLock
  */
 @Service
 class AccessHandlerHttp(
-    @Autowired private val mainConfig: MainConfig,
-    @Autowired accessLogWriter: AccessLogWriter,
+    mainConfig: MainConfig,
+    accessLogWriter: AccessLogWriter,
 ) {
 
     companion object {

@@ -35,7 +35,7 @@ class EthereumUpstreamSettingsDetector(
         )
     }
 
-    private fun detectFlashBlocks(): Mono<Pair<String, String>>? {
+    private fun detectFlashBlocks(): Mono<Pair<String, String>> {
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_getBlockByNumber",

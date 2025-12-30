@@ -23,13 +23,12 @@ import io.grpc.ServerCall
 import io.grpc.ServerCallHandler
 import io.grpc.ServerInterceptor
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.Instant
 
 @Service
 class AccessHandlerGrpc(
-    @Autowired private val accessLogWriter: AccessLogWriter,
+    private val accessLogWriter: AccessLogWriter,
 ) : ServerInterceptor {
 
     companion object {

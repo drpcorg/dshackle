@@ -153,23 +153,23 @@ class BeaconChainBlockHeaderDeserializer : JsonDeserializer<BeaconChainBlockHead
 }
 
 private data class BeaconChainSyncing(
-    @JsonProperty("data")
+    @param:JsonProperty("data")
     val data: BeaconChainSyncingData,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 private data class BeaconChainSyncingData(
-    @JsonProperty("is_syncing")
+    @param:JsonProperty("is_syncing")
     val isSyncing: Boolean,
 )
 
 private data class BeaconChainPeers(
-    @JsonProperty("data")
+    @param:JsonProperty("data")
     val data: BeaconChainPeersData,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 private data class BeaconChainPeersData(
-    @JsonProperty("connected")
+    @param:JsonProperty("connected")
     val connected: String,
 )

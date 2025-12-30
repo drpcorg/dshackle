@@ -119,26 +119,26 @@ object NearChainSpecific : AbstractPollChainSpecific() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NearBlock(
-    @JsonProperty("header") var header: NearHeader,
+    @param:JsonProperty("header") var header: NearHeader,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NearHeader(
-    @JsonProperty("height") var height: Long,
-    @JsonProperty("hash") var hash: String,
-    @JsonProperty("prev_hash") var prevHash: String,
-    @JsonProperty("timestamp") var timestamp: Long,
+    @param:JsonProperty("height") var height: Long,
+    @param:JsonProperty("hash") var hash: String,
+    @param:JsonProperty("prev_hash") var prevHash: String,
+    @param:JsonProperty("timestamp") var timestamp: Long,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NearStatus(
-    @JsonProperty("chain_id") var chainId: String,
-    @JsonProperty("sync_info") var syncInfo: NearSync,
+    @param:JsonProperty("chain_id") var chainId: String,
+    @param:JsonProperty("sync_info") var syncInfo: NearSync,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NearSync(
-    @JsonProperty("syncing") var syncing: Boolean,
-    @JsonProperty("earliest_block_height") var earliestHeight: Long,
-    @JsonProperty("earliest_block_time") var earliestBlockTime: Instant,
+    @param:JsonProperty("syncing") var syncing: Boolean,
+    @param:JsonProperty("earliest_block_height") var earliestHeight: Long,
+    @param:JsonProperty("earliest_block_time") var earliestBlockTime: Instant,
 )

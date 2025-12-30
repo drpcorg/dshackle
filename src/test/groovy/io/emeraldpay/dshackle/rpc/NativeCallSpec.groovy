@@ -39,7 +39,6 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -67,7 +66,7 @@ class NativeCallSpec extends Specification {
         config.cache = cacheConfig
         config.passthrough = passthrough
 
-        new NativeCall(upstreams, signer, config, Stub(Tracer))
+        new NativeCall(upstreams, signer, config)
     }
 
     def "Tries router first"() {

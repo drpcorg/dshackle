@@ -17,9 +17,9 @@
 package io.emeraldpay.dshackle.upstream
 
 import io.emeraldpay.dshackle.Chain
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
-import javax.annotation.PreDestroy
 
 @Component
 open class CurrentMultistreamHolder(

@@ -18,19 +18,18 @@ package io.emeraldpay.dshackle.monitoring
 import com.sun.net.httpserver.HttpServer
 import io.emeraldpay.dshackle.config.HealthConfig
 import io.emeraldpay.dshackle.upstream.MultistreamHolder
+import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
+import org.apache.hc.core5.http.HttpStatus
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.io.IOException
 import java.net.InetSocketAddress
-import javax.annotation.PostConstruct
-import javax.annotation.PreDestroy
 
 @Service
 class HealthCheckSetup(
-    @Autowired private val healthConfig: HealthConfig,
-    @Autowired private val multistreamHolder: MultistreamHolder,
+    private val healthConfig: HealthConfig,
+    private val multistreamHolder: MultistreamHolder,
 ) {
 
     companion object {
@@ -63,9 +62,9 @@ class HealthCheckSetup(
                 }
                 val ok = response.ok
                 val data = response.details.joinToString("\n")
-                val code = if (ok) HttpStatus.OK else HttpStatus.SERVICE_UNAVAILABLE
-                log.debug("Health check response: ${code.value()} ${code.reasonPhrase} $data")
-                httpExchange.sendResponseHeaders(code.value(), data.toByteArray().size.toLong())
+                val code = if (ok) HttpStatus.SC_OK else HttpStatus.SC_SERVICE_UNAVAILABLE
+                log.debug("Health check response: $code $data")
+                httpExchange.sendResponseHeaders(code, data.toByteArray().size.toLong())
                 httpExchange.responseBody.use { os ->
                     os.write(data.toByteArray())
                 }

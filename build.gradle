@@ -74,16 +74,12 @@ dependencies {
     implementation libs.micrometer.registry.prometheus
     implementation libs.lettuce.core
 
-    implementation(libs.spring.cloud.starter.sleuth) {
-        exclude module: 'spring-security-rsa'
-    }
     implementation libs.brave.instrumentation.grpc
+    implementation libs.brave.ctx.slf4j
 
     implementation libs.logstash.encoder
 
     implementation libs.janino
-
-    implementation libs.spring.cloud.sleuth.zipkin
 
     implementation libs.bitcoinj
 

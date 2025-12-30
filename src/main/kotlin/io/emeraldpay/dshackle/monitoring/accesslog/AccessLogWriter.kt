@@ -17,6 +17,7 @@ package io.emeraldpay.dshackle.monitoring.accesslog
 
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.MainConfig
+import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Repository
@@ -28,7 +29,6 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import javax.annotation.PostConstruct
 
 @Repository
 class AccessLogWriter(

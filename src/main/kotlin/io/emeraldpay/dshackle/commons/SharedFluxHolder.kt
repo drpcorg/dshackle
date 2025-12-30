@@ -11,7 +11,7 @@ import kotlin.concurrent.write
  * A flux holder that that creates it only if requested. Keeps it for the following calls, so all the following calls will
  * reuse it. Forgets as soon as it completes/cancelled, so it will be recreated again if needed.
  */
-class SharedFluxHolder<T>(
+class SharedFluxHolder<T : Any>(
     /**
      * Provider for the flux. Note that it can be called multiple times but only one is used at the same time.
      * I.e., if there is a few calls because of a thread-race only one is kept.
@@ -66,7 +66,7 @@ class SharedFluxHolder<T>(
         }
     }
 
-    data class Holder<T>(
+    data class Holder<T : Any>(
         val flux: Flux<T>,
         val id: Long,
     )

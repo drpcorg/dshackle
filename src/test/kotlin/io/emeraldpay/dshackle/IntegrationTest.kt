@@ -13,11 +13,9 @@ import io.emeraldpay.dshackle.upstream.Selector
 import io.grpc.BindableService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.cloud.sleuth.Tracer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Profile
@@ -57,7 +55,6 @@ class IntegrationTest {
     fun testUpstreamTxMethodQuorumAndReader() {
         val ms = multistreamHolder.getUpstream(Chain.ETHEREUM__MAINNET)
         val ethUpstream = ms.getUpstreams()[0]
-        val tracer = mock<Tracer>()
         val reqReader = RequestReaderFactory.default()
 
         val txQuorum = ethUpstream.getMethods().createQuorumFor("eth_sendRawTransaction")
@@ -69,7 +66,6 @@ class IntegrationTest {
                 Selector.UpstreamFilter.default,
                 txQuorum,
                 null,
-                tracer,
             ),
         )
         val txCountReader = reqReader.create(
@@ -78,7 +74,6 @@ class IntegrationTest {
                 Selector.UpstreamFilter.default,
                 txCountQuorum,
                 null,
-                tracer,
             ),
         )
 

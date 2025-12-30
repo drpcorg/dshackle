@@ -26,7 +26,6 @@ import io.micrometer.core.instrument.Timer
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
-import org.springframework.util.SocketUtils
 import reactor.core.scheduler.Schedulers
 import spock.lang.Specification
 
@@ -35,7 +34,6 @@ import java.time.Duration
 class JsonRpcHttpReaderSpec extends Specification {
 
     ClientAndServer mockServer
-    int port = 19332
     RequestMetrics metrics = new RequestMetrics(
             Timer.builder("test1").register(TestingCommons.meterRegistry),
             Counter.builder("test2").register(TestingCommons.meterRegistry),
@@ -43,8 +41,7 @@ class JsonRpcHttpReaderSpec extends Specification {
     )
 
     def setup() {
-        port = SocketUtils.findAvailableTcpPort(19332)
-        mockServer = ClientAndServer.startClientAndServer(port);
+        mockServer = ClientAndServer.startClientAndServer(0);
     }
 
     def cleanup() {
@@ -53,7 +50,7 @@ class JsonRpcHttpReaderSpec extends Specification {
 
     def "Make a request"() {
         setup:
-        JsonRpcHttpReader client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(),null, null, [:])
+        JsonRpcHttpReader client = new JsonRpcHttpReader("localhost:${mockServer.port}", 50, 50, metrics, Schedulers.boundedElastic(),null, null, [:])
         def resp = '{' +
                 '  "jsonrpc": "2.0",' +
                 '  "result": "0x98de45",' +
@@ -74,7 +71,7 @@ class JsonRpcHttpReaderSpec extends Specification {
 
     def "Produces RPC Exception on error status code"() {
         setup:
-        def client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
+        def client = new JsonRpcHttpReader("localhost:${mockServer.port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
         mockServer.when(
                 HttpRequest.request()
         ).respond(
@@ -97,7 +94,7 @@ class JsonRpcHttpReaderSpec extends Specification {
 
     def "Tries to extract message if HTTP error if it still contains a JSON RPC message"() {
         setup:
-        def client = new JsonRpcHttpReader("localhost:${port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
+        def client = new JsonRpcHttpReader("localhost:${mockServer.port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
 
         mockServer.when(
                 HttpRequest.request()

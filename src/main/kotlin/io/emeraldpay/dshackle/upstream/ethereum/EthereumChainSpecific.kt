@@ -36,7 +36,6 @@ import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import java.math.BigInteger
@@ -89,8 +88,8 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
         }
     }
 
-    override fun makeCachingReaderBuilder(tracer: Tracer): CachingReaderBuilder {
-        return { ms, caches, methodsFactory -> EthereumCachingReader(ms, caches, methodsFactory, tracer) }
+    override fun makeCachingReaderBuilder(): CachingReaderBuilder {
+        return { ms, caches, methodsFactory -> EthereumCachingReader(ms, caches, methodsFactory) }
     }
 
     override fun upstreamValidators(
