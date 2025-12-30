@@ -37,7 +37,7 @@ class AutoReloadbleConfig<T>(
     fun start() {
         instance.set(parseConfig(initialContent))
         Flux.interval(
-            Duration.ofSeconds(1),
+            Duration.ofSeconds(600),
         ).subscribe {
             reload()
         }
