@@ -62,6 +62,7 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 lettuce-core = "io.lettuce:lettuce-core:5.2.2.RELEASE"
 
 micrometer-registry-prometheus = "io.micrometer:micrometer-registry-prometheus:1.16.0"
+micrometer-ctx-prop = "io.micrometer:context-propagation:1.2.0"
 
 mockserver-netty = "org.mock-server:mockserver-netty:5.15.0"
 

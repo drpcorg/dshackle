@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.grpc.proto.util)
 
     implementation libs.micrometer.registry.prometheus
+    implementation libs.micrometer.ctx.prop
     implementation libs.lettuce.core
 
     implementation libs.brave.instrumentation.grpc

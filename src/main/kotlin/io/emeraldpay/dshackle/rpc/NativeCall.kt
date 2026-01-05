@@ -77,6 +77,7 @@ open class NativeCall(
         return nativeCallResult(requestMono)
             .flatMapSequential(this::processCallResult)
             .onErrorResume(this::processException)
+            .contextCapture()
     }
 
     open fun nativeCallResult(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<CallResult> {
@@ -108,7 +109,6 @@ open class NativeCall(
                             }
                         }
                     }
-                    .contextWrite { ctx -> ctx }
             }
     }
 
