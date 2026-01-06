@@ -17,32 +17,28 @@
 package io.emeraldpay.dshackle
 
 import io.emeraldpay.dshackle.config.MainConfig
-import io.emeraldpay.dshackle.monitoring.MonitoringSetup
 import io.emeraldpay.dshackle.monitoring.accesslog.AccessHandlerHttp
 import io.emeraldpay.dshackle.proxy.ProxyServer
 import io.emeraldpay.dshackle.proxy.ReadRpcJson
 import io.emeraldpay.dshackle.proxy.WriteRpcJson
 import io.emeraldpay.dshackle.rpc.NativeCall
 import io.emeraldpay.dshackle.rpc.NativeSubscribe
+import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import javax.annotation.PostConstruct
 
 /**
  * Starts HTTP proxy endpoint, if configured
  */
 @Service
 class ProxyStarter(
-    @Autowired private val mainConfig: MainConfig,
-    @Autowired private val readRpcJson: ReadRpcJson,
-    @Autowired private val writeRpcJson: WriteRpcJson,
-    @Autowired private val nativeCall: NativeCall,
-    @Autowired private val nativeSubscribe: NativeSubscribe,
-    @Autowired private val tlsSetup: TlsSetup,
-    @Autowired private val accessHandlerHttp: AccessHandlerHttp,
-    // depend on Monitoring, declared here just to ensure it's properly initialized before the Proxy
-    @Autowired private val monitoringSetup: MonitoringSetup,
+    private val mainConfig: MainConfig,
+    private val readRpcJson: ReadRpcJson,
+    private val writeRpcJson: WriteRpcJson,
+    private val nativeCall: NativeCall,
+    private val nativeSubscribe: NativeSubscribe,
+    private val tlsSetup: TlsSetup,
+    private val accessHandlerHttp: AccessHandlerHttp,
 ) {
 
     companion object {

@@ -16,6 +16,10 @@
  */
 package io.emeraldpay.dshackle
 
+import io.micrometer.context.ContextRegistry
+import io.micrometer.context.integration.Slf4jThreadLocalAccessor
+import io.micrometer.core.instrument.Metrics
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
 import io.netty.handler.ssl.OpenSsl
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ResourceBanner
@@ -23,6 +27,9 @@ import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.support.ResourcePropertySource
+import reactor.core.Scannable
+import reactor.core.Scannable.Attr
+import reactor.core.publisher.Hooks
 import reactor.core.scheduler.Schedulers
 
 @SpringBootApplication(scanBasePackages = ["io.emeraldpay.dshackle"])
@@ -31,9 +38,22 @@ open class Starter
 private val log = LoggerFactory.getLogger(Starter::class.java)
 
 fun main(args: Array<String>) {
+    ContextRegistry.getInstance().registerThreadLocalAccessor(Slf4jThreadLocalAccessor())
+    Hooks.enableAutomaticContextPropagation()
     OpenSsl.ensureAvailability()
 
-    Schedulers.enableMetrics()
+    // add metrics for internal reactor schedulers
+    Schedulers.addExecutorServiceDecorator("key") { scheduler, execService ->
+        val schedulerName = Scannable.from(scheduler).scanOrDefault(Attr.NAME, scheduler.javaClass.name)
+        if (schedulerName.contains("single") || schedulerName.contains("parallel")) {
+            ExecutorServiceMetrics.monitor(
+                Metrics.globalRegistry,
+                execService,
+                schedulerName,
+            )
+        }
+        execService
+    }
 
     HeapDumpCreator.init()
 

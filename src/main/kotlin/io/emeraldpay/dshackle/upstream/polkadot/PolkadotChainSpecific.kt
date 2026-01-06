@@ -158,30 +158,30 @@ object PolkadotChainSpecific : AbstractPollChainSpecific() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PolkadotBlockResponse(
-    @JsonProperty("block") var block: PolkadotBlock,
+    @param:JsonProperty("block") var block: PolkadotBlock,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PolkadotBlock(
-    @JsonProperty("header") var header: PolkadotHeader,
+    @param:JsonProperty("header") var header: PolkadotHeader,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PolkadotHeader(
-    @JsonProperty("parentHash") var parentHash: String,
-    @JsonProperty("number") var number: String,
-    @JsonProperty("stateRoot") var stateRoot: String,
-    @JsonProperty("extrinsicsRoot") var extrinsicsRoot: String,
-    @JsonProperty("digest") var digest: PolkadotDigest,
+    @param:JsonProperty("parentHash") var parentHash: String,
+    @param:JsonProperty("number") var number: String,
+    @param:JsonProperty("stateRoot") var stateRoot: String,
+    @param:JsonProperty("extrinsicsRoot") var extrinsicsRoot: String,
+    @param:JsonProperty("digest") var digest: PolkadotDigest,
 )
 
 data class PolkadotDigest(
-    @JsonProperty("logs") var logs: List<String>,
+    @param:JsonProperty("logs") var logs: List<String>,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PolkadotHealth(
-    @JsonProperty("peers") var peers: Long,
-    @JsonProperty("isSyncing") var isSyncing: Boolean,
-    @JsonProperty("shouldHavePeers") var shouldHavePeers: Boolean,
+    @param:JsonProperty("peers") var peers: Long,
+    @param:JsonProperty("isSyncing") var isSyncing: Boolean,
+    @param:JsonProperty("shouldHavePeers") var shouldHavePeers: Boolean,
 )

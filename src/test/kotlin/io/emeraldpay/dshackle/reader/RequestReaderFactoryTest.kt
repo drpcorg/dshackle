@@ -9,7 +9,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.kotlin.mock
-import org.springframework.cloud.sleuth.Tracer
 
 class RequestReaderFactoryTest {
     private val defaultFactory = RequestReaderFactory.Default()
@@ -26,7 +25,6 @@ class RequestReaderFactoryTest {
 
     companion object {
         private val ms = mock<Multistream>()
-        private val tracer = mock<Tracer>()
 
         @JvmStatic
         fun data(): List<Arguments> {
@@ -37,7 +35,6 @@ class RequestReaderFactoryTest {
                         Selector.UpstreamFilter(Selector.empty),
                         MaximumValueQuorum(),
                         null,
-                        tracer,
                     ),
                 ),
                 Arguments.of(
@@ -46,7 +43,6 @@ class RequestReaderFactoryTest {
                         Selector.UpstreamFilter(Selector.empty),
                         BroadcastQuorum(),
                         null,
-                        tracer,
                     ),
                 ),
             )

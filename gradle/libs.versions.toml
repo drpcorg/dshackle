@@ -1,22 +1,20 @@
 [versions]
-detekt = "1.23.1"
-groovy = "4.0.15"
+groovy = "5.0.3"
 protoc = "4.33.2"
-jackson = "2.11.0"
-grpc = "1.57.0"
-reactive-grpc = "1.2.0"
-spring-boot = "2.6.15"
-spring-security = "5.5.3"
-reactor = "3.4.32"
-netty = "4.1.110.Final"
-netty-tcnative = "2.0.66.Final"
-kotlin = "1.9.25"
-httpcomponents = "4.5.8"
+jackson = "2.20.1"
+grpc = "1.78.0"
+spring-boot = "4.0.1"
+reactor = "3.8.1"
+netty = "4.2.9.Final"
+netty-tcnative = "2.0.74.Final"
+kotlin = "2.3.0"
+httpcomponents = "5.5.1"
 
 [libraries]
 apache-commons-lang3 = "org.apache.commons:commons-lang3:3.9"
 apache-commons-collections4 = "org.apache.commons:commons-collections4:4.3"
 apache-commons-math3 = "org.apache.commons:commons-math3:3.6.1"
+commons-codec = "commons-codec:commons-codec:1.20.0"
 
 bitcoinj = "org.bitcoinj:bitcoinj-core:0.15.8"
 
@@ -33,21 +31,19 @@ commons-io = "commons-io:commons-io:2.6"
 
 cglib-nodep = "cglib:cglib-nodep:3.3.0"
 
-detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
-
 equals-verifier = "nl.jqno.equalsverifier:equalsverifier:3.10.1"
 
 groovy = { module = "org.apache.groovy:groovy", version.ref = "groovy" }
 
 grpc-proto-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protoc" }
 grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
+grpc-inprocess = { module = "io.grpc:grpc-inprocess", version.ref = "grpc" }
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
 grpc-netty = { module = "io.grpc:grpc-netty", version.ref = "grpc" }
 grpc-testing = { module = "io.grpc:grpc-testing", version.ref = "grpc" }
 grpc-services = { module = "io.grpc:grpc-services", version.ref = "grpc" }
 
-httpcomponents-httpmime = { module = "org.apache.httpcomponents:httpmime", version.ref = "httpcomponents" }
-httpcomponents-httpclient = { module = "org.apache.httpcomponents:httpclient", version.ref = "httpcomponents" }
+httpcomponents-httpclient = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpcomponents" }
 
 jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
@@ -65,11 +61,12 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 
 lettuce-core = "io.lettuce:lettuce-core:5.2.2.RELEASE"
 
-micrometer-registry-prometheus = "io.micrometer:micrometer-registry-prometheus:1.10.0"
+micrometer-registry-prometheus = "io.micrometer:micrometer-registry-prometheus:1.16.0"
+micrometer-ctx-prop = "io.micrometer:context-propagation:1.2.0"
 
-mockserver-netty = "org.mock-server:mockserver-netty:5.11.2"
+mockserver-netty = "org.mock-server:mockserver-netty:5.15.0"
 
-mockito-kotlin = "org.mockito.kotlin:mockito-kotlin:5.1.0"
+mockito-kotlin = "org.mockito.kotlin:mockito-kotlin:6.1.0"
 
 netty-common = { module = "io.netty:netty-common", version.ref = "netty" }
 netty-transport = { module = "io.netty:netty-transport", version.ref = "netty" }
@@ -90,8 +87,9 @@ zeromq = "org.zeromq:jeromq:0.5.2"
 objgenesis = "org.objenesis:objenesis:3.1"
 
 reactor-core = { module = "io.projectreactor:reactor-core", version.ref = "reactor" }
-reactor-netty = { module = "io.projectreactor.netty:reactor-netty", version = "1.1.10" }
-reactor-extra = { module = "io.projectreactor.addons:reactor-extra", version = "3.5.1" }
+reactor-micrometer = { module = "io.projectreactor:reactor-core-micrometer", version.ref = "reactor" }
+reactor-netty = { module = "io.projectreactor.netty:reactor-netty", version = "1.3.1" }
+reactor-extra = { module = "io.projectreactor.addons:reactor-extra", version = "3.6.0" }
 reactor-kotlin = { module = "io.projectreactor.kotlin:reactor-kotlin-extensions", version = "1.1.7" }
 reactor-test = { module = "io.projectreactor:reactor-test", version.ref = "reactor" }
 
@@ -99,24 +97,20 @@ reactor-grpc-stub = "com.salesforce.servicelibs:reactor-grpc-stub:1.2.0"
 
 snake-yaml = "org.yaml:snakeyaml:1.24"
 
-spockframework-core = "org.spockframework:spock-core:2.3-groovy-4.0"
+spockframework-core = "org.spockframework:spock-core:2.4-groovy-5.0"
 
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter", version.ref = "spring-boot" }
-spring-security-core = { module = "org.springframework.security:spring-security-core", version.ref = "spring-security" }
-spring-security-web = { module = "org.springframework.security:spring-security-web", version.ref = "spring-security" }
-spring-security-config = { module = "org.springframework.security:spring-security-config", version.ref = "spring-security" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator", version.ref = "spring-boot" }
 
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 
 testcontainers = "org.testcontainers:testcontainers:1.21.3"
 testcontainers-ganache = "io.github.ganchix:testcontainers-java-module-ganache:0.0.4"
 
-junit-jupiter = "org.junit.jupiter:junit-jupiter:5.9.1"
 assertj = "org.assertj:assertj-core:3.23.1"
 
-spring-cloud-starter-sleuth = "org.springframework.cloud:spring-cloud-starter-sleuth:3.1.6"
-spring-cloud-sleuth-zipkin = "org.springframework.cloud:spring-cloud-sleuth-zipkin:3.1.6"
-brave-instrumentation-grpc = "io.zipkin.brave:brave-instrumentation-grpc:5.15.0"
+brave-instrumentation-grpc = "io.zipkin.brave:brave-instrumentation-grpc:6.3.0"
+brave-ctx-slf4j = "io.zipkin.brave:brave-context-slf4j:6.3.0"
 
 auth0-jwt = "com.auth0:java-jwt:4.4.0"
 
@@ -125,24 +119,23 @@ mockito-inline = "org.mockito:mockito-inline:4.0.0"
 semver4j = "com.vdurmont:semver4j:3.1.0"
 
 [bundles]
-apache-commons = ["commons-io", "apache-commons-lang3", "apache-commons-collections4", "apache-commons-math3"]
-grpc = ["grpc-protobuf", "grpc-stub", "grpc-netty", "grpc-proto-util", "grpc-services"]
-httpcomponents = ["httpcomponents-httpmime", "httpcomponents-httpclient"]
+apache-commons = ["commons-io", "apache-commons-lang3", "apache-commons-collections4", "apache-commons-math3", "commons-codec"]
+grpc = ["grpc-protobuf", "grpc-stub", "grpc-netty", "grpc-proto-util", "grpc-services", "grpc-inprocess"]
+httpcomponents = ["httpcomponents-httpclient"]
 jackson = ["jackson-core", "jackson-databind", "jackson-datatype-jdk8", "jackson-datatype-jsr310", "jackson-module-kotlin", "jackson-yaml"]
 kotlin = ["kotlin-stdlib-jdk8", "kotlin-reflect"]
 netty = ["netty-common", "netty-transport", "netty-handler-core", "netty-handler-proxy", "netty-resolver-core", "netty-resolver-dns", "netty-codec-core", "netty-codec-http", "netty-codec-http2", "netty-buffer", "netty-tcnative-core"]
-reactor = ["reactor-core", "reactor-netty", "reactor-extra", "reactor-kotlin"]
-spring-framework = ["spring-boot-starter", "spring-security-core", "spring-security-web", "spring-security-config"]
+reactor = ["reactor-core", "reactor-netty", "reactor-extra", "reactor-kotlin", "reactor-micrometer"]
+spring-framework = ["spring-boot-starter", "spring-boot-starter-actuator"]
 testcontainers = ["testcontainers", "testcontainers-ganache"]
-junit = ["junit-jupiter", "assertj"]
+junit = ["assertj"]
 bouncycastle = ["bouncycastle-pkix", "bouncycastle-prov"]
 
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-jib = { id = "com.google.cloud.tools.jib", version = "3.4.3" }
-spring = { id = "org.springframework.boot", version = "2.6.0" }
+jib = { id = "com.google.cloud.tools.jib", version = "3.5.2" }
+spring = { id = "org.springframework.boot", version = "4.0.1" }
 git = { id = "com.palantir.git-version", version = "0.12.3" }
-protobuf = { id = "com.google.protobuf", version = "0.9.1" }
+protobuf = { id = "com.google.protobuf", version = "0.9.6" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.6.0" }
-detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }

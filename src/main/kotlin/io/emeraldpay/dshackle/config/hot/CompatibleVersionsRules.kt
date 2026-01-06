@@ -5,16 +5,16 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CompatibleVersionsRules(
-    @JsonProperty("rules")
+    @param:JsonProperty("rules")
     val rules: List<CompatibleVersionsRule>,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CompatibleVersionsRule(
-    @JsonProperty("client")
+    @param:JsonProperty("client")
     val client: String,
-    @JsonProperty("blacklist")
+    @param:JsonProperty("blacklist")
     val blacklist: List<String>?,
-    @JsonProperty("whitelist")
+    @param:JsonProperty("whitelist")
     val whitelist: List<String>?,
 )

@@ -71,7 +71,7 @@ enum class ValidateUpstreamSettingsResult(val priority: Int) {
     UPSTREAM_FATAL_SETTINGS_ERROR(2),
 }
 
-interface SingleValidator<T> {
+interface SingleValidator<T : Any> {
     fun validate(onError: T): Mono<T>
 }
 

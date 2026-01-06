@@ -10,7 +10,6 @@ import io.emeraldpay.dshackle.upstream.generic.ChainSpecificRegistry
 import io.emeraldpay.dshackle.upstream.generic.GenericMultistream
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory
-import org.springframework.cloud.sleuth.Tracer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import reactor.core.scheduler.Scheduler
@@ -26,7 +25,6 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         headScheduler: Scheduler,
         @Qualifier("subScheduler")
         subScheduler: Scheduler,
-        tracer: Tracer,
         multistreamEventsScheduler: Scheduler,
     ): List<Multistream> {
         return Chain.entries
@@ -40,7 +38,6 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
                         cachesFactory,
                         headScheduler,
                         subScheduler,
-                        tracer,
                         multistreamEventsScheduler,
                     )
                 }
@@ -52,7 +49,6 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
         cachesFactory: CachesFactory,
         headScheduler: Scheduler,
         subScheduler: Scheduler,
-        tracer: Tracer,
         multistreamEventsScheduler: Scheduler,
     ): Multistream {
         val name = "multi-$chain"
@@ -65,7 +61,7 @@ open class MultistreamsConfig(val beanFactory: ConfigurableListableBeanFactory) 
             CopyOnWriteArrayList(),
             caches,
             headScheduler,
-            cs.makeCachingReaderBuilder(tracer),
+            cs.makeCachingReaderBuilder(),
             cs::localReaderBuilder,
             cs.subscriptionBuilder(subScheduler),
         ).also { register(it, name) }

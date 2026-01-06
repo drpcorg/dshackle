@@ -167,24 +167,24 @@ object SolanaChainSpecific : AbstractChainSpecific() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SolanaWrapper(
-    @JsonProperty("context") var context: SolanaContext,
-    @JsonProperty("value") var value: SolanaResult,
+    @param:JsonProperty("context") var context: SolanaContext,
+    @param:JsonProperty("value") var value: SolanaResult,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SolanaContext(
-    @JsonProperty("slot") var slot: Long,
+    @param:JsonProperty("slot") var slot: Long,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SolanaResult(
-    @JsonProperty("block") var block: SolanaBlock,
+    @param:JsonProperty("block") var block: SolanaBlock,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SolanaBlock(
-    @JsonProperty("blockHeight") var height: Long,
-    @JsonProperty("blockTime") var timestamp: Long,
-    @JsonProperty("blockhash") var hash: String,
-    @JsonProperty("previousBlockhash") var parent: String,
+    @param:JsonProperty("blockHeight") var height: Long,
+    @param:JsonProperty("blockTime") var timestamp: Long,
+    @param:JsonProperty("blockhash") var hash: String,
+    @param:JsonProperty("previousBlockhash") var parent: String,
 )

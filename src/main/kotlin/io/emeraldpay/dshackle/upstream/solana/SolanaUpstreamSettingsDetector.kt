@@ -32,7 +32,7 @@ class SolanaUpstreamSettingsDetector(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private data class SolanaVersion(
-        @JsonProperty("solana-core")
+        @param:JsonProperty("solana-core")
         val version: String,
     )
 

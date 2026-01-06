@@ -25,10 +25,11 @@ import io.grpc.ServerCall
 import io.grpc.ServerCallHandler
 import io.grpc.ServerInterceptor
 import io.grpc.netty.NettyServerBuilder
-import io.grpc.protobuf.services.ProtoReflectionService
+import io.grpc.protobuf.services.ProtoReflectionServiceV1
 import io.micrometer.core.instrument.Metrics
-import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics
+import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory
@@ -36,8 +37,6 @@ import org.springframework.stereotype.Service
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import javax.annotation.PostConstruct
-import javax.annotation.PreDestroy
 
 @Service
 open class GrpcServer(
@@ -103,21 +102,16 @@ open class GrpcServer(
             serverBuilder.addService(it)
         }
 
-        serverBuilder.addService(ProtoReflectionService.newInstance())
+        serverBuilder.addService(ProtoReflectionServiceV1.newInstance())
 
         val pool = Executors.newFixedThreadPool(20, CustomizableThreadFactory("fixed-grpc-"))
 
         serverBuilder.executor(
-            if (mainConfig.monitoring.enableExtended) {
-                ExecutorServiceMetrics.monitor(
-                    Metrics.globalRegistry,
-                    pool,
-                    "fixed-grpc-executor",
-                    Tag.of("reactor_scheduler_id", "_"),
-                )
-            } else {
-                pool
-            },
+            ExecutorServiceMetrics.monitor(
+                Metrics.globalRegistry,
+                pool,
+                "fixed-grpc-executor",
+            ),
         )
 
         val server = serverBuilder.build()

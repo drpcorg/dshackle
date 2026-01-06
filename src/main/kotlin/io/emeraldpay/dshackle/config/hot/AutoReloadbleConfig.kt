@@ -1,8 +1,10 @@
 package io.emeraldpay.dshackle.config.hot
 
 import io.emeraldpay.dshackle.Global
+import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.impl.classic.HttpClients
+import org.apache.hc.core5.http.io.entity.EntityUtils
 import org.slf4j.LoggerFactory
-import org.springframework.web.client.RestTemplate
 import reactor.core.publisher.Flux
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
@@ -17,12 +19,13 @@ class AutoReloadbleConfig<T>(
         private val log = LoggerFactory.getLogger(AutoReloadbleConfig::class.java)
     }
 
-    private val restTemplate = RestTemplate()
+    private val httpClient = HttpClients.createDefault()
     private val instance = AtomicReference<T>()
 
     fun reload() {
         try {
-            val response = restTemplate.getForObject(configUrl, String::class.java)
+            val getReq = HttpGet(configUrl)
+            val response = httpClient.execute<String>(getReq) { resp -> EntityUtils.toString(resp.entity) }
             if (response != null) {
                 instance.set(parseConfig(response))
             }

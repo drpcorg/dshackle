@@ -15,7 +15,6 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.dshackle.upstream.stream.Chunk
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Flux
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -72,10 +71,10 @@ interface RequestReaderFactory {
     class Default : RequestReaderFactory {
         override fun create(data: ReaderData): RequestReader {
             if (data.quorum is MaximumValueQuorum || data.quorum is BroadcastQuorum) {
-                return BroadcastReader(data.multistream.getAll(), data.upstreamFilter.matcher, data.signer, data.quorum, data.tracer)
+                return BroadcastReader(data.multistream.getAll(), data.upstreamFilter.matcher, data.signer, data.quorum)
             }
             val apis = data.multistream.getApiSource(data.upstreamFilter)
-            return QuorumRequestReader(apis, data.quorum, data.signer, data.tracer)
+            return QuorumRequestReader(apis, data.quorum, data.signer)
         }
     }
 
@@ -84,6 +83,5 @@ interface RequestReaderFactory {
         val upstreamFilter: Selector.UpstreamFilter,
         val quorum: CallQuorum,
         val signer: ResponseSigner?,
-        val tracer: Tracer,
     )
 }

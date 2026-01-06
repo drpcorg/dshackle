@@ -6,7 +6,7 @@ import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Scheduler
 import java.util.concurrent.ConcurrentHashMap
 
-class DynamicMergeFlux<K : Any, T>(private val scheduler: Scheduler) {
+class DynamicMergeFlux<K : Any, T : Any>(private val scheduler: Scheduler) {
 
     private val merge = Sinks.many().multicast().directBestEffort<T>()
     private val sources = ConcurrentHashMap<K, Disposable>()

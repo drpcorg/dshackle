@@ -28,7 +28,8 @@ import io.micrometer.core.instrument.Metrics
 import io.micrometer.core.instrument.Timer
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
-import io.netty.channel.nio.NioEventLoopGroup
+import io.netty.channel.MultiThreadIoEventLoopGroup
+import io.netty.channel.nio.NioIoHandler
 import org.slf4j.LoggerFactory
 import reactor.netty.http.server.HttpServer
 import reactor.netty.http.server.HttpServerRoutes
@@ -108,7 +109,7 @@ class ProxyServer(
 
         serverBuilder
             .route(this::setupRoutes)
-            .runOn(NioEventLoopGroup())
+            .runOn(MultiThreadIoEventLoopGroup(NioIoHandler.newFactory()))
             .bindNow()
     }
 

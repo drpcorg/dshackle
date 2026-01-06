@@ -11,7 +11,7 @@ class ResponseSignerFactorySpec extends Specification {
         setup:
         def conf = new SignatureConfig()
         when:
-        def signer = new ResponseSignerFactory(conf).getObject()
+        def signer = new ResponseSignerFactory(conf).createSigner()
         then:
         signer instanceof NoSigner
     }
@@ -20,7 +20,7 @@ class ResponseSignerFactorySpec extends Specification {
         setup:
         def conf = new SignatureConfig()
         when:
-        def signer = new ResponseSignerFactory(conf).getObject()
+        def signer = new ResponseSignerFactory(conf).createSigner()
         then:
         signer instanceof NoSigner
     }

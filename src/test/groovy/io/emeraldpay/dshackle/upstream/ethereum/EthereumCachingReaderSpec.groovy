@@ -8,19 +8,18 @@ import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.data.DefaultContainer
 import io.emeraldpay.dshackle.reader.RequestReader
 import io.emeraldpay.dshackle.reader.RequestReaderFactory
-import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.*
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
-import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
-import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
-import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Address
 import io.emeraldpay.dshackle.upstream.ethereum.domain.BlockHash
 import io.emeraldpay.dshackle.upstream.ethereum.domain.TransactionId
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Wei
+import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionLogJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionReceiptJson
+import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
+import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.apache.commons.collections4.Factory
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
@@ -48,7 +47,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create({ it.upstreamFilter.sort == Selector.Sort.safe }) >> Mock(RequestReader) {
@@ -83,7 +82,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -110,7 +109,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -143,7 +142,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -175,7 +174,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -208,7 +207,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -241,7 +240,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -275,7 +274,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * cacheReceipt(Caches.Tag.REQUESTED, { DefaultContainer data -> data.txId.toHex() == hash1.substring(2) && data.height == 100 })
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), caches, new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), caches, new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -300,7 +299,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -330,7 +329,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                up, Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                up, Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -361,7 +360,7 @@ class EthereumDirectReaderSpec extends Specification {
             1 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                up, Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                up, Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             1 * create(_) >> Mock(RequestReader) {
@@ -399,7 +398,7 @@ class EthereumDirectReaderSpec extends Specification {
                         Global.objectMapper.writeValueAsBytes(json), null, 1, data, null)
         )
         EthereumDirectReader ethereumDirectReader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         ethereumDirectReader.requestReaderFactory = Mock(RequestReaderFactory) {
             2 * create(_) >> Mock(RequestReader) {
@@ -439,7 +438,7 @@ class EthereumDirectReaderSpec extends Specification {
                         Global.objectMapper.writeValueAsBytes(json), null, 1, data, null)
         )
         EthereumDirectReader ethereumDirectReader = new EthereumDirectReader(
-                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                Stub(Multistream), Caches.default(), new CurrentBlockCache(), calls
         )
         ethereumDirectReader.requestReaderFactory = Mock(RequestReaderFactory) {
             2 * create(_) >> Mock(RequestReader) {
@@ -472,7 +471,7 @@ class EthereumDirectReaderSpec extends Specification {
             4 * create() >> new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
         }
         EthereumDirectReader reader = new EthereumDirectReader(
-                up, Caches.default(), new CurrentBlockCache(), calls, TestingCommons.tracerMock()
+                up, Caches.default(), new CurrentBlockCache(), calls
         )
         reader.requestReaderFactory = Mock(RequestReaderFactory) {
             4 * create(_) >> Mock(RequestReader) {

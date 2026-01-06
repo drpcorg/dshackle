@@ -107,8 +107,8 @@ object KadenaChainSpecific : AbstractPollChainSpecific() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class KadenaHeader(
-    @JsonProperty("height") var height: Long,
-    @JsonProperty("weight") var weight: String,
-    @JsonProperty("instance") var instance: String,
-    @JsonProperty("id") var id: String,
+    @param:JsonProperty("height") var height: Long,
+    @param:JsonProperty("weight") var weight: String,
+    @param:JsonProperty("instance") var instance: String,
+    @param:JsonProperty("id") var id: String,
 )

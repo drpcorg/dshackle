@@ -3,7 +3,6 @@ package io.emeraldpay.dshackle.upstream.ripple
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
@@ -181,124 +180,124 @@ class RippleUpstreamSettingsDetector(val upstream: Upstream) : BasicUpstreamSett
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleInfoWrapper(
-    @JsonProperty("info") var info: RippleInfo,
+    @param:JsonProperty("info") var info: RippleInfo,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleInfo(
-    @JsonProperty("clio_version") var clio: String?,
-    @JsonProperty("build_version") var buildVersion: String?,
+    @param:JsonProperty("clio_version") var clio: String?,
+    @param:JsonProperty("build_version") var buildVersion: String?,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleBlock(
-    @JsonProperty("closed") var closed: RippleClosed,
-    @JsonProperty("open") var open: RippleOpen?,
-    @JsonProperty("status") var status: String?,
+    @param:JsonProperty("closed") var closed: RippleClosed,
+    @param:JsonProperty("open") var open: RippleOpen?,
+    @param:JsonProperty("status") var status: String?,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleClosed(
-    @JsonProperty("ledger") var ledger: RippleClosedLedger,
+    @param:JsonProperty("ledger") var ledger: RippleClosedLedger,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleOpen(
-    @JsonProperty("ledger") var ledger: RippleOpenLedger,
+    @param:JsonProperty("ledger") var ledger: RippleOpenLedger,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleClosedLedger(
-    @JsonProperty("account_hash") var accountHash: String,
-    @JsonProperty("close_flags") var closeFlags: Short,
-    @JsonProperty("close_time") var closeTime: Long,
-    @JsonProperty("close_time_human") var closeTimeHuman: String,
-    @JsonProperty("close_time_iso") var closeTimeIso: String,
-    @JsonProperty("close_time_resolution") var closeTimeResolution: Short,
-    @JsonProperty("closed") var closed: Boolean,
-    @JsonProperty("ledger_hash") var ledgerHash: String,
-    @JsonProperty("ledger_index") var ledgerIndex: String,
-    @JsonProperty("parent_close_time") var parentCloseTime: Long,
-    @JsonProperty("parent_hash") var parentHash: String,
-    @JsonProperty("total_coins") var totalCoins: String,
-    @JsonProperty("transaction_hash") var transactionHash: String,
+    @param:JsonProperty("account_hash") var accountHash: String,
+    @param:JsonProperty("close_flags") var closeFlags: Short,
+    @param:JsonProperty("close_time") var closeTime: Long,
+    @param:JsonProperty("close_time_human") var closeTimeHuman: String,
+    @param:JsonProperty("close_time_iso") var closeTimeIso: String,
+    @param:JsonProperty("close_time_resolution") var closeTimeResolution: Short,
+    @param:JsonProperty("closed") var closed: Boolean,
+    @param:JsonProperty("ledger_hash") var ledgerHash: String,
+    @param:JsonProperty("ledger_index") var ledgerIndex: String,
+    @param:JsonProperty("parent_close_time") var parentCloseTime: Long,
+    @param:JsonProperty("parent_hash") var parentHash: String,
+    @param:JsonProperty("total_coins") var totalCoins: String,
+    @param:JsonProperty("transaction_hash") var transactionHash: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleOpenLedger(
-    @JsonProperty("closed") var closed: Boolean,
-    @JsonProperty("ledger_index") var ledgerIndex: String,
-    @JsonProperty("parent_hash") var parentHash: String,
+    @param:JsonProperty("closed") var closed: Boolean,
+    @param:JsonProperty("ledger_index") var ledgerIndex: String,
+    @param:JsonProperty("parent_hash") var parentHash: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleState(
-    @JsonProperty("state") var state: RippleServerState,
-    @JsonProperty("status") var status: String? = null,
+    @param:JsonProperty("state") var state: RippleServerState,
+    @param:JsonProperty("status") var status: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RippleServerState(
-    @JsonProperty("build_version") val buildVersion: String,
-    @JsonProperty("complete_ledgers") val completeLedgers: String,
-    @JsonProperty("initial_sync_duration_us") val initialSyncDurationUs: String?,
-    @JsonProperty("io_latency_ms") val ioLatencyMs: Int,
-    @JsonProperty("jq_trans_overflow") val jqTransOverflow: String,
-    @JsonProperty("last_close") val lastClose: LastClose,
-    @JsonProperty("load_base") val loadBase: Int,
-    @JsonProperty("load_factor") val loadFactor: Int,
-    @JsonProperty("load_factor_fee_escalation") val loadFactorFeeEscalation: Int,
-    @JsonProperty("load_factor_fee_queue") val loadFactorFeeQueue: Int,
-    @JsonProperty("load_factor_fee_reference") val loadFactorFeeReference: Int,
-    @JsonProperty("load_factor_server") val loadFactorServer: Int,
-    @JsonProperty("network_id") val networkId: Int,
-    @JsonProperty("peer_disconnects") val peerDisconnects: String?,
-    @JsonProperty("peer_disconnects_resources") val peerDisconnectsResources: String?,
-    @JsonProperty("peers") val peers: Int,
-    @JsonProperty("ports") val ports: List<Port>,
-    @JsonProperty("pubkey_node") val pubkeyNode: String?,
-    @JsonProperty("server_state") val serverState: String?,
-    @JsonProperty("server_state_duration_us") val serverStateDurationUs: String?,
-    @JsonProperty("state_accounting") val stateAccounting: StateAccounting?,
-    @JsonProperty("time") val time: String,
-    @JsonProperty("uptime") val uptime: Long,
-    @JsonProperty("validated_ledger") val validatedLedger: ValidatedLedger,
-    @JsonProperty("validation_quorum") val validationQuorum: Int,
+    @param:JsonProperty("build_version") val buildVersion: String,
+    @param:JsonProperty("complete_ledgers") val completeLedgers: String,
+    @param:JsonProperty("initial_sync_duration_us") val initialSyncDurationUs: String?,
+    @param:JsonProperty("io_latency_ms") val ioLatencyMs: Int,
+    @param:JsonProperty("jq_trans_overflow") val jqTransOverflow: String,
+    @param:JsonProperty("last_close") val lastClose: LastClose,
+    @param:JsonProperty("load_base") val loadBase: Int,
+    @param:JsonProperty("load_factor") val loadFactor: Int,
+    @param:JsonProperty("load_factor_fee_escalation") val loadFactorFeeEscalation: Int,
+    @param:JsonProperty("load_factor_fee_queue") val loadFactorFeeQueue: Int,
+    @param:JsonProperty("load_factor_fee_reference") val loadFactorFeeReference: Int,
+    @param:JsonProperty("load_factor_server") val loadFactorServer: Int,
+    @param:JsonProperty("network_id") val networkId: Int,
+    @param:JsonProperty("peer_disconnects") val peerDisconnects: String?,
+    @param:JsonProperty("peer_disconnects_resources") val peerDisconnectsResources: String?,
+    @param:JsonProperty("peers") val peers: Int,
+    @param:JsonProperty("ports") val ports: List<Port>,
+    @param:JsonProperty("pubkey_node") val pubkeyNode: String?,
+    @param:JsonProperty("server_state") val serverState: String?,
+    @param:JsonProperty("server_state_duration_us") val serverStateDurationUs: String?,
+    @param:JsonProperty("state_accounting") val stateAccounting: StateAccounting?,
+    @param:JsonProperty("time") val time: String,
+    @param:JsonProperty("uptime") val uptime: Long,
+    @param:JsonProperty("validated_ledger") val validatedLedger: ValidatedLedger,
+    @param:JsonProperty("validation_quorum") val validationQuorum: Int,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class LastClose(
-    @JsonProperty("converge_time") val convergeTime: Int,
-    @JsonProperty("proposers") val proposers: Int,
+    @param:JsonProperty("converge_time") val convergeTime: Int,
+    @param:JsonProperty("proposers") val proposers: Int,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Port(
-    @JsonProperty("port") val port: String,
-    @JsonProperty("protocol") val protocol: List<String>,
+    @param:JsonProperty("port") val port: String,
+    @param:JsonProperty("protocol") val protocol: List<String>,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StateAccounting(
-    @JsonProperty("connected") val connected: StateDuration,
-    @JsonProperty("disconnected") val disconnected: StateDuration,
-    @JsonProperty("full") val full: StateDuration,
-    @JsonProperty("syncing") val syncing: StateDuration,
-    @JsonProperty("tracking") val tracking: StateDuration,
+    @param:JsonProperty("connected") val connected: StateDuration,
+    @param:JsonProperty("disconnected") val disconnected: StateDuration,
+    @param:JsonProperty("full") val full: StateDuration,
+    @param:JsonProperty("syncing") val syncing: StateDuration,
+    @param:JsonProperty("tracking") val tracking: StateDuration,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class StateDuration(
-    @JsonProperty("duration_us") val durationUs: String,
-    @JsonProperty("transitions") val transitions: String,
+    @param:JsonProperty("duration_us") val durationUs: String,
+    @param:JsonProperty("transitions") val transitions: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ValidatedLedger(
-    @JsonProperty("base_fee") val baseFee: Int,
-    @JsonProperty("close_time") val closeTime: Long,
-    @JsonProperty("hash") val hash: String,
-    @JsonProperty("reserve_base") val reserveBase: Long,
-    @JsonProperty("reserve_inc") val reserveInc: Long,
-    @JsonProperty("seq") val seq: Long,
+    @param:JsonProperty("base_fee") val baseFee: Int,
+    @param:JsonProperty("close_time") val closeTime: Long,
+    @param:JsonProperty("hash") val hash: String,
+    @param:JsonProperty("reserve_base") val reserveBase: Long,
+    @param:JsonProperty("reserve_inc") val reserveInc: Long,
+    @param:JsonProperty("seq") val seq: Long,
 )

@@ -30,7 +30,6 @@ import io.emeraldpay.dshackle.upstream.calls.CallSelector
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationDetector
 import io.emeraldpay.dshackle.upstream.finalization.NoopFinalizationDetector
-import org.springframework.cloud.sleuth.Tracer
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import java.util.function.Supplier
@@ -48,7 +47,7 @@ abstract class AbstractChainSpecific : ChainSpecific {
         return NoopFinalizationDetector()
     }
 
-    override fun makeCachingReaderBuilder(tracer: Tracer): CachingReaderBuilder {
+    override fun makeCachingReaderBuilder(): CachingReaderBuilder {
         return { _, _, _ -> NoopCachingReader }
     }
 

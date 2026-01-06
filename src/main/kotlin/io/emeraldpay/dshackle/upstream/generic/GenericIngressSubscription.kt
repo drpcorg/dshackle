@@ -26,7 +26,7 @@ class GenericIngressSubscription(
     private val holders = ConcurrentHashMap<Pair<String, Any?>, SubscriptionConnect<out Any>>()
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> get(topic: String, params: Any?, unsubscribeMethod: String): SubscriptionConnect<T> {
+    override fun <T : Any> get(topic: String, params: Any?, unsubscribeMethod: String): SubscriptionConnect<T> {
         return holders.computeIfAbsent(topic to params) { key ->
             GenericSubscriptionConnect(
                 chain,
@@ -58,7 +58,7 @@ class GenericSubscriptionConnect(
             .flatMapMany { it.t2 }
             .timeout(
                 Duration.ofSeconds(85),
-                Mono.empty<ByteArray?>().doOnEach {
+                Mono.empty<ByteArray>().doOnEach {
                     log.warn("Timeout during subscription to $topic after 85 seconds")
                 },
             )

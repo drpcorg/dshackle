@@ -121,49 +121,49 @@ object CosmosChainSpecific : AbstractPollChainSpecific() {
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosBlockResult(
-    @JsonProperty("block_id") var blockId: CosmosBlockId,
-    @JsonProperty("block") var block: CosmosBlockData,
+    @param:JsonProperty("block_id") var blockId: CosmosBlockId,
+    @param:JsonProperty("block") var block: CosmosBlockData,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosBlockId(
-    @JsonProperty("hash") var hash: String,
+    @param:JsonProperty("hash") var hash: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosHeader(
-    @JsonProperty("last_block_id") var lastBlockId: CosmosBlockId,
-    @JsonProperty("height") var height: String,
-    @JsonProperty("time") var time: Instant,
+    @param:JsonProperty("last_block_id") var lastBlockId: CosmosBlockId,
+    @param:JsonProperty("height") var height: String,
+    @param:JsonProperty("time") var time: Instant,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosStatus(
-    @JsonProperty("node_info") var nodeInfo: CosmosNodeInfo,
-    @JsonProperty("sync_info") var syncInfo: CosmosSyncInfo,
+    @param:JsonProperty("node_info") var nodeInfo: CosmosNodeInfo,
+    @param:JsonProperty("sync_info") var syncInfo: CosmosSyncInfo,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosNodeInfo(
-    @JsonProperty("version") var version: String,
-    @JsonProperty("network") var network: String,
+    @param:JsonProperty("version") var version: String,
+    @param:JsonProperty("network") var network: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosSyncInfo(
-    @JsonProperty("earliest_block_height") var earliestBlockHeight: String,
+    @param:JsonProperty("earliest_block_height") var earliestBlockHeight: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosBlockEvent(
-    @JsonProperty("data") var data: CosmosBlockEventData,
+    @param:JsonProperty("data") var data: CosmosBlockEventData,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CosmosBlockEventData(
-    @JsonProperty("value") var value: CosmosBlockData,
+    @param:JsonProperty("value") var value: CosmosBlockData,
 )
 
 data class CosmosBlockData(
-    @JsonProperty("header") var header: CosmosHeader,
+    @param:JsonProperty("header") var header: CosmosHeader,
 )
