@@ -37,6 +37,9 @@ class DefaultBitcoinMethods(balances: Boolean) : CallMethods {
         "gettransaction",
         "gettxout",
         "getmemorypool",
+        "getrawmempool",
+        "getmempoolinfo",
+        "getblockheader"
     ).sorted()
 
     private val anyResponseMethods = listOf(
