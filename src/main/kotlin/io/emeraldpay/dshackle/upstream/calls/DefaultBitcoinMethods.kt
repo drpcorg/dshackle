@@ -39,7 +39,7 @@ class DefaultBitcoinMethods(balances: Boolean) : CallMethods {
         "getmemorypool",
         "getrawmempool",
         "getmempoolinfo",
-        "getblockheader"
+        "getblockheader",
     ).sorted()
 
     private val anyResponseMethods = listOf(
