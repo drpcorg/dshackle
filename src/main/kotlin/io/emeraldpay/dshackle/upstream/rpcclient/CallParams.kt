@@ -39,6 +39,23 @@ data class ObjectParams(val obj: Map<Any, Any>) : JsonRpcParams() {
     }
 }
 
+/**
+ * Ripple native WebSocket command format.
+ * Unlike JSON-RPC, Ripple uses "command" field and flat structure.
+ */
+data class RippleCommandParams(val params: Map<String, Any>) : CallParams {
+    constructor(vararg pairs: Pair<String, Any>) : this(mapOf(*pairs))
+
+    override fun toJson(id: Int, method: String): ByteArray {
+        val json = mutableMapOf<String, Any>(
+            "id" to id,
+            "command" to method,
+        )
+        json.putAll(params)
+        return Global.objectMapper.writeValueAsBytes(json)
+    }
+}
+
 data class RestParams(
     val headers: List<Pair<String, String>>,
     val queryParams: List<Pair<String, String>>,

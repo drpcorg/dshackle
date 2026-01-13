@@ -55,6 +55,18 @@ class ResponseWSParser : ResponseParser<ResponseWSParser.WsResponse>() {
             val method = parser.valueAsString
             return state.copy(subMethod = method)
         }
+        // Handle Ripple subscription format: { "type": "ledgerClosed", "ledger_hash": "...", ... }
+        if ("type" == field) {
+            parser.nextToken()
+            val type = parser.valueAsString
+            // "ledgerClosed" is a Ripple subscription notification
+            if (type == "ledgerClosed") {
+                // Use type as subscription identifier, entire JSON as result
+                return state.copy(subId = type, result = json)
+            }
+            // "response" is a normal RPC response, let it pass through
+            return state
+        }
         if ("params" == field) {
             // example:
             // newHeads

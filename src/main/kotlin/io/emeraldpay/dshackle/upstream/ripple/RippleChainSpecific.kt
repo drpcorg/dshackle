@@ -12,19 +12,27 @@ import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.BasicUpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ChainRequest
+import io.emeraldpay.dshackle.upstream.EgressSubscription
 import io.emeraldpay.dshackle.upstream.GenericSingleCallValidator
+import io.emeraldpay.dshackle.upstream.IngressSubscription
+import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.NodeTypeRequest
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
+import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
 import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
+import io.emeraldpay.dshackle.upstream.generic.GenericEgressSubscription
+import io.emeraldpay.dshackle.upstream.generic.GenericIngressSubscription
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import io.emeraldpay.dshackle.upstream.rpcclient.RippleCommandParams
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Scheduler
 import java.math.BigInteger
 import java.time.Instant
 
@@ -35,6 +43,33 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         val jsonNode = Global.objectMapper.readTree(data)
 
+        // Handle different response formats:
+        // 1. ledger_closed response: { "ledger_hash": "...", "ledger_index": 123 }
+        // 2. ledger response with top-level "ledger" field (Clio): { "ledger": { ... } }
+        // 3. ledger response with closed/open structure: { "closed": { "ledger": { ... } } }
+
+        if (jsonNode.has("ledger_hash") && jsonNode.has("ledger_index") && !jsonNode.has("ledger")) {
+            // New ledger_closed format - simple response
+            val ledgerHash = jsonNode.get("ledger_hash").asText()
+            val ledgerIndex = jsonNode.get("ledger_index").asLong()
+
+            return Mono.just(
+                BlockContainer(
+                    height = ledgerIndex,
+                    hash = BlockId.from(ledgerHash),
+                    difficulty = BigInteger.ZERO,
+                    timestamp = Instant.EPOCH,
+                    full = false,
+                    json = data,
+                    parsed = jsonNode,
+                    transactions = emptyList(),
+                    upstreamId = upstreamId,
+                    parentHash = null, // Not available in ledger_closed response
+                ),
+            )
+        }
+
+        // Legacy formats
         val block: RippleClosedLedger = if (jsonNode.has("ledger")) {
             Global.objectMapper.treeToValue(jsonNode.get("ledger"), RippleClosedLedger::class.java)
         } else {
@@ -45,7 +80,7 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
         var height: Long = 0
         try {
             height = block.ledgerIndex.toLong()
-        } catch (e: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             log.error("Invalid ledgerIndex ${block.ledgerIndex}, upstreamId:$upstreamId")
         }
 
@@ -66,16 +101,35 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
     }
 
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        throw NotImplementedError()
+        // Parse Ripple ledger stream event: { "type": "ledgerClosed", "ledger_hash": "...", "ledger_index": 123, ... }
+        val event = Global.objectMapper.readValue(data, RippleLedgerStreamEvent::class.java)
+
+        // Ripple epoch starts at 2000-01-01 00:00:00 UTC (946684800 seconds after Unix epoch)
+        val timestamp = event.ledgerTime?.let {
+            Instant.ofEpochSecond(it + 946684800L)
+        } ?: Instant.EPOCH
+
+        return Mono.just(
+            BlockContainer(
+                height = event.ledgerIndex,
+                hash = BlockId.from(event.ledgerHash),
+                difficulty = BigInteger.ZERO,
+                timestamp = timestamp,
+                full = false,
+                json = data,
+                parsed = event,
+                transactions = emptyList(),
+                upstreamId = upstreamId,
+                parentHash = null, // Not available in stream event
+            ),
+        )
     }
 
-    override fun listenNewHeadsRequest(): ChainRequest {
-        throw NotImplementedError()
-    }
+    override fun listenNewHeadsRequest(): ChainRequest =
+        ChainRequest("subscribe", RippleCommandParams("streams" to listOf("ledger")))
 
-    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
-        throw NotImplementedError()
-    }
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest =
+        ChainRequest("unsubscribe", RippleCommandParams("streams" to listOf("ledger")))
 
     override fun upstreamValidators(
         chain: Chain,
@@ -131,10 +185,18 @@ object RippleChainSpecific : AbstractPollChainSpecific() {
     }
 
     override fun latestBlockRequest(): ChainRequest =
-        ChainRequest("ledger", ListParams())
+        ChainRequest("ledger_closed", ListParams())
 
     override fun upstreamSettingsDetector(chain: Chain, upstream: Upstream): UpstreamSettingsDetector? {
         return RippleUpstreamSettingsDetector(upstream)
+    }
+
+    override fun makeIngressSubscription(chain: Chain, ws: WsSubscriptions): IngressSubscription {
+        return GenericIngressSubscription(chain, ws, listOf("ledger"))
+    }
+
+    override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {
+        return { ms -> GenericEgressSubscription(ms, headScheduler) }
     }
 }
 
@@ -300,4 +362,22 @@ data class ValidatedLedger(
     @param:JsonProperty("reserve_base") val reserveBase: Long,
     @param:JsonProperty("reserve_inc") val reserveInc: Long,
     @param:JsonProperty("seq") val seq: Long,
+)
+
+/**
+ * Ripple ledger stream subscription event.
+ * Received when subscribed to the "ledger" stream via WebSocket.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class RippleLedgerStreamEvent(
+    @param:JsonProperty("type") val type: String, // "ledgerClosed"
+    @param:JsonProperty("ledger_hash") val ledgerHash: String,
+    @param:JsonProperty("ledger_index") val ledgerIndex: Long,
+    @param:JsonProperty("ledger_time") val ledgerTime: Long? = null,
+    @param:JsonProperty("txn_count") val txnCount: Int? = null,
+    @param:JsonProperty("validated_ledgers") val validatedLedgers: String? = null,
+    @param:JsonProperty("reserve_base") val reserveBase: Long? = null,
+    @param:JsonProperty("reserve_inc") val reserveInc: Long? = null,
+    @param:JsonProperty("fee_base") val feeBase: Int? = null,
+    @param:JsonProperty("fee_ref") val feeRef: Int? = null,
 )

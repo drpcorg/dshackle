@@ -103,4 +103,47 @@ class ResponseWSParserSpec extends Specification {
         act.error == null
         new String(act.value) == "null"
     }
+
+    def "Parse Ripple ledgerClosed subscription event"() {
+        setup:
+        def msg = '''{
+            "type": "ledgerClosed",
+            "fee_base": 10,
+            "fee_ref": 10,
+            "ledger_hash": "17ACB57A0F73B5160713E81FE72B2AC9F6064541004E272BD09F257D57C30C02",
+            "ledger_index": 6643099,
+            "ledger_time": 780804221,
+            "reserve_base": 10000000,
+            "reserve_inc": 2000000,
+            "txn_count": 5,
+            "validated_ledgers": "6643000-6643099"
+        }'''
+        when:
+        def act = parser.parse(msg.bytes)
+        then:
+        act.type == ResponseWSParser.Type.SUBSCRIPTION
+        act.id.asString() == "ledgerClosed"
+        act.error == null
+        with(new String(act.value)) {
+            it.contains("\"ledger_hash\"")
+            it.contains("17ACB57A0F73B5160713E81FE72B2AC9F6064541004E272BD09F257D57C30C02")
+            it.contains("\"ledger_index\": 6643099")
+        }
+    }
+
+    def "Parse Ripple RPC response with type field"() {
+        setup:
+        def msg = '''{
+            "id": 1,
+            "status": "success",
+            "type": "response",
+            "result": {}
+        }'''
+        when:
+        def act = parser.parse(msg.bytes)
+        then:
+        act.type == ResponseWSParser.Type.RPC
+        act.id.asNumber() == 1L
+        act.error == null
+    }
 }
