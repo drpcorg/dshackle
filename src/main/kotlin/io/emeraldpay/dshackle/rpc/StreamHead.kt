@@ -44,7 +44,7 @@ class StreamHead(
             ms.getHead()
                 .getFlux()
                 .map { asProto(ms, chain, it!!) }
-                .onErrorContinue { t, _ ->
+                .onErrorContinue { t, _: Any? ->
                     log.warn("Head subscription error", t)
                 }
         }
