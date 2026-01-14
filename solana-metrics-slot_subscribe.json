@@ -1,0 +1,13 @@
+{
+    "strategy": "slotSubscribe",
+    "timestamp": "2026-01-14T13:22:09.618186Z",
+    "runningTimeSeconds": 682,
+    "wsMessagesReceived": 1723,
+    "httpCallsMade": 370,
+    "headUpdates": 1726,
+    "errors": 0,
+    "wsPerSecond": 2.526392961876833,
+    "httpPerSecond": 0.5425219941348973,
+    "headUpdatesPerSecond": 2.530791788856305,
+    "httpPerHeadUpdate": 0.21436848203939746
+}
