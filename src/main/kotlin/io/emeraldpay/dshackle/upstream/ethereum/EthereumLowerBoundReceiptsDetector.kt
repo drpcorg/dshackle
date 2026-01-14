@@ -28,6 +28,7 @@ class EthereumLowerBoundReceiptsDetector(
             "Unexpected error", // hyperliquid
             "invalid block height", // hyperliquid
             "header not found",
+            "pruned history unavailable", // xlayer
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 

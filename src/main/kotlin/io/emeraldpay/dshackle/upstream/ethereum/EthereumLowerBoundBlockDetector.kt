@@ -28,6 +28,7 @@ class EthereumLowerBoundBlockDetector(
             "method handler crashed", // sei
             "Unexpected error", // hyperliquid
             "invalid block height", // hyperliquid
+            "pruned history unavailable", // xlayer
         )
     }
 

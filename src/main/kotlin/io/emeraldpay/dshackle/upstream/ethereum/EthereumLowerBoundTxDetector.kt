@@ -23,6 +23,7 @@ class EthereumLowerBoundTxDetector(
             NO_TX_DATA,
             "Unexpected error", // hyperliquid
             "invalid block height", // hyperliquids
+            "pruned history unavailable", // xlayer blocks
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
