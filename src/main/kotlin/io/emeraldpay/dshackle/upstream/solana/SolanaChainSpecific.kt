@@ -64,7 +64,7 @@ object SolanaChainSpecific : AbstractChainSpecific() {
                         val blockHeight = heightResponse.getResultAsProcessedString().toLong()
                         lastKnownHeights[upstreamId] = blockHeight
                         lastCheckedSlots[upstreamId] = slot
-                        makeBlockFromSlot(slot, blockHeight, upstreamId, ByteArray(0))
+                        makeBlockFromSlot(slot, slot - 1, blockHeight, upstreamId, ByteArray(0))
                     }
             }
             .onErrorResume { error ->
@@ -88,17 +88,17 @@ object SolanaChainSpecific : AbstractChainSpecific() {
                         val blockHeight = response.getResultAsProcessedString().toLong()
                         lastKnownHeights[upstreamId] = blockHeight
                         lastCheckedSlots[upstreamId] = slot
-                        makeBlockFromSlot(slot, blockHeight, upstreamId, data)
+                        makeBlockFromSlot(slot, notification.parent, blockHeight, upstreamId, data)
                     }
                     .onErrorResume { error ->
                         log.warn("Failed to get block height, using cached value: ${error.message}")
                         val height = lastKnownHeights[upstreamId] ?: slot
-                        Mono.just(makeBlockFromSlot(slot, height, upstreamId, data))
+                        Mono.just(makeBlockFromSlot(slot, notification.parent, height, upstreamId, data))
                     }
             } else {
                 // Between checks, use cached height
                 val height = lastKnownHeights[upstreamId] ?: slot
-                Mono.just(makeBlockFromSlot(slot, height, upstreamId, data))
+                Mono.just(makeBlockFromSlot(slot, notification.parent, height, upstreamId, data))
             }
         } catch (e: Exception) {
             log.error("Failed to parse slotSubscribe notification", e)
@@ -114,10 +114,14 @@ object SolanaChainSpecific : AbstractChainSpecific() {
         return ChainRequest("slotUnsubscribe", ListParams(subId))
     }
 
-    private fun makeBlockFromSlot(slot: Long, height: Long, upstreamId: String, data: ByteArray): BlockContainer {
+    private fun makeBlockFromSlot(slot: Long, parentSlot: Long, height: Long, upstreamId: String, data: ByteArray): BlockContainer {
         // Synthetic hash from slot for ForkChoice deduplication
         val syntheticHash = BlockId.from(
             ByteBuffer.allocate(32).putLong(slot).array()
+        )
+        // Synthetic parent hash from parent slot for chain tracking
+        val syntheticParentHash = BlockId.from(
+            ByteBuffer.allocate(32).putLong(parentSlot).array()
         )
 
         return BlockContainer(
@@ -130,13 +134,13 @@ object SolanaChainSpecific : AbstractChainSpecific() {
             parsed = null,
             transactions = emptyList(),
             upstreamId = upstreamId,
-            parentHash = null,
+            parentHash = syntheticParentHash,
             slot = slot,
         )
     }
 
-    // For testing - clear height cache
-    fun clearCache() {
+    // For testing only - clear height cache
+    internal fun clearCache() {
         lastKnownHeights.clear()
         lastCheckedSlots.clear()
     }

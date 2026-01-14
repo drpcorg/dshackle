@@ -14,6 +14,8 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import reactor.core.publisher.Mono
 import java.nio.ByteBuffer
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class SolanaChainSpecificTest {
 
@@ -31,15 +33,25 @@ class SolanaChainSpecificTest {
             )
         }
 
+        val beforeCall = Instant.now()
         val json = """{"slot": 112301554, "parent": 112301553, "root": 112301500}"""
         val result = SolanaChainSpecific.getFromHeader(json.toByteArray(), "upstream-1", reader).block()!!
+        val afterCall = Instant.now()
 
         assertThat(result.slot).isEqualTo(112301554)
         assertThat(result.height).isEqualTo(101210751)
         assertThat(result.upstreamId).isEqualTo("upstream-1")
+
         // Synthetic hash based on slot
         val expectedHash = BlockId.from(ByteBuffer.allocate(32).putLong(112301554).array())
         assertThat(result.hash).isEqualTo(expectedHash)
+
+        // Synthetic parent hash based on parent slot
+        val expectedParentHash = BlockId.from(ByteBuffer.allocate(32).putLong(112301553).array())
+        assertThat(result.parentHash).isEqualTo(expectedParentHash)
+
+        // Timestamp is synthetic (Instant.now() at call time)
+        assertThat(result.timestamp).isBetween(beforeCall, afterCall.plus(1, ChronoUnit.SECONDS))
     }
 
     @Test
