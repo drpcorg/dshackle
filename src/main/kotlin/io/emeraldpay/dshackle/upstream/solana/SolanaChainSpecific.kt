@@ -30,28 +30,170 @@ import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import java.math.BigInteger
+import java.nio.ByteBuffer
+import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
-object SolanaChainSpecific : AbstractChainSpecific() {
+// ============================================================================
+// METRICS
+// ============================================================================
 
-    private val log = LoggerFactory.getLogger(SolanaChainSpecific::class.java)
+/**
+ * Metrics collector for comparing head detection strategies
+ */
+class SolanaHeadMetrics(val strategyName: String) {
+    private val log = LoggerFactory.getLogger(SolanaHeadMetrics::class.java)
+
+    // Counters
+    val wsMessagesReceived = AtomicLong(0)
+    val httpCallsMade = AtomicLong(0)
+    val headUpdates = AtomicLong(0)
+    val errors = AtomicLong(0)
+
+    // Latency tracking
+    private val latencies = ConcurrentHashMap<String, MutableList<Long>>()
+
+    // Timestamps
+    @Volatile var startTime: Instant = Instant.now()
+    @Volatile var lastHeadUpdate: Instant = Instant.now()
+
+    fun recordWsMessage() {
+        wsMessagesReceived.incrementAndGet()
+    }
+
+    fun recordHttpCall() {
+        httpCallsMade.incrementAndGet()
+    }
+
+    fun recordHeadUpdate() {
+        headUpdates.incrementAndGet()
+        lastHeadUpdate = Instant.now()
+    }
+
+    fun recordError() {
+        errors.incrementAndGet()
+    }
+
+    fun recordLatency(operation: String, durationMs: Long) {
+        latencies.computeIfAbsent(operation) { mutableListOf() }.add(durationMs)
+    }
+
+    fun reset() {
+        wsMessagesReceived.set(0)
+        httpCallsMade.set(0)
+        headUpdates.set(0)
+        errors.set(0)
+        latencies.clear()
+        startTime = Instant.now()
+    }
+
+    fun logSummary() {
+        val runningTime = Duration.between(startTime, Instant.now())
+        val runningSeconds = runningTime.seconds.coerceAtLeast(1)
+
+        log.info(
+            """
+            |
+            |========== SOLANA HEAD METRICS: $strategyName ==========
+            |Running time: ${runningTime.toMinutes()}m ${runningTime.seconds % 60}s
+            |
+            |COUNTERS:
+            |  WS messages received: ${wsMessagesReceived.get()} (${wsMessagesReceived.get() / runningSeconds}/sec)
+            |  HTTP calls made: ${httpCallsMade.get()} (${httpCallsMade.get() / runningSeconds}/sec)
+            |  Head updates: ${headUpdates.get()} (${headUpdates.get() / runningSeconds}/sec)
+            |  Errors: ${errors.get()}
+            |
+            |LATENCIES:
+            |${formatLatencies()}
+            |
+            |EFFICIENCY:
+            |  HTTP calls per head update: ${if (headUpdates.get() > 0) httpCallsMade.get().toDouble() / headUpdates.get() else 0.0}
+            |  WS messages per head update: ${if (headUpdates.get() > 0) wsMessagesReceived.get().toDouble() / headUpdates.get() else 0.0}
+            |============================================================
+            """.trimMargin()
+        )
+    }
+
+    private fun formatLatencies(): String {
+        return latencies.entries.joinToString("\n") { (op, times) ->
+            if (times.isEmpty()) {
+                "  $op: no data"
+            } else {
+                val sorted = times.sorted()
+                val avg = times.average()
+                val p50 = sorted[sorted.size / 2]
+                val p95 = sorted[(sorted.size * 0.95).toInt().coerceAtMost(sorted.size - 1)]
+                val p99 = sorted[(sorted.size * 0.99).toInt().coerceAtMost(sorted.size - 1)]
+                "  $op: avg=${avg.toLong()}ms, p50=${p50}ms, p95=${p95}ms, p99=${p99}ms, count=${times.size}"
+            }
+        }
+    }
+
+    fun toMap(): Map<String, Any> = mapOf(
+        "strategy" to strategyName,
+        "wsMessagesReceived" to wsMessagesReceived.get(),
+        "httpCallsMade" to httpCallsMade.get(),
+        "headUpdates" to headUpdates.get(),
+        "errors" to errors.get(),
+        "runningTimeMs" to Duration.between(startTime, Instant.now()).toMillis(),
+    )
+}
+
+// ============================================================================
+// STRATEGY INTERFACE
+// ============================================================================
+
+/**
+ * Strategy interface for Solana head detection
+ */
+interface SolanaHeadStrategy {
+    val name: String
+    val metrics: SolanaHeadMetrics
+
+    fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer>
+    fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer>
+    fun listenNewHeadsRequest(): ChainRequest
+    fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest
+}
+
+// ============================================================================
+// BLOCK SUBSCRIBE STRATEGY (Current Implementation)
+// ============================================================================
+
+/**
+ * Original strategy using blockSubscribe WebSocket subscription.
+ * - More expensive (full block data on each notification)
+ * - Requires --rpc-pubsub-enable-block-subscription flag
+ * - Returns complete block info including hash, timestamp
+ */
+class BlockSubscribeStrategy : SolanaHeadStrategy {
+    override val name = "blockSubscribe"
+    override val metrics = SolanaHeadMetrics(name)
+
+    private val log = LoggerFactory.getLogger(BlockSubscribeStrategy::class.java)
 
     override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
-        return api.read(ChainRequest("getSlot", ListParams())).flatMap {
-            val slot = it.getResultAsProcessedString().toLong()
+        val startTime = System.currentTimeMillis()
+        metrics.recordHttpCall() // getSlot
+
+        return api.read(ChainRequest("getSlot", ListParams())).flatMap { slotResponse ->
+            val slot = slotResponse.getResultAsProcessedString().toLong()
+            metrics.recordHttpCall() // getBlocks
+
             api.read(
                 ChainRequest(
                     "getBlocks",
-                    ListParams(
-                        slot - 10,
-                        slot,
-                    ),
+                    ListParams(slot - 10, slot),
                 ),
-            ).flatMap {
-                val response = Global.objectMapper.readValue(it.getResult(), LongArray::class.java)
+            ).flatMap { blocksResponse ->
+                val response = Global.objectMapper.readValue(blocksResponse.getResult(), LongArray::class.java)
                 if (response == null || response.isEmpty()) {
                     Mono.empty()
                 } else {
+                    metrics.recordHttpCall() // getBlock
+
                     api.read(
                         ChainRequest(
                             "getBlock",
@@ -65,12 +207,15 @@ object SolanaChainSpecific : AbstractChainSpecific() {
                                 ),
                             ),
                         ),
-                    ).map {
-                        val raw = it.getResult()
-                        val block = Global.objectMapper.readValue(it.getResult(), SolanaBlock::class.java)
+                    ).map { blockResponse ->
+                        val raw = blockResponse.getResult()
+                        val block = Global.objectMapper.readValue(raw, SolanaBlock::class.java)
+                        metrics.recordLatency("getLatestBlock", System.currentTimeMillis() - startTime)
+                        metrics.recordHeadUpdate()
                         makeBlock(raw, block, upstreamId, response.max())
-                    }.onErrorResume {
-                        log.debug("error during getting last solana block - ${it.message}")
+                    }.onErrorResume { error ->
+                        log.debug("error during getting last solana block - ${error.message}")
+                        metrics.recordError()
                         Mono.empty()
                     }
                 }
@@ -79,24 +224,19 @@ object SolanaChainSpecific : AbstractChainSpecific() {
     }
 
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        val res = Global.objectMapper.readValue(data, SolanaWrapper::class.java)
-        return Mono.just(makeBlock(data, res.value.block, upstreamId, res.context.slot))
-    }
+        val startTime = System.currentTimeMillis()
+        metrics.recordWsMessage()
 
-    private fun makeBlock(raw: ByteArray, block: SolanaBlock, upstreamId: String, slot: Long): BlockContainer {
-        return BlockContainer(
-            height = block.height,
-            hash = BlockId.fromBase64(block.hash),
-            difficulty = BigInteger.ZERO,
-            timestamp = Instant.ofEpochMilli(block.timestamp),
-            full = false,
-            json = raw,
-            parsed = block,
-            transactions = emptyList(),
-            upstreamId = upstreamId,
-            parentHash = BlockId.fromBase64(block.parent),
-            slot = slot,
-        )
+        return try {
+            val res = Global.objectMapper.readValue(data, SolanaWrapper::class.java)
+            metrics.recordLatency("getFromHeader", System.currentTimeMillis() - startTime)
+            metrics.recordHeadUpdate()
+            Mono.just(makeBlock(data, res.value.block, upstreamId, res.context.slot))
+        } catch (e: Exception) {
+            log.error("Failed to parse blockSubscribe notification", e)
+            metrics.recordError()
+            Mono.empty()
+        }
     }
 
     override fun listenNewHeadsRequest(): ChainRequest {
@@ -116,6 +256,259 @@ object SolanaChainSpecific : AbstractChainSpecific() {
     override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
         return ChainRequest("blockUnsubscribe", ListParams(subId))
     }
+
+    private fun makeBlock(raw: ByteArray, block: SolanaBlock, upstreamId: String, slot: Long): BlockContainer {
+        return BlockContainer(
+            height = block.height,
+            hash = BlockId.fromBase64(block.hash),
+            difficulty = BigInteger.ZERO,
+            timestamp = Instant.ofEpochMilli(block.timestamp),
+            full = false,
+            json = raw,
+            parsed = block,
+            transactions = emptyList(),
+            upstreamId = upstreamId,
+            parentHash = BlockId.fromBase64(block.parent),
+            slot = slot,
+        )
+    }
+}
+
+// ============================================================================
+// SLOT SUBSCRIBE STRATEGY (New Optimized Implementation)
+// ============================================================================
+
+/**
+ * Optimized strategy using slotSubscribe WebSocket subscription.
+ * - Much cheaper (only slot/parent/root numbers)
+ * - Stable API (no special flags needed)
+ * - Throttled getBlockHeight calls (every N slots)
+ * - Uses synthetic hash based on slot for ForkChoice deduplication
+ */
+class SlotSubscribeStrategy(
+    private val heightCheckInterval: Int = 5,
+) : SolanaHeadStrategy {
+    override val name = "slotSubscribe"
+    override val metrics = SolanaHeadMetrics(name)
+
+    private val log = LoggerFactory.getLogger(SlotSubscribeStrategy::class.java)
+
+    // Cache per upstream
+    private val lastKnownHeights = ConcurrentHashMap<String, Long>()
+    private val lastCheckedSlots = ConcurrentHashMap<String, Long>()
+
+    override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
+        val startTime = System.currentTimeMillis()
+        metrics.recordHttpCall() // getSlot
+
+        return api.read(ChainRequest("getSlot", ListParams()))
+            .flatMap { slotResponse ->
+                val slot = slotResponse.getResultAsProcessedString().toLong()
+                metrics.recordHttpCall() // getBlockHeight
+
+                api.read(ChainRequest("getBlockHeight", ListParams()))
+                    .map { heightResponse ->
+                        val blockHeight = heightResponse.getResultAsProcessedString().toLong()
+
+                        // Update cache
+                        lastKnownHeights[upstreamId] = blockHeight
+                        lastCheckedSlots[upstreamId] = slot
+
+                        metrics.recordLatency("getLatestBlock", System.currentTimeMillis() - startTime)
+                        metrics.recordHeadUpdate()
+
+                        makeBlockFromSlot(slot, blockHeight, upstreamId, ByteArray(0))
+                    }
+            }
+            .onErrorResume { error ->
+                log.debug("error during getting latest solana block - ${error.message}")
+                metrics.recordError()
+                Mono.empty()
+            }
+    }
+
+    override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
+        val startTime = System.currentTimeMillis()
+        metrics.recordWsMessage()
+
+        return try {
+            val notification = Global.objectMapper.readValue(data, SolanaSlotNotification::class.java)
+            val slot = notification.slot
+
+            val lastChecked = lastCheckedSlots[upstreamId] ?: 0L
+            val shouldCheckHeight = slot - lastChecked >= heightCheckInterval
+
+            if (shouldCheckHeight) {
+                // Every N slots, make HTTP call for actual height
+                metrics.recordHttpCall()
+
+                api.read(ChainRequest("getBlockHeight", ListParams()))
+                    .map { response ->
+                        val blockHeight = response.getResultAsProcessedString().toLong()
+
+                        // Update cache
+                        lastKnownHeights[upstreamId] = blockHeight
+                        lastCheckedSlots[upstreamId] = slot
+
+                        metrics.recordLatency("getFromHeader_withHttp", System.currentTimeMillis() - startTime)
+                        metrics.recordHeadUpdate()
+
+                        makeBlockFromSlot(slot, blockHeight, upstreamId, data)
+                    }
+                    .onErrorResume { error ->
+                        log.warn("Failed to get block height, using cached value: ${error.message}")
+                        metrics.recordError()
+
+                        // Fallback to cached height
+                        val height = lastKnownHeights[upstreamId] ?: slot
+                        metrics.recordHeadUpdate()
+                        Mono.just(makeBlockFromSlot(slot, height, upstreamId, data))
+                    }
+            } else {
+                // Between checks, use cached height
+                val height = lastKnownHeights[upstreamId] ?: slot
+
+                metrics.recordLatency("getFromHeader_cached", System.currentTimeMillis() - startTime)
+                metrics.recordHeadUpdate()
+
+                Mono.just(makeBlockFromSlot(slot, height, upstreamId, data))
+            }
+        } catch (e: Exception) {
+            log.error("Failed to parse slotSubscribe notification", e)
+            metrics.recordError()
+            Mono.empty()
+        }
+    }
+
+    override fun listenNewHeadsRequest(): ChainRequest {
+        return ChainRequest("slotSubscribe", ListParams())
+    }
+
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
+        return ChainRequest("slotUnsubscribe", ListParams(subId))
+    }
+
+    private fun makeBlockFromSlot(slot: Long, height: Long, upstreamId: String, data: ByteArray): BlockContainer {
+        // Synthetic hash from slot for ForkChoice deduplication
+        val syntheticHash = BlockId.from(
+            ByteBuffer.allocate(32).putLong(slot).array()
+        )
+
+        return BlockContainer(
+            height = height,
+            hash = syntheticHash,
+            difficulty = BigInteger.ZERO,
+            timestamp = Instant.now(),
+            full = false,
+            json = data,
+            parsed = null,
+            transactions = emptyList(),
+            upstreamId = upstreamId,
+            parentHash = null,
+            slot = slot,
+        )
+    }
+
+    fun clearCache() {
+        lastKnownHeights.clear()
+        lastCheckedSlots.clear()
+    }
+}
+
+// ============================================================================
+// STRATEGY SELECTOR
+// ============================================================================
+
+enum class SolanaHeadStrategyType {
+    BLOCK_SUBSCRIBE,  // Original (blockSubscribe)
+    SLOT_SUBSCRIBE,   // Optimized (slotSubscribe)
+}
+
+// ============================================================================
+// MAIN WRAPPER CLASS
+// ============================================================================
+
+object SolanaChainSpecific : AbstractChainSpecific() {
+
+    private val log = LoggerFactory.getLogger(SolanaChainSpecific::class.java)
+
+    // Strategy configuration - change this to switch implementations
+    @Volatile
+    var strategyType: SolanaHeadStrategyType = SolanaHeadStrategyType.BLOCK_SUBSCRIBE
+
+    // Strategy instances
+    private val blockSubscribeStrategy = BlockSubscribeStrategy()
+    private val slotSubscribeStrategy = SlotSubscribeStrategy(heightCheckInterval = 5)
+
+    // Current active strategy
+    val currentStrategy: SolanaHeadStrategy
+        get() = when (strategyType) {
+            SolanaHeadStrategyType.BLOCK_SUBSCRIBE -> blockSubscribeStrategy
+            SolanaHeadStrategyType.SLOT_SUBSCRIBE -> slotSubscribeStrategy
+        }
+
+    /**
+     * Switch strategy at runtime
+     */
+    fun switchStrategy(newStrategy: SolanaHeadStrategyType) {
+        if (strategyType != newStrategy) {
+            log.info("Switching Solana head strategy from ${strategyType.name} to ${newStrategy.name}")
+            currentStrategy.metrics.logSummary()
+            strategyType = newStrategy
+            currentStrategy.metrics.reset()
+            log.info("Now using strategy: ${currentStrategy.name}")
+        }
+    }
+
+    /**
+     * Log metrics summary for current strategy
+     */
+    fun logMetrics() {
+        currentStrategy.metrics.logSummary()
+    }
+
+    /**
+     * Get metrics for both strategies (for comparison)
+     */
+    fun getAllMetrics(): Map<String, Map<String, Any>> = mapOf(
+        "blockSubscribe" to blockSubscribeStrategy.metrics.toMap(),
+        "slotSubscribe" to slotSubscribeStrategy.metrics.toMap(),
+    )
+
+    /**
+     * Reset all metrics
+     */
+    fun resetAllMetrics() {
+        blockSubscribeStrategy.metrics.reset()
+        slotSubscribeStrategy.metrics.reset()
+    }
+
+    // ========================================================================
+    // Delegated methods to current strategy
+    // ========================================================================
+
+    override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
+        log.trace("getLatestBlock using strategy: ${currentStrategy.name}")
+        return currentStrategy.getLatestBlock(api, upstreamId)
+    }
+
+    override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
+        log.trace("getFromHeader using strategy: ${currentStrategy.name}")
+        return currentStrategy.getFromHeader(data, upstreamId, api)
+    }
+
+    override fun listenNewHeadsRequest(): ChainRequest {
+        log.debug("listenNewHeadsRequest using strategy: ${currentStrategy.name}")
+        return currentStrategy.listenNewHeadsRequest()
+    }
+
+    override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
+        return currentStrategy.unsubscribeNewHeadsRequest(subId)
+    }
+
+    // ========================================================================
+    // Non-strategy methods (unchanged)
+    // ========================================================================
 
     override fun upstreamValidators(
         chain: Chain,
@@ -165,6 +558,11 @@ object SolanaChainSpecific : AbstractChainSpecific() {
     }
 }
 
+// ============================================================================
+// DATA CLASSES
+// ============================================================================
+
+// blockSubscribe response format
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SolanaWrapper(
     @param:JsonProperty("context") var context: SolanaContext,
@@ -187,4 +585,12 @@ data class SolanaBlock(
     @param:JsonProperty("blockTime") var timestamp: Long,
     @param:JsonProperty("blockhash") var hash: String,
     @param:JsonProperty("previousBlockhash") var parent: String,
+)
+
+// slotSubscribe response format
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SolanaSlotNotification(
+    @param:JsonProperty("slot") val slot: Long,
+    @param:JsonProperty("parent") val parent: Long,
+    @param:JsonProperty("root") val root: Long,
 )
