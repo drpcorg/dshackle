@@ -29,7 +29,7 @@ class SolanaChainSpecificTest {
     fun `parseBlock from slotSubscribe notification`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
-                Mono.just(ChainResponse("101210751".toByteArray(), null))
+                Mono.just(ChainResponse("101210751".toByteArray(), null)),
             )
         }
 
@@ -72,7 +72,7 @@ class SolanaChainSpecificTest {
     fun `throttle HTTP calls every 5 slots`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
-                Mono.just(ChainResponse("100000000".toByteArray(), null))
+                Mono.just(ChainResponse("100000000".toByteArray(), null)),
             )
         }
 
@@ -140,7 +140,7 @@ class SolanaChainSpecificTest {
     fun `uses cached height between throttle intervals`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
-                Mono.just(ChainResponse("100000000".toByteArray(), null))
+                Mono.just(ChainResponse("100000000".toByteArray(), null)),
             )
         }
 

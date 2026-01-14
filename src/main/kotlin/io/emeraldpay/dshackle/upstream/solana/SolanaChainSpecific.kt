@@ -117,11 +117,11 @@ object SolanaChainSpecific : AbstractChainSpecific() {
     private fun makeBlockFromSlot(slot: Long, parentSlot: Long, height: Long, upstreamId: String, data: ByteArray): BlockContainer {
         // Synthetic hash from slot for ForkChoice deduplication
         val syntheticHash = BlockId.from(
-            ByteBuffer.allocate(32).putLong(slot).array()
+            ByteBuffer.allocate(32).putLong(slot).array(),
         )
         // Synthetic parent hash from parent slot for chain tracking
         val syntheticParentHash = BlockId.from(
-            ByteBuffer.allocate(32).putLong(parentSlot).array()
+            ByteBuffer.allocate(32).putLong(parentSlot).array(),
         )
 
         return BlockContainer(
