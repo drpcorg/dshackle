@@ -29,7 +29,6 @@ import io.emeraldpay.dshackle.upstream.generic.GenericIngressSubscription
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.rpcclient.RippleCommandParams
-import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
@@ -38,64 +37,24 @@ import java.time.Instant
 
 object RippleChainSpecific : AbstractPollChainSpecific() {
 
-    private val log = LoggerFactory.getLogger(RippleChainSpecific::class.java)
-
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
+        // Parse ledger_closed response: { "ledger_hash": "...", "ledger_index": 123 }
         val jsonNode = Global.objectMapper.readTree(data)
-
-        // Handle different response formats:
-        // 1. ledger_closed response: { "ledger_hash": "...", "ledger_index": 123 }
-        // 2. ledger response with top-level "ledger" field (Clio): { "ledger": { ... } }
-        // 3. ledger response with closed/open structure: { "closed": { "ledger": { ... } } }
-
-        if (jsonNode.has("ledger_hash") && jsonNode.has("ledger_index") && !jsonNode.has("ledger")) {
-            // New ledger_closed format - simple response
-            val ledgerHash = jsonNode.get("ledger_hash").asText()
-            val ledgerIndex = jsonNode.get("ledger_index").asLong()
-
-            return Mono.just(
-                BlockContainer(
-                    height = ledgerIndex,
-                    hash = BlockId.from(ledgerHash),
-                    difficulty = BigInteger.ZERO,
-                    timestamp = Instant.EPOCH,
-                    full = false,
-                    json = data,
-                    parsed = jsonNode,
-                    transactions = emptyList(),
-                    upstreamId = upstreamId,
-                    parentHash = null, // Not available in ledger_closed response
-                ),
-            )
-        }
-
-        // Legacy formats
-        val block: RippleClosedLedger = if (jsonNode.has("ledger")) {
-            Global.objectMapper.treeToValue(jsonNode.get("ledger"), RippleClosedLedger::class.java)
-        } else {
-            val result = Global.objectMapper.readValue(data, RippleBlock::class.java)
-            result.closed.ledger
-        }
-
-        var height: Long = 0
-        try {
-            height = block.ledgerIndex.toLong()
-        } catch (_: NumberFormatException) {
-            log.error("Invalid ledgerIndex ${block.ledgerIndex}, upstreamId:$upstreamId")
-        }
+        val ledgerHash = jsonNode.get("ledger_hash").asText()
+        val ledgerIndex = jsonNode.get("ledger_index").asLong()
 
         return Mono.just(
             BlockContainer(
-                height = height,
-                hash = BlockId.from(block.ledgerHash),
+                height = ledgerIndex,
+                hash = BlockId.from(ledgerHash),
                 difficulty = BigInteger.ZERO,
                 timestamp = Instant.EPOCH,
                 full = false,
                 json = data,
-                parsed = block,
+                parsed = jsonNode,
                 transactions = emptyList(),
                 upstreamId = upstreamId,
-                parentHash = BlockId.from(block.parentHash),
+                parentHash = null,
             ),
         )
     }
@@ -249,47 +208,6 @@ data class RippleInfoWrapper(
 data class RippleInfo(
     @param:JsonProperty("clio_version") var clio: String?,
     @param:JsonProperty("build_version") var buildVersion: String?,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class RippleBlock(
-    @param:JsonProperty("closed") var closed: RippleClosed,
-    @param:JsonProperty("open") var open: RippleOpen?,
-    @param:JsonProperty("status") var status: String?,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class RippleClosed(
-    @param:JsonProperty("ledger") var ledger: RippleClosedLedger,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class RippleOpen(
-    @param:JsonProperty("ledger") var ledger: RippleOpenLedger,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class RippleClosedLedger(
-    @param:JsonProperty("account_hash") var accountHash: String,
-    @param:JsonProperty("close_flags") var closeFlags: Short,
-    @param:JsonProperty("close_time") var closeTime: Long,
-    @param:JsonProperty("close_time_human") var closeTimeHuman: String,
-    @param:JsonProperty("close_time_iso") var closeTimeIso: String,
-    @param:JsonProperty("close_time_resolution") var closeTimeResolution: Short,
-    @param:JsonProperty("closed") var closed: Boolean,
-    @param:JsonProperty("ledger_hash") var ledgerHash: String,
-    @param:JsonProperty("ledger_index") var ledgerIndex: String,
-    @param:JsonProperty("parent_close_time") var parentCloseTime: Long,
-    @param:JsonProperty("parent_hash") var parentHash: String,
-    @param:JsonProperty("total_coins") var totalCoins: String,
-    @param:JsonProperty("transaction_hash") var transactionHash: String,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class RippleOpenLedger(
-    @param:JsonProperty("closed") var closed: Boolean,
-    @param:JsonProperty("ledger_index") var ledgerIndex: String,
-    @param:JsonProperty("parent_hash") var parentHash: String,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

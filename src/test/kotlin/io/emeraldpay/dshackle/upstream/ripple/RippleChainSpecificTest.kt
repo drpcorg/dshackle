@@ -20,50 +20,6 @@ val ledgerClosedResponse = """
 }
 """.trimIndent()
 
-// Legacy ledger response format with top-level "ledger" field (Clio format)
-val ledgerClioResponse = """
-{
-    "ledger": {
-        "account_hash": "AABBCCDD11223344556677889900AABBCCDDEEFF0011223344556677889900AA",
-        "close_flags": 0,
-        "close_time": 780804221,
-        "close_time_human": "2024-Jan-01 00:00:00",
-        "close_time_iso": "2024-01-01T00:00:00Z",
-        "close_time_resolution": 10,
-        "closed": true,
-        "ledger_hash": "AABBCCDD1122334455667788990011223344556677889900AABBCCDDEEFF0011",
-        "ledger_index": "12345678",
-        "parent_close_time": 780804210,
-        "parent_hash": "FFEEDDCCBBAA99887766554433221100FFEEDDCCBBAA99887766554433221100",
-        "total_coins": "100000000000",
-        "transaction_hash": "TXHASH0011223344556677889900AABBCCDDEEFF00112233445566778899001122"
-    }
-}
-""".trimIndent()
-
-// Legacy ledger response format with closed/open structure
-val legacyLedgerResponse = """
-{
-    "closed": {
-        "ledger": {
-            "account_hash": "DEADBEEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF12345678",
-            "close_flags": 0,
-            "close_time": 780804221,
-            "close_time_human": "2024-Jan-01 00:00:00",
-            "close_time_iso": "2024-01-01T00:00:00Z",
-            "close_time_resolution": 10,
-            "closed": true,
-            "ledger_hash": "DEADBEEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF12345678",
-            "ledger_index": "87654321",
-            "parent_close_time": 780804210,
-            "parent_hash": "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF",
-            "total_coins": "100000000000",
-            "transaction_hash": "9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA"
-        }
-    }
-}
-""".trimIndent()
-
 // ledgerClosed WebSocket subscription event
 val ledgerClosedEvent = """
 {
@@ -172,38 +128,6 @@ class RippleChainSpecificTest {
             .isEqualTo(BlockId.from("17ACB57A0F73B5160713E81FE72B2AC9F6064541004E272BD09F257D57C30C02"))
         assertThat(result.upstreamId).isEqualTo("test-upstream")
         assertThat(result.parentHash).isNull()
-    }
-
-    @Test
-    fun `parseBlock with Clio ledger format`() {
-        val result = RippleChainSpecific.parseBlock(
-            ledgerClioResponse.toByteArray(),
-            "test-upstream",
-            dummyReader,
-        ).block()!!
-
-        assertThat(result.height).isEqualTo(12345678)
-        assertThat(result.hash)
-            .isEqualTo(BlockId.from("AABBCCDD1122334455667788990011223344556677889900AABBCCDDEEFF0011"))
-        assertThat(result.upstreamId).isEqualTo("test-upstream")
-        assertThat(result.parentHash)
-            .isEqualTo(BlockId.from("FFEEDDCCBBAA99887766554433221100FFEEDDCCBBAA99887766554433221100"))
-    }
-
-    @Test
-    fun `parseBlock with legacy closed ledger format`() {
-        val result = RippleChainSpecific.parseBlock(
-            legacyLedgerResponse.toByteArray(),
-            "test-upstream",
-            dummyReader,
-        ).block()!!
-
-        assertThat(result.height).isEqualTo(87654321)
-        assertThat(result.hash)
-            .isEqualTo(BlockId.from("DEADBEEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF12345678"))
-        assertThat(result.upstreamId).isEqualTo("test-upstream")
-        assertThat(result.parentHash)
-            .isEqualTo(BlockId.from("1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF"))
     }
 
     @Test
