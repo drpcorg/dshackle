@@ -19,6 +19,8 @@ import io.emeraldpay.dshackle.upstream.ChainException
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import io.emeraldpay.dshackle.upstream.rpcclient.ObjectParams
+import io.emeraldpay.dshackle.upstream.rpcclient.RippleCommandParams
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -47,8 +49,10 @@ class WsSubscriptionsImpl(
                     log.warn("Failed to establish subscription: ${it.error?.message}")
                     Mono.error(ChainException(it.id, it.error!!))
                 } else {
-                    val id = if (it.getResultAsRawString() == "{}") {
-                        request.id.toString() // in case empty result - match by request id
+                    val rawResult = it.getResultAsRawString()
+                    val id = if (rawResult.startsWith("{") || rawResult == "{}") {
+                        // Ripple returns object result; use stream type as subscription ID
+                        extractRippleStreamType(request) ?: request.id.toString()
                     } else {
                         it.getResultAsProcessedString()
                     }
@@ -58,6 +62,26 @@ class WsSubscriptionsImpl(
             }
 
         return WsSubscriptions.SubscribeData(message, conn.connectionId(), subscriptionId)
+    }
+
+    /**
+     * Extract expected event type from Ripple subscribe request.
+     * For `subscribe` with `streams: ["ledger"]`, returns "ledgerClosed" as this is the event type
+     * that will be received in subscription messages.
+     */
+    private fun extractRippleStreamType(request: ChainRequest): String? {
+        if (request.method == "subscribe") {
+            val params = request.params
+            val streams: List<*>? = when (params) {
+                is RippleCommandParams -> params.params["streams"] as? List<*>
+                is ObjectParams -> params.obj["streams"] as? List<*>
+                else -> null
+            }
+            if (streams?.contains("ledger") == true) {
+                return "ledgerClosed"
+            }
+        }
+        return null
     }
 
     override fun unsubscribe(request: ChainRequest): Mono<ChainResponse> {
