@@ -146,7 +146,7 @@ class GrpcUpstreams(
         return Flux.interval(Duration.ZERO, Duration.ofSeconds(20))
             .flatMap {
                 authAndDescribe(grpcUpstreamsAuth)
-            }.onErrorContinue { t, _ ->
+            }.onErrorContinue { t, _: Any? ->
                 if (ExceptionUtils.indexOfType(t, IOException::class.java) >= 0) {
                     log.warn("gRPC upstream $host:$port is unavailable. (${t.javaClass}: ${t.message})")
                     known.values.forEach {

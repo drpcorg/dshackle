@@ -75,7 +75,7 @@ class HeadLagObserver(
             .parallel(followers.size)
             .flatMap { up -> mapLagging(top, up, getCurrentBlocks(up)).subscribeOn(lagObserverScheduler) }
             .sequential()
-            .onErrorContinue { t, _ -> log.warn("Failed to update lagging distance", t) }
+            .onErrorContinue { t, _: Any? -> log.warn("Failed to update lagging distance", t) }
     }
 
     open fun getCurrentBlocks(up: Upstream): Flux<BlockContainer> {

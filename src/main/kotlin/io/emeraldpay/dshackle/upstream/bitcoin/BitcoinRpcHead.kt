@@ -71,8 +71,8 @@ class BitcoinRpcHead(
                     .map(extractBlock::extract)
                     .timeout(Defaults.timeout, Mono.error(Exception("Block data is not received")))
             }
-            .onErrorContinue { err, _ ->
-                log.debug("RPC error ${err.message}")
+            .onErrorContinue { err, _: Any? ->
+                log.warn("RPC error: ${err.message}")
             }
         refreshSubscription = super.follow(base)
     }
