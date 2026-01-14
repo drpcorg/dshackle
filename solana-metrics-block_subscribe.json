@@ -1,0 +1,13 @@
+{
+    "strategy": "blockSubscribe",
+    "timestamp": "2026-01-14T13:09:52.150346Z",
+    "runningTimeSeconds": 663,
+    "wsMessagesReceived": 1677,
+    "httpCallsMade": 3,
+    "headUpdates": 1678,
+    "errors": 0,
+    "wsPerSecond": 2.5294117647058822,
+    "httpPerSecond": 0.004524886877828055,
+    "headUpdatesPerSecond": 2.530920060331825,
+    "httpPerHeadUpdate": 0.0017878426698450535
+}

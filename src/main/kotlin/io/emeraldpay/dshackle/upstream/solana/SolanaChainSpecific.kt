@@ -29,11 +29,17 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
+import java.io.File
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 // ============================================================================
@@ -432,13 +438,65 @@ object SolanaChainSpecific : AbstractChainSpecific() {
 
     private val log = LoggerFactory.getLogger(SolanaChainSpecific::class.java)
 
-    // Strategy configuration - change this to switch implementations
+    // Strategy configuration - read from environment variable or default to BLOCK_SUBSCRIBE
     @Volatile
-    var strategyType: SolanaHeadStrategyType = SolanaHeadStrategyType.BLOCK_SUBSCRIBE
+    var strategyType: SolanaHeadStrategyType = initStrategyFromEnv()
 
     // Strategy instances
     private val blockSubscribeStrategy = BlockSubscribeStrategy()
     private val slotSubscribeStrategy = SlotSubscribeStrategy(heightCheckInterval = 5)
+
+    // Metrics logging scheduler
+    private val metricsScheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "solana-metrics-logger").apply { isDaemon = true }
+    }
+
+    // Metrics output file (set via env var or default)
+    private val metricsOutputFile: String = System.getenv("SOLANA_METRICS_FILE")
+        ?: "solana-metrics-${strategyType.name.lowercase()}.log"
+
+    init {
+        log.info("=".repeat(60))
+        log.info("SOLANA HEAD STRATEGY: ${strategyType.name}")
+        log.info("Metrics will be logged every 60 seconds")
+        log.info("Metrics output file: $metricsOutputFile")
+        log.info("=".repeat(60))
+
+        // Start periodic metrics logging
+        metricsScheduler.scheduleAtFixedRate(
+            { logMetricsToFileAndConsole() },
+            60, // initial delay
+            60, // period
+            TimeUnit.SECONDS
+        )
+
+        // Add shutdown hook to save final metrics
+        Runtime.getRuntime().addShutdownHook(Thread {
+            log.info("Shutdown detected, saving final metrics...")
+            saveFinalMetrics()
+        })
+    }
+
+    private fun initStrategyFromEnv(): SolanaHeadStrategyType {
+        val envValue = System.getenv("SOLANA_HEAD_STRATEGY")
+        return when (envValue?.uppercase()) {
+            "SLOT_SUBSCRIBE", "SLOT" -> {
+                LoggerFactory.getLogger(SolanaChainSpecific::class.java)
+                    .info("Using SLOT_SUBSCRIBE strategy from environment variable")
+                SolanaHeadStrategyType.SLOT_SUBSCRIBE
+            }
+            "BLOCK_SUBSCRIBE", "BLOCK", null -> {
+                LoggerFactory.getLogger(SolanaChainSpecific::class.java)
+                    .info("Using BLOCK_SUBSCRIBE strategy (default or from environment variable)")
+                SolanaHeadStrategyType.BLOCK_SUBSCRIBE
+            }
+            else -> {
+                LoggerFactory.getLogger(SolanaChainSpecific::class.java)
+                    .warn("Unknown SOLANA_HEAD_STRATEGY='$envValue', defaulting to BLOCK_SUBSCRIBE")
+                SolanaHeadStrategyType.BLOCK_SUBSCRIBE
+            }
+        }
+    }
 
     // Current active strategy
     val currentStrategy: SolanaHeadStrategy
@@ -446,6 +504,98 @@ object SolanaChainSpecific : AbstractChainSpecific() {
             SolanaHeadStrategyType.BLOCK_SUBSCRIBE -> blockSubscribeStrategy
             SolanaHeadStrategyType.SLOT_SUBSCRIBE -> slotSubscribeStrategy
         }
+
+    private fun logMetricsToFileAndConsole() {
+        try {
+            val metrics = currentStrategy.metrics
+            val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+            val runningTime = Duration.between(metrics.startTime, Instant.now())
+
+            val metricsLine = buildString {
+                appendLine("[$timestamp] Strategy: ${metrics.strategyName}")
+                appendLine("  Running: ${runningTime.toMinutes()}m ${runningTime.seconds % 60}s")
+                appendLine("  WS messages: ${metrics.wsMessagesReceived.get()}")
+                appendLine("  HTTP calls: ${metrics.httpCallsMade.get()}")
+                appendLine("  Head updates: ${metrics.headUpdates.get()}")
+                appendLine("  Errors: ${metrics.errors.get()}")
+                val headUpdates = metrics.headUpdates.get()
+                if (headUpdates > 0) {
+                    appendLine("  HTTP/head: %.3f".format(metrics.httpCallsMade.get().toDouble() / headUpdates))
+                }
+                appendLine("-".repeat(50))
+            }
+
+            // Log to console
+            log.info("\n$metricsLine")
+
+            // Append to file
+            File(metricsOutputFile).appendText(metricsLine)
+        } catch (e: Exception) {
+            log.error("Failed to log metrics", e)
+        }
+    }
+
+    private fun saveFinalMetrics() {
+        try {
+            val metrics = currentStrategy.metrics
+            val timestamp = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+            val runningTime = Duration.between(metrics.startTime, Instant.now())
+            val runningSeconds = runningTime.seconds.coerceAtLeast(1)
+            val headUpdates = metrics.headUpdates.get()
+
+            val finalReport = buildString {
+                appendLine()
+                appendLine("=".repeat(60))
+                appendLine("FINAL METRICS REPORT: ${metrics.strategyName}")
+                appendLine("=".repeat(60))
+                appendLine("Timestamp: $timestamp")
+                appendLine("Total running time: ${runningTime.toMinutes()}m ${runningTime.seconds % 60}s")
+                appendLine()
+                appendLine("TOTALS:")
+                appendLine("  WS messages received: ${metrics.wsMessagesReceived.get()}")
+                appendLine("  HTTP calls made: ${metrics.httpCallsMade.get()}")
+                appendLine("  Head updates: ${headUpdates}")
+                appendLine("  Errors: ${metrics.errors.get()}")
+                appendLine()
+                appendLine("RATES (per second):")
+                appendLine("  WS messages/sec: %.2f".format(metrics.wsMessagesReceived.get().toDouble() / runningSeconds))
+                appendLine("  HTTP calls/sec: %.2f".format(metrics.httpCallsMade.get().toDouble() / runningSeconds))
+                appendLine("  Head updates/sec: %.2f".format(headUpdates.toDouble() / runningSeconds))
+                appendLine()
+                appendLine("EFFICIENCY:")
+                if (headUpdates > 0) {
+                    appendLine("  HTTP calls per head update: %.3f".format(metrics.httpCallsMade.get().toDouble() / headUpdates))
+                    appendLine("  WS messages per head update: %.3f".format(metrics.wsMessagesReceived.get().toDouble() / headUpdates))
+                }
+                appendLine("=".repeat(60))
+            }
+
+            log.info(finalReport)
+            File(metricsOutputFile).appendText(finalReport)
+
+            // Also save to JSON for easier parsing
+            val jsonFile = metricsOutputFile.replace(".log", ".json")
+            val json = """
+            {
+                "strategy": "${metrics.strategyName}",
+                "timestamp": "$timestamp",
+                "runningTimeSeconds": ${runningTime.seconds},
+                "wsMessagesReceived": ${metrics.wsMessagesReceived.get()},
+                "httpCallsMade": ${metrics.httpCallsMade.get()},
+                "headUpdates": ${headUpdates},
+                "errors": ${metrics.errors.get()},
+                "wsPerSecond": ${metrics.wsMessagesReceived.get().toDouble() / runningSeconds},
+                "httpPerSecond": ${metrics.httpCallsMade.get().toDouble() / runningSeconds},
+                "headUpdatesPerSecond": ${headUpdates.toDouble() / runningSeconds},
+                "httpPerHeadUpdate": ${if (headUpdates > 0) metrics.httpCallsMade.get().toDouble() / headUpdates else 0.0}
+            }
+            """.trimIndent()
+            File(jsonFile).writeText(json)
+            log.info("Metrics saved to $metricsOutputFile and $jsonFile")
+        } catch (e: Exception) {
+            log.error("Failed to save final metrics", e)
+        }
+    }
 
     /**
      * Switch strategy at runtime
