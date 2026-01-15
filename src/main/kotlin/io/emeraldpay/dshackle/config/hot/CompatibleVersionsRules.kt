@@ -13,6 +13,8 @@ data class CompatibleVersionsRules(
 data class CompatibleVersionsRule(
     @param:JsonProperty("client")
     val client: String,
+    @param:JsonProperty("networks")
+    val networks: List<String>?,
     @param:JsonProperty("blacklist")
     val blacklist: List<String>?,
     @param:JsonProperty("whitelist")

@@ -115,17 +115,21 @@ class VersionValidator(
         }
         val type = upstream.getLabels().first().getOrDefault("client_type", "unknown")
         val version = upstream.getLabels().first().getOrDefault("client_version", "unknown")
-        val rule = versionsConfig.get()!!.rules.find { it.client == type }
+        val chain = upstream.getChain()
+        val rule = versionsConfig.get()!!.rules.find { rule ->
+            rule.client == type &&
+                (rule.networks.isNullOrEmpty() || rule.networks.any { chain.shortNames.contains(it) })
+        }
         if (rule == null) {
-            log.info("No rules for client type $type, skipping validation for upstream ${upstream.getId()}")
+            log.info("No rules for client type $type on chain ${chain.chainCode}, skipping validation for upstream ${upstream.getId()}")
             return Mono.just(OK)
         }
         if (!rule.whitelist.isNullOrEmpty() && !rule.whitelist.contains(version)) {
-            log.warn("Version $version is in not in defined whitelist for $type, please change client version for upstream ${upstream.getId()}")
+            log.warn("Version $version is in not in defined whitelist for $type on chain ${chain.chainCode}, please change client version for upstream ${upstream.getId()}")
             return Mono.just(UNAVAILABLE)
         }
         if (!rule.blacklist.isNullOrEmpty() && rule.blacklist.contains(version)) {
-            log.warn("Version $version is in defined blacklist for $type, please change client version for upstream ${upstream.getId()}")
+            log.warn("Version $version is in defined blacklist for $type on chain ${chain.chainCode}, please change client version for upstream ${upstream.getId()}")
             return Mono.just(UNAVAILABLE)
         }
         return Mono.just(OK)
