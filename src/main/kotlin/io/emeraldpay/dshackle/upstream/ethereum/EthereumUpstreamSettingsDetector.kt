@@ -89,6 +89,22 @@ class EthereumUpstreamSettingsDetector(
      *
      */
     private fun detectGasLabels(): Flux<Pair<String, String>> {
+        return if (chain == Chain.MONAD__MAINNET || chain == Chain.MONAD__TESTNET) {
+            basicGasLabels()
+                .collectList()
+                .flatMapMany { labels ->
+                    if (labels.find { it.first == "extra_gas_limit" }?.second == "600000000") {
+                        Flux.fromIterable(labels)
+                    } else {
+                        monadGasLabels()
+                    }
+                }
+        } else {
+            basicGasLabels()
+        }
+    }
+
+    private fun basicGasLabels(): Flux<Pair<String, String>> {
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_call",
@@ -120,6 +136,40 @@ class EthereumUpstreamSettingsDetector(
             Flux.fromIterable(labels)
         }.onErrorResume {
             Flux.empty()
+        }
+    }
+
+    // the basic gas check doesn't work on monad nodes, let's check then by an error message
+    private fun monadGasLabels(): Flux<Pair<String, String>> {
+        return upstream.getIngressReader().read(
+            ChainRequest(
+                "eth_call",
+                ListParams(
+                    mapOf(
+                        "to" to "0x53Daa71B04d589429f6d3DF52db123913B818F22",
+                        "data" to "0x51be4eaa",
+                        "gas" to "0x232AAF80",
+                    ),
+                    "latest",
+                    mapOf(
+                        "0x53Daa71B04d589429f6d3DF52db123913B818F22" to mapOf(
+                            "code" to "0x6080604052348015600f57600080fd5b506004361060285760003560e01c806351be4eaa14602d575b600080fd5b60336047565b604051603e91906066565b60405180910390f35b60005a905090565b6000819050919050565b606081604f565b82525050565b6000602082019050607960008301846059565b9291505056fea26469706673582212201c0202887c1afe66974b06ee355dee07542bbc424cf4d1659c91f56c08c3dcc064736f6c63430008130033",
+                        ),
+                    ),
+                ),
+            ),
+        ).flatMapMany {
+            Flux.fromIterable(emptyList<Pair<String, String>>())
+        }.onErrorResume {
+            if (it.message?.contains("gas limit too high") ?: false) {
+                val labels = mutableListOf(
+                    Pair("gas-limit", 600_000_000.toString()),
+                    Pair("extra_gas_limit", 600_000_000.toString()),
+                )
+                Flux.fromIterable(labels)
+            } else {
+                Flux.empty()
+            }
         }
     }
 
