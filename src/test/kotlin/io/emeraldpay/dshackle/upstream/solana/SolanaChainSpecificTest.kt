@@ -137,23 +137,73 @@ class SolanaChainSpecificTest {
     }
 
     @Test
-    fun `uses cached height between throttle intervals`() {
+    fun `uses optimistic estimated height between throttle intervals`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
                 Mono.just(ChainResponse("100000000".toByteArray(), null)),
             )
         }
 
-        // First call sets cache
+        // First call sets cache at slot 100 with height 100000000
         val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
         val result1 = SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()!!
         assertThat(result1.height).isEqualTo(100000000)
 
-        // Second call uses cached height
+        // Second call uses optimistic estimated height: 100000000 + (101 - 100) = 100000001
         val slot2 = """{"slot": 101, "parent": 100, "root": 50}"""
         val result2 = SolanaChainSpecific.getFromHeader(slot2.toByteArray(), "upstream-1", reader).block()!!
 
         assertThat(result2.slot).isEqualTo(101)
-        assertThat(result2.height).isEqualTo(100000000) // cached height
+        assertThat(result2.height).isEqualTo(100000001) // optimistic estimated height
+
+        // Third call: 100000000 + (103 - 100) = 100000003
+        val slot3 = """{"slot": 103, "parent": 102, "root": 50}"""
+        val result3 = SolanaChainSpecific.getFromHeader(slot3.toByteArray(), "upstream-1", reader).block()!!
+
+        assertThat(result3.slot).isEqualTo(103)
+        assertThat(result3.height).isEqualTo(100000003) // optimistic estimated height
+    }
+
+    @Test
+    fun `height estimation resets after RPC check`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }
+                .thenReturn(Mono.just(ChainResponse("100000000".toByteArray(), null)))
+                .thenReturn(Mono.just(ChainResponse("100000004".toByteArray(), null)))
+        }
+
+        // First call at slot 100 - sets cache with height 100000000
+        val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
+        SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()
+
+        // Slot 105 triggers RPC check - gets actual height 100000004 (1 slot was skipped)
+        val slot105 = """{"slot": 105, "parent": 104, "root": 50}"""
+        val result105 = SolanaChainSpecific.getFromHeader(slot105.toByteArray(), "upstream-1", reader).block()!!
+        assertThat(result105.height).isEqualTo(100000004)
+
+        // Slot 107 uses new baseline: 100000004 + (107 - 105) = 100000006
+        val slot107 = """{"slot": 107, "parent": 106, "root": 50}"""
+        val result107 = SolanaChainSpecific.getFromHeader(slot107.toByteArray(), "upstream-1", reader).block()!!
+        assertThat(result107.height).isEqualTo(100000006)
+    }
+
+    @Test
+    fun `uses estimated height on RPC error when estimation available`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }
+                .thenReturn(Mono.just(ChainResponse("100000000".toByteArray(), null)))
+                .thenReturn(Mono.error(RuntimeException("Network error")))
+        }
+
+        // First call succeeds at slot 100
+        val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
+        SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()
+
+        // Slot 105 triggers RPC check but fails - should use estimated height: 100000000 + (105 - 100) = 100000005
+        val slot105 = """{"slot": 105, "parent": 104, "root": 50}"""
+        val result = SolanaChainSpecific.getFromHeader(slot105.toByteArray(), "upstream-1", reader).block()!!
+
+        assertThat(result.slot).isEqualTo(105)
+        assertThat(result.height).isEqualTo(100000005) // estimated height used as fallback
     }
 }

@@ -78,26 +78,44 @@ object SolanaChainSpecific : AbstractChainSpecific() {
             val slot = notification.slot
 
             val lastChecked = lastCheckedSlots[upstreamId] ?: 0L
+            val lastHeight = lastKnownHeights[upstreamId]
             val shouldCheckHeight = slot - lastChecked >= HEIGHT_CHECK_INTERVAL
 
-            if (shouldCheckHeight) {
-                // Every N slots, make HTTP call for actual height
+            // Optimistic height estimation: assume 1:1 slot-to-block ratio
+            val estimatedHeight = if (lastHeight != null && lastChecked > 0) {
+                lastHeight + (slot - lastChecked)
+            } else {
+                null
+            }
+
+            if (shouldCheckHeight || estimatedHeight == null) {
+                // Verify actual height
                 api.read(ChainRequest("getBlockHeight", ListParams()))
                     .map { response ->
-                        val blockHeight = response.getResultAsProcessedString().toLong()
-                        lastKnownHeights[upstreamId] = blockHeight
+                        val actualHeight = response.getResultAsProcessedString().toLong()
+
+                        if (estimatedHeight != null && estimatedHeight != actualHeight) {
+                            log.debug(
+                                "Height drift detected for {}: estimated={}, actual={}, diff={}",
+                                upstreamId,
+                                estimatedHeight,
+                                actualHeight,
+                                estimatedHeight - actualHeight,
+                            )
+                        }
+
+                        lastKnownHeights[upstreamId] = actualHeight
                         lastCheckedSlots[upstreamId] = slot
-                        makeBlockFromSlot(slot, notification.parent, blockHeight, upstreamId, data)
+                        makeBlockFromSlot(slot, notification.parent, actualHeight, upstreamId, data)
                     }
                     .onErrorResume { error ->
-                        log.warn("Failed to get block height, using cached value: ${error.message}")
-                        val height = lastKnownHeights[upstreamId] ?: slot
+                        log.warn("Failed to get block height, using estimated value: ${error.message}")
+                        val height = estimatedHeight ?: lastHeight ?: slot
                         Mono.just(makeBlockFromSlot(slot, notification.parent, height, upstreamId, data))
                     }
             } else {
-                // Between checks, use cached height
-                val height = lastKnownHeights[upstreamId] ?: slot
-                Mono.just(makeBlockFromSlot(slot, notification.parent, height, upstreamId, data))
+                // Use optimistic estimated height
+                Mono.just(makeBlockFromSlot(slot, notification.parent, estimatedHeight, upstreamId, data))
             }
         } catch (e: Exception) {
             log.error("Failed to parse slotSubscribe notification", e)
