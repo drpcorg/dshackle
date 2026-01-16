@@ -56,16 +56,15 @@ object SolanaChainSpecific : AbstractChainSpecific() {
     private val lastCheckedSlots = ConcurrentHashMap<String, Long>()
 
     override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
-        return api.read(ChainRequest("getSlot", ListParams()))
-            .flatMap { slotResponse ->
-                val slot = slotResponse.getResultAsProcessedString().toLong()
-                api.read(ChainRequest("getBlockHeight", ListParams()))
-                    .map { heightResponse ->
-                        val blockHeight = heightResponse.getResultAsProcessedString().toLong()
-                        lastKnownHeights[upstreamId] = blockHeight
-                        lastCheckedSlots[upstreamId] = slot
-                        makeBlockFromSlot(slot, slot - 1, blockHeight, upstreamId, ByteArray(0))
-                    }
+        return api.read(ChainRequest("getEpochInfo", ListParams()))
+            .map { response ->
+                val epochInfo = Global.objectMapper.readValue(
+                    response.getResult(),
+                    SolanaEpochInfo::class.java,
+                )
+                lastKnownHeights[upstreamId] = epochInfo.blockHeight
+                lastCheckedSlots[upstreamId] = epochInfo.absoluteSlot
+                makeBlockFromSlot(epochInfo.absoluteSlot, epochInfo.absoluteSlot - 1, epochInfo.blockHeight, upstreamId, ByteArray(0))
             }
             .onErrorResume { error ->
                 log.debug("error during getting latest solana block - ${error.message}")
@@ -199,6 +198,16 @@ data class SolanaSlotNotification(
     @param:JsonProperty("slot") val slot: Long,
     @param:JsonProperty("parent") val parent: Long,
     @param:JsonProperty("root") val root: Long,
+)
+
+// getEpochInfo response format
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SolanaEpochInfo(
+    @param:JsonProperty("absoluteSlot") val absoluteSlot: Long,
+    @param:JsonProperty("blockHeight") val blockHeight: Long,
+    @param:JsonProperty("epoch") val epoch: Long,
+    @param:JsonProperty("slotIndex") val slotIndex: Long,
+    @param:JsonProperty("slotsInEpoch") val slotsInEpoch: Long,
 )
 
 // getBlock response format (used by SolanaLowerBoundSlotDetector)
