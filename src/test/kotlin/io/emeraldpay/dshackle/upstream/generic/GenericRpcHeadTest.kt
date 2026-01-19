@@ -133,7 +133,7 @@ class GenericRpcHeadTest {
             "id",
             BlockValidator.ALWAYS_VALID,
             upstream,
-            Schedulers.boundedElastic(),
+            Schedulers.immediate(),
             EthereumChainSpecific,
             Duration.ofSeconds(5),
         )
