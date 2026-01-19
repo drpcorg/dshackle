@@ -1,39 +1,216 @@
 package io.emeraldpay.dshackle.upstream.solana
 
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.reader.ChainReader
-import org.assertj.core.api.Assertions
+import io.emeraldpay.dshackle.upstream.ChainRequest
+import io.emeraldpay.dshackle.upstream.ChainResponse
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import reactor.core.publisher.Mono
+import java.nio.ByteBuffer
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
-val example = """{
-      "context": {
-        "slot": 112301554
-      },
-      "value": {
-        "slot": 112301554,
-        "block": {
-          "previousBlockhash": "GJp125YAN4ufCSUvZJVdCyWQJ7RPWMmwxoyUQySydZA",
-          "blockhash": "6ojMHjctdqfB55JDpEpqfHnP96fiaHEcvzEQ2NNcxzHP",
-          "parentSlot": 112301553,
-          "blockTime": 1639926816,
-          "blockHeight": 101210751
-        },
-        "err": null
-      }
-    }
-""".trimIndent()
 class SolanaChainSpecificTest {
 
+    @BeforeEach
+    fun setup() {
+        // Clear cache before each test
+        SolanaChainSpecific.clearCache()
+    }
+
+    private fun epochInfoResponse(absoluteSlot: Long, blockHeight: Long): ChainResponse {
+        val json = """{"absoluteSlot": $absoluteSlot, "blockHeight": $blockHeight, "epoch": 100, "slotIndex": 1000, "slotsInEpoch": 432000}"""
+        return ChainResponse(json.toByteArray(), null)
+    }
+
     @Test
-    fun parseBlock() {
-        val reader = mock<ChainReader> {}
+    fun `parseBlock from slotSubscribe notification`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }.thenReturn(
+                Mono.just(epochInfoResponse(112301554, 101210751)),
+            )
+        }
 
-        val result = SolanaChainSpecific.getFromHeader(example.toByteArray(), "1", reader).block()!!
+        val beforeCall = Instant.now()
+        val json = """{"slot": 112301554, "parent": 112301553, "root": 112301500}"""
+        val result = SolanaChainSpecific.getFromHeader(json.toByteArray(), "upstream-1", reader).block()!!
+        val afterCall = Instant.now()
 
-        Assertions.assertThat(result.height).isEqualTo(101210751)
-        Assertions.assertThat(result.hash).isEqualTo(BlockId.fromBase64("6ojMHjctdqfB55JDpEpqfHnP96fiaHEcvzEQ2NNcxzHP"))
-        Assertions.assertThat(result.upstreamId).isEqualTo("1")
-        Assertions.assertThat(result.parentHash).isEqualTo(BlockId.fromBase64("GJp125YAN4ufCSUvZJVdCyWQJ7RPWMmwxoyUQySydZA"))
+        // Uses actual data from getEpochInfo
+        assertThat(result.slot).isEqualTo(112301554)
+        assertThat(result.height).isEqualTo(101210751)
+        assertThat(result.upstreamId).isEqualTo("upstream-1")
+
+        // Synthetic hash based on actualSlot from getEpochInfo
+        val expectedHash = BlockId.from(ByteBuffer.allocate(32).putLong(112301554).array())
+        assertThat(result.hash).isEqualTo(expectedHash)
+
+        // Synthetic parent hash based on actualSlot - 1
+        val expectedParentHash = BlockId.from(ByteBuffer.allocate(32).putLong(112301553).array())
+        assertThat(result.parentHash).isEqualTo(expectedParentHash)
+
+        // Timestamp is synthetic (Instant.now() at call time)
+        assertThat(result.timestamp).isBetween(beforeCall, afterCall.plus(1, ChronoUnit.SECONDS))
+    }
+
+    @Test
+    fun `listenNewHeadsRequest returns slotSubscribe`() {
+        val request = SolanaChainSpecific.listenNewHeadsRequest()
+
+        assertThat(request.method).isEqualTo("slotSubscribe")
+    }
+
+    @Test
+    fun `unsubscribeNewHeadsRequest returns slotUnsubscribe`() {
+        val request = SolanaChainSpecific.unsubscribeNewHeadsRequest("sub-123")
+
+        assertThat(request.method).isEqualTo("slotUnsubscribe")
+    }
+
+    @Test
+    fun `throttle HTTP calls every 5 slots`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }.thenReturn(
+                Mono.just(epochInfoResponse(100, 100000000)),
+            )
+        }
+
+        // First slot - should trigger HTTP call (no cache)
+        val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
+        SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()
+
+        // Next 4 slots - should use cached height (within interval of 5)
+        for (i in 101..104) {
+            val slotN = """{"slot": $i, "parent": ${i - 1}, "root": 50}"""
+            SolanaChainSpecific.getFromHeader(slotN.toByteArray(), "upstream-1", reader).block()
+        }
+
+        // Only 1 HTTP call so far
+        verify(reader, times(1)).read(any<ChainRequest>())
+
+        // Slot 105 - should trigger new HTTP call (interval reached)
+        val slot105 = """{"slot": 105, "parent": 104, "root": 50}"""
+        SolanaChainSpecific.getFromHeader(slot105.toByteArray(), "upstream-1", reader).block()
+
+        // Now 2 HTTP calls
+        verify(reader, times(2)).read(any<ChainRequest>())
+    }
+
+    @Test
+    fun `synthetic hash is deterministic based on slot`() {
+        val slot = 12345L
+        val hash1 = BlockId.from(ByteBuffer.allocate(32).putLong(slot).array())
+        val hash2 = BlockId.from(ByteBuffer.allocate(32).putLong(slot).array())
+
+        assertThat(hash1).isEqualTo(hash2)
+
+        val differentSlot = 12346L
+        val hash3 = BlockId.from(ByteBuffer.allocate(32).putLong(differentSlot).array())
+
+        assertThat(hash1).isNotEqualTo(hash3)
+    }
+
+    @Test
+    fun `SolanaSlotNotification parses correctly`() {
+        val json = """{"slot": 123456, "parent": 123455, "root": 123400}"""
+        val notification = Global.objectMapper.readValue(json, SolanaSlotNotification::class.java)
+
+        assertThat(notification.slot).isEqualTo(123456)
+        assertThat(notification.parent).isEqualTo(123455)
+        assertThat(notification.root).isEqualTo(123400)
+    }
+
+    @Test
+    fun `uses slot as height when cache is empty and no HTTP call`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }.thenReturn(Mono.error(RuntimeException("Network error")))
+        }
+
+        // First slot with HTTP error - should fallback to slot as height
+        val json = """{"slot": 112301554, "parent": 112301553, "root": 112301500}"""
+        val result = SolanaChainSpecific.getFromHeader(json.toByteArray(), "upstream-1", reader).block()!!
+
+        assertThat(result.slot).isEqualTo(112301554)
+        // When cache empty and HTTP fails, uses slot as height
+        assertThat(result.height).isEqualTo(112301554)
+    }
+
+    @Test
+    fun `uses optimistic estimated height between throttle intervals`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }.thenReturn(
+                Mono.just(epochInfoResponse(100, 100000000)),
+            )
+        }
+
+        // First call sets cache at slot 100 with height 100000000
+        val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
+        val result1 = SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()!!
+        assertThat(result1.height).isEqualTo(100000000)
+
+        // Second call uses optimistic estimated height: 100000000 + (101 - 100) = 100000001
+        val slot2 = """{"slot": 101, "parent": 100, "root": 50}"""
+        val result2 = SolanaChainSpecific.getFromHeader(slot2.toByteArray(), "upstream-1", reader).block()!!
+
+        assertThat(result2.slot).isEqualTo(101)
+        assertThat(result2.height).isEqualTo(100000001) // optimistic estimated height
+
+        // Third call: 100000000 + (103 - 100) = 100000003
+        val slot3 = """{"slot": 103, "parent": 102, "root": 50}"""
+        val result3 = SolanaChainSpecific.getFromHeader(slot3.toByteArray(), "upstream-1", reader).block()!!
+
+        assertThat(result3.slot).isEqualTo(103)
+        assertThat(result3.height).isEqualTo(100000003) // optimistic estimated height
+    }
+
+    @Test
+    fun `height estimation resets after RPC check`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }
+                .thenReturn(Mono.just(epochInfoResponse(100, 100000000)))
+                .thenReturn(Mono.just(epochInfoResponse(105, 100000004)))
+        }
+
+        // First call at slot 100 - sets cache with height 100000000
+        val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
+        SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()
+
+        // Slot 105 triggers RPC check - gets actual slot 105 and height 100000004 (1 slot was skipped)
+        val slot105 = """{"slot": 105, "parent": 104, "root": 50}"""
+        val result105 = SolanaChainSpecific.getFromHeader(slot105.toByteArray(), "upstream-1", reader).block()!!
+        assertThat(result105.slot).isEqualTo(105)
+        assertThat(result105.height).isEqualTo(100000004)
+
+        // Slot 107 uses new baseline: 100000004 + (107 - 105) = 100000006
+        val slot107 = """{"slot": 107, "parent": 106, "root": 50}"""
+        val result107 = SolanaChainSpecific.getFromHeader(slot107.toByteArray(), "upstream-1", reader).block()!!
+        assertThat(result107.height).isEqualTo(100000006)
+    }
+
+    @Test
+    fun `uses estimated height on RPC error when estimation available`() {
+        val reader = mock<ChainReader> {
+            on { read(any<ChainRequest>()) }
+                .thenReturn(Mono.just(epochInfoResponse(100, 100000000)))
+                .thenReturn(Mono.error(RuntimeException("Network error")))
+        }
+
+        // First call succeeds at slot 100
+        val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
+        SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()
+
+        // Slot 105 triggers RPC check but fails - should use estimated height: 100000000 + (105 - 100) = 100000005
+        val slot105 = """{"slot": 105, "parent": 104, "root": 50}"""
+        val result = SolanaChainSpecific.getFromHeader(slot105.toByteArray(), "upstream-1", reader).block()!!
+
+        assertThat(result.slot).isEqualTo(105)
+        assertThat(result.height).isEqualTo(100000005) // estimated height used as fallback
     }
 }
