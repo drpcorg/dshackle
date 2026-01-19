@@ -25,11 +25,16 @@ class SolanaChainSpecificTest {
         SolanaChainSpecific.clearCache()
     }
 
+    private fun epochInfoResponse(absoluteSlot: Long, blockHeight: Long): ChainResponse {
+        val json = """{"absoluteSlot": $absoluteSlot, "blockHeight": $blockHeight, "epoch": 100, "slotIndex": 1000, "slotsInEpoch": 432000}"""
+        return ChainResponse(json.toByteArray(), null)
+    }
+
     @Test
     fun `parseBlock from slotSubscribe notification`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
-                Mono.just(ChainResponse("101210751".toByteArray(), null)),
+                Mono.just(epochInfoResponse(112301554, 101210751)),
             )
         }
 
@@ -38,15 +43,16 @@ class SolanaChainSpecificTest {
         val result = SolanaChainSpecific.getFromHeader(json.toByteArray(), "upstream-1", reader).block()!!
         val afterCall = Instant.now()
 
+        // Uses actual data from getEpochInfo
         assertThat(result.slot).isEqualTo(112301554)
         assertThat(result.height).isEqualTo(101210751)
         assertThat(result.upstreamId).isEqualTo("upstream-1")
 
-        // Synthetic hash based on slot
+        // Synthetic hash based on actualSlot from getEpochInfo
         val expectedHash = BlockId.from(ByteBuffer.allocate(32).putLong(112301554).array())
         assertThat(result.hash).isEqualTo(expectedHash)
 
-        // Synthetic parent hash based on parent slot
+        // Synthetic parent hash based on actualSlot - 1
         val expectedParentHash = BlockId.from(ByteBuffer.allocate(32).putLong(112301553).array())
         assertThat(result.parentHash).isEqualTo(expectedParentHash)
 
@@ -72,7 +78,7 @@ class SolanaChainSpecificTest {
     fun `throttle HTTP calls every 5 slots`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
-                Mono.just(ChainResponse("100000000".toByteArray(), null)),
+                Mono.just(epochInfoResponse(100, 100000000)),
             )
         }
 
@@ -140,7 +146,7 @@ class SolanaChainSpecificTest {
     fun `uses optimistic estimated height between throttle intervals`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }.thenReturn(
-                Mono.just(ChainResponse("100000000".toByteArray(), null)),
+                Mono.just(epochInfoResponse(100, 100000000)),
             )
         }
 
@@ -168,17 +174,18 @@ class SolanaChainSpecificTest {
     fun `height estimation resets after RPC check`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }
-                .thenReturn(Mono.just(ChainResponse("100000000".toByteArray(), null)))
-                .thenReturn(Mono.just(ChainResponse("100000004".toByteArray(), null)))
+                .thenReturn(Mono.just(epochInfoResponse(100, 100000000)))
+                .thenReturn(Mono.just(epochInfoResponse(105, 100000004)))
         }
 
         // First call at slot 100 - sets cache with height 100000000
         val slot1 = """{"slot": 100, "parent": 99, "root": 50}"""
         SolanaChainSpecific.getFromHeader(slot1.toByteArray(), "upstream-1", reader).block()
 
-        // Slot 105 triggers RPC check - gets actual height 100000004 (1 slot was skipped)
+        // Slot 105 triggers RPC check - gets actual slot 105 and height 100000004 (1 slot was skipped)
         val slot105 = """{"slot": 105, "parent": 104, "root": 50}"""
         val result105 = SolanaChainSpecific.getFromHeader(slot105.toByteArray(), "upstream-1", reader).block()!!
+        assertThat(result105.slot).isEqualTo(105)
         assertThat(result105.height).isEqualTo(100000004)
 
         // Slot 107 uses new baseline: 100000004 + (107 - 105) = 100000006
@@ -191,7 +198,7 @@ class SolanaChainSpecificTest {
     fun `uses estimated height on RPC error when estimation available`() {
         val reader = mock<ChainReader> {
             on { read(any<ChainRequest>()) }
-                .thenReturn(Mono.just(ChainResponse("100000000".toByteArray(), null)))
+                .thenReturn(Mono.just(epochInfoResponse(100, 100000000)))
                 .thenReturn(Mono.error(RuntimeException("Network error")))
         }
 

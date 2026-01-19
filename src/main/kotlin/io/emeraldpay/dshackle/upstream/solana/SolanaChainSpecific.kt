@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
  * - ~50 bytes per notification vs ~1KB for blockSubscribe
  * - Stable API (no special node flags required)
  * - Universal provider support
- * - Throttled getBlockHeight calls (every N slots) to get actual block height
+ * - Throttled getEpochInfo calls (every N slots) to get actual slot and block height
  * - Synthetic hash based on slot for ForkChoice deduplication
  */
 object SolanaChainSpecific : AbstractChainSpecific() {
@@ -89,10 +89,15 @@ object SolanaChainSpecific : AbstractChainSpecific() {
             }
 
             if (shouldCheckHeight || estimatedHeight == null) {
-                // Verify actual height
-                api.read(ChainRequest("getBlockHeight", ListParams()))
+                // Verify actual height using getEpochInfo (single call for both slot and height)
+                api.read(ChainRequest("getEpochInfo", ListParams()))
                     .map { response ->
-                        val actualHeight = response.getResultAsProcessedString().toLong()
+                        val epochInfo = Global.objectMapper.readValue(
+                            response.getResult(),
+                            SolanaEpochInfo::class.java,
+                        )
+                        val actualSlot = epochInfo.absoluteSlot
+                        val actualHeight = epochInfo.blockHeight
 
                         if (estimatedHeight != null && estimatedHeight != actualHeight) {
                             log.debug(
@@ -105,8 +110,8 @@ object SolanaChainSpecific : AbstractChainSpecific() {
                         }
 
                         lastKnownHeights[upstreamId] = actualHeight
-                        lastCheckedSlots[upstreamId] = slot
-                        makeBlockFromSlot(slot, notification.parent, actualHeight, upstreamId, data)
+                        lastCheckedSlots[upstreamId] = actualSlot
+                        makeBlockFromSlot(actualSlot, actualSlot - 1, actualHeight, upstreamId, data)
                     }
                     .onErrorResume { error ->
                         log.warn("Failed to get block height, using estimated value: ${error.message}")
