@@ -80,10 +80,12 @@ class BeaconChainLowerBoundEpochDetector(
 
     private fun parseHeadersResponse(data: ByteArray): ChainResponse {
         val node = Global.objectMapper.readValue<JsonNode>(data)
-        if (node.get("code") != null && node.get("message") != null && node.get("code").textValue() == "404") {
-            return ChainResponse(null, ChainCallError(node.get("code").asInt(), node.get("message").asText(), node.get("message").asText()))
+        val codeNode = node.get("code")
+        val messageNode = node.get("message")
+        val is404 = codeNode != null && (codeNode.asInt() == 404 || codeNode.asText() == "404")
+        if (is404 && messageNode != null) {
+            return ChainResponse(null, ChainCallError(404, messageNode.asText(), messageNode.asText()))
         }
-
         val jsonData = node.get("data")
         if (jsonData != null) {
             val str = jsonData.toString()
