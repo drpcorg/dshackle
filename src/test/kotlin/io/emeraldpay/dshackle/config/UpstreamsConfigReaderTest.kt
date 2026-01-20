@@ -51,9 +51,9 @@ class UpstreamsConfigReaderTest {
                     LowerBoundType.STATE to 245,
                     LowerBoundType.TX to 44,
                     LowerBoundType.RECEIPTS to 673,
-                )
+                ),
             ),
-            upstream.additionalSettings
+            upstream.additionalSettings,
         )
     }
 
