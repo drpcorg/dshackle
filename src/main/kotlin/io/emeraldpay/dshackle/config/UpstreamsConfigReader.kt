@@ -20,6 +20,7 @@ import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
 import io.emeraldpay.dshackle.foundation.YamlConfigReader
+import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.nodes.MappingNode
@@ -287,6 +288,7 @@ class UpstreamsConfigReader(
         upstream.options = optionsReader.read(upNode)
         upstream.methods = tryReadMethods(upNode)
         upstream.methodGroups = tryReadMethodGroups(upNode)
+        upstream.additionalSettings = readAdditionalSettings(upNode)
         getValueAsBool(upNode, "enabled")?.let {
             upstream.isEnabled = it
         }
@@ -309,6 +311,25 @@ class UpstreamsConfigReader(
                 upstream.customHeaders = headersMap
             }
         }
+    }
+
+    private fun readAdditionalSettings(upNode: MappingNode): UpstreamsConfig.AdditionalSettings? {
+        return getMapping(upNode, "additional-settings")
+            ?.let { settings ->
+                val manualLowerBounds = getMapping(settings, "manual-lower-bounds")
+                    ?.let { bounds ->
+                        bounds.value
+                            .filter {
+                                StringUtils.isNotBlank(it.keyNode.valueAsString()) &&
+                                    StringUtils.isNumeric(it.valueNode.valueAsString())
+                            }
+                            .map {
+                                LowerBoundType.byName(it.keyNode.valueAsString()!!) to it.valueNode.valueAsString()!!.toLong()
+                            }
+                            .associate { it.first to it.second }
+                    } ?: emptyMap()
+                UpstreamsConfig.AdditionalSettings(manualLowerBounds)
+            }
     }
 
     private fun readUpstreamGrpc(

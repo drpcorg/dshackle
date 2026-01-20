@@ -2,6 +2,7 @@ package io.emeraldpay.dshackle.config
 
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
+import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -9,6 +10,52 @@ import org.junit.jupiter.api.Test
 import java.io.File
 
 class UpstreamsConfigReaderTest {
+
+    @Test
+    fun `should parse additional settings with lower bounds`() {
+        val yaml = """
+            version: v1
+            upstreams:
+              - id: test-upstream
+                chain: ethereum
+                additional-settings:
+                  manual-lower-bounds:
+                    slot: 5958
+                    block: 1234234
+                    state: 245
+                    tx: 44
+                    receipts: 673
+                connection:
+                  ethereum:
+                    rpc:
+                      url: "http://localhost:8545"
+        """.trimIndent()
+
+        val reader = UpstreamsConfigReader(
+            FileResolver(File(".")),
+            ChainOptionsReader(),
+        )
+
+        val config = reader.readInternal(yaml.byteInputStream())
+
+        assertNotNull(config)
+        assertEquals(1, config.upstreams.size)
+
+        val upstream = config.upstreams[0]
+        assertEquals("test-upstream", upstream.id)
+        assertEquals(
+            UpstreamsConfig.AdditionalSettings(
+                mapOf(
+                    LowerBoundType.SLOT to 5958,
+                    LowerBoundType.BLOCK to 1234234,
+                    LowerBoundType.STATE to 245,
+                    LowerBoundType.TX to 44,
+                    LowerBoundType.RECEIPTS to 673,
+                )
+            ),
+            upstream.additionalSettings
+        )
+    }
 
     @Test
     fun `should parse customHeaders from YAML`() {

@@ -43,6 +43,20 @@ class EthereumStateLowerBoundErrorHandlerTest {
     }
 
     @Test
+    fun `no update lower bound if execution reverted`() {
+        val upstream = mock<Upstream>()
+        val request = ChainRequest(
+            "eth_call",
+            ListParams("0x343", "0xCB5A0A8"),
+        )
+        val handler = EthereumStateLowerBoundErrorHandler
+
+        handler.handle(upstream, request, "execution reverted: Fallback not supported")
+
+        verify(upstream, never()).updateLowerBound(anyLong(), any())
+    }
+
+    @Test
     fun `no update lower bound if there is a non-state method`() {
         val upstream = mock<Upstream>()
         val request = ChainRequest(

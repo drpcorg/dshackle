@@ -13,7 +13,7 @@ class StarknetLowerBoundStateDetectorTest {
     fun `starknet lower block is 1`() {
         val detector = StarknetLowerBoundStateDetector(Chain.STARKNET__MAINNET)
 
-        StepVerifier.withVirtualTime { detector.detectLowerBound() }
+        StepVerifier.withVirtualTime { detector.detectLowerBound(emptyMap()) }
             .expectSubscription()
             .expectNoEvent(Duration.ofSeconds(15))
             .expectNext(LowerBoundData(1, LowerBoundType.STATE))

@@ -172,6 +172,10 @@ abstract class DefaultUpstream(
         return 0
     }
 
+    override fun getAdditionalSettings(): UpstreamsConfig.AdditionalSettings? {
+        return null
+    }
+
     protected fun sendUpstreamStateEvent(eventType: UpstreamChangeEvent.ChangeType) {
         stateEventStream.emitNext(
             UpstreamChangeEvent(chain, this, eventType),

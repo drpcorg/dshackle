@@ -56,6 +56,7 @@ interface Upstream : Lifecycle {
     fun getUpstreamSettingsData(): UpstreamSettingsData?
     fun updateLowerBound(lowerBound: Long, type: LowerBoundType)
     fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long
+    fun getAdditionalSettings(): UpstreamsConfig.AdditionalSettings?
 
     fun getChain(): Chain
 

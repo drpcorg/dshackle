@@ -18,7 +18,7 @@ abstract class LowerBoundDetector(
     protected val lowerBounds = LowerBounds(chain)
     private val lowerBoundSink = Sinks.many().multicast().directBestEffort<LowerBoundData>()
 
-    fun detectLowerBound(): Flux<LowerBoundData> {
+    fun detectLowerBound(manualBounds: Map<LowerBoundType, Long>): Flux<LowerBoundData> {
         val notProcessing = AtomicBoolean(true)
 
         return Flux.merge(
@@ -29,11 +29,23 @@ abstract class LowerBoundDetector(
             )
                 .filter { notProcessing.get() }
                 .flatMap {
-                    notProcessing.set(false)
-                    internalDetectLowerBound()
-                        .onErrorResume { Mono.just(LowerBoundData.default()) }
-                        .switchIfEmpty(Flux.just(LowerBoundData.default()))
-                        .doFinally { notProcessing.set(true) }
+                    if (types().size == 1 && manualBounds.containsKey(types().first())) {
+                        Flux.just(
+                            LowerBoundData(manualBounds[types().first()]!!, types().first()),
+                        )
+                    } else {
+                        notProcessing.set(false)
+                        Flux.merge(
+                            internalDetectLowerBound()
+                                .filter { !manualBounds.containsKey(it.type) }
+                                .onErrorResume { Mono.just(LowerBoundData.default()) }
+                                .switchIfEmpty(Flux.just(LowerBoundData.default()))
+                                .doFinally { notProcessing.set(true) },
+                            Flux.fromIterable(manualBounds.entries)
+                                .filter { types().contains(it.key) }
+                                .map { LowerBoundData(it.value, it.key) },
+                        )
+                    }
                 },
         )
             .filter {

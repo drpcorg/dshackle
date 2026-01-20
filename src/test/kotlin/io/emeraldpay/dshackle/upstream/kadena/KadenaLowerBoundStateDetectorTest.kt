@@ -13,7 +13,7 @@ class KadenaLowerBoundStateDetectorTest {
     fun `kadena lower block is 1`() {
         val detector = KadenaLowerBoundStateDetector(Chain.KADENA__MAINNET)
 
-        StepVerifier.withVirtualTime { detector.detectLowerBound() }
+        StepVerifier.withVirtualTime { detector.detectLowerBound(emptyMap()) }
             .expectSubscription()
             .expectNoEvent(Duration.ofSeconds(15))
             .expectNext(LowerBoundData(1, LowerBoundType.STATE))

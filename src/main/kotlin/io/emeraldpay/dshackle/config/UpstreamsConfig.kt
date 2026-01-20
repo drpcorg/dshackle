@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.upstream.generic.connectors.GenericConnectorFactory.ConnectorMode
+import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import java.net.URI
 import java.util.Arrays
 import java.util.Locale
@@ -42,6 +43,7 @@ data class UpstreamsConfig(
         var methodGroups: MethodGroups? = null,
         var role: UpstreamRole = UpstreamRole.PRIMARY,
         var customHeaders: Map<String, String> = emptyMap(),
+        var additionalSettings: AdditionalSettings? = null,
     ) {
 
         @Suppress("UNCHECKED_CAST")
@@ -187,6 +189,10 @@ data class UpstreamsConfig(
             }
         }
     }
+
+    data class AdditionalSettings(
+        val manualLowerBounds: Map<LowerBoundType, Long>,
+    )
 
     data class Methods(
         val enabled: Set<Method>,

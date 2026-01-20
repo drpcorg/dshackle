@@ -64,6 +64,7 @@ open class GenericUpstream(
     lowerBoundServiceBuilder: LowerBoundServiceBuilder,
     finalizationDetectorBuilder: FinalizationDetectorBuilder,
     versionRules: Supplier<CompatibleVersionsRules?>,
+    private val additionalSettings: UpstreamsConfig.AdditionalSettings?,
 ) : DefaultUpstream(id, hash, null, UpstreamAvailability.OK, options, role, targets, node, chainConfig, chain),
     Lifecycle {
     constructor(
@@ -96,6 +97,7 @@ open class GenericUpstream(
         lowerBoundServiceBuilder,
         finalizationDetectorBuilder,
         versionRules,
+        config.additionalSettings,
     ) {
         rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this, config)
         detectRpcMethods(config, buildMethods)
@@ -441,6 +443,10 @@ open class GenericUpstream(
 
     override fun predictLowerBound(type: LowerBoundType, timeOffsetSeconds: Long): Long {
         return lowerBoundService.predictLowerBound(type, timeOffsetSeconds)
+    }
+
+    override fun getAdditionalSettings(): UpstreamsConfig.AdditionalSettings? {
+        return additionalSettings
     }
 
     fun isValid(): Boolean = isUpstreamValid.get()
