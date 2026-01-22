@@ -18,7 +18,7 @@ abstract class LowerBoundDetector(
     protected val lowerBounds = LowerBounds(chain)
     private val lowerBoundSink = Sinks.many().multicast().directBestEffort<LowerBoundData>()
 
-    fun detectLowerBound(manualBounds: Map<LowerBoundType, Long>): Flux<LowerBoundData> {
+    fun detectLowerBound(manualBoundsService: ManualLowerBoundService): Flux<LowerBoundData> {
         val notProcessing = AtomicBoolean(true)
 
         return Flux.merge(
@@ -29,21 +29,19 @@ abstract class LowerBoundDetector(
             )
                 .filter { notProcessing.get() }
                 .flatMap {
-                    if (types().size == 1 && manualBounds.containsKey(types().first())) {
-                        Flux.just(
-                            LowerBoundData(manualBounds[types().first()]!!, types().first()),
-                        )
+                    if (types() == manualBoundsService.manualBoundTypes()) {
+                        Flux.fromIterable(types())
+                            .mapNotNull { manualBoundsService.manualLowerBound(it) }
                     } else {
                         notProcessing.set(false)
                         Flux.merge(
                             internalDetectLowerBound()
-                                .filter { !manualBounds.containsKey(it.type) }
+                                .filter { !manualBoundsService.hasManualBound(it.type) }
                                 .onErrorResume { Mono.just(LowerBoundData.default()) }
                                 .switchIfEmpty(Flux.just(LowerBoundData.default()))
                                 .doFinally { notProcessing.set(true) },
-                            Flux.fromIterable(manualBounds.entries)
-                                .filter { types().contains(it.key) }
-                                .map { LowerBoundData(it.value, it.key) },
+                            Flux.fromIterable(types())
+                                .mapNotNull { manualBoundsService.manualLowerBound(it) },
                         )
                     }
                 },

@@ -3,6 +3,7 @@ package io.emeraldpay.dshackle.config
 import io.emeraldpay.dshackle.FileResolver
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.emeraldpay.dshackle.upstream.lowerbound.ManualLowerBoundType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -20,11 +21,21 @@ class UpstreamsConfigReaderTest {
                 chain: ethereum
                 additional-settings:
                   manual-lower-bounds:
-                    slot: 5958
-                    block: 1234234
-                    state: 245
-                    tx: 44
-                    receipts: 673
+                    state:
+                      type: head
+                      value: -5000000
+                    block:
+                      type: fixed
+                      value: 1   
+                    tx:
+                      type: fixed
+                      value: 123  
+                    receipts:
+                      type: fixed
+                      value: 15661
+                    slot:
+                      type: head
+                      value: -34566  
                 connection:
                   ethereum:
                     rpc:
@@ -46,11 +57,11 @@ class UpstreamsConfigReaderTest {
         assertEquals(
             UpstreamsConfig.AdditionalSettings(
                 mapOf(
-                    LowerBoundType.SLOT to 5958,
-                    LowerBoundType.BLOCK to 1234234,
-                    LowerBoundType.STATE to 245,
-                    LowerBoundType.TX to 44,
-                    LowerBoundType.RECEIPTS to 673,
+                    LowerBoundType.SLOT to UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.HEAD, -34566),
+                    LowerBoundType.RECEIPTS to UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.FIXED, 15661),
+                    LowerBoundType.TX to UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.FIXED, 123),
+                    LowerBoundType.BLOCK to UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.FIXED, 1),
+                    LowerBoundType.STATE to UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.HEAD, -5000000),
                 ),
             ),
             upstream.additionalSettings,

@@ -16,11 +16,14 @@ abstract class LowerBoundService(
 
     private val lowerBounds = ConcurrentHashMap<LowerBoundType, LowerBoundData>()
     private val detectors: List<LowerBoundDetector> by lazy { detectors() }
-    private val manualBounds = upstream.getAdditionalSettings()?.manualLowerBounds ?: emptyMap()
+    private val manualBoundsService = BaseManualLowerBoundService(
+        upstream,
+        upstream.getAdditionalSettings()?.manualLowerBounds ?: emptyMap(),
+    )
 
     fun detectLowerBounds(): Flux<LowerBoundData> {
         return Flux.merge(
-            detectors.map { it.detectLowerBound(manualBounds) },
+            detectors.map { it.detectLowerBound(manualBoundsService) },
         )
             .doOnNext {
                 log.info("Lower bound of type ${it.type} is ${it.lowerBound} for upstream ${upstream.getId()} of chain $chain")

@@ -29,6 +29,16 @@ enum class LowerBoundType {
     }
 }
 
+enum class ManualLowerBoundType {
+    HEAD, FIXED;
+
+    companion object {
+        fun byName(name: String): ManualLowerBoundType? {
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        }
+    }
+}
+
 fun BlockchainOuterClass.LowerBoundType.fromProtoType(): LowerBoundType {
     return when (this) {
         BlockchainOuterClass.LowerBoundType.LOWER_BOUND_SLOT -> LowerBoundType.SLOT

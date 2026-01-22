@@ -9,6 +9,7 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.emeraldpay.dshackle.upstream.lowerbound.ManualLowerBoundType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -111,10 +112,15 @@ class SolanaLowerBoundServiceTest {
                 ),
             )
         }
+        val settings = UpstreamsConfig.AdditionalSettings(
+            mapOf(
+                LowerBoundType.SLOT to UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.FIXED, 54L),
+            ),
+        )
         val upstream = mock<Upstream> {
             on { getIngressReader() } doReturn reader
             on { getChain() } doReturn Chain.UNSPECIFIED
-            on { getAdditionalSettings() } doReturn UpstreamsConfig.AdditionalSettings(mapOf(LowerBoundType.SLOT to 54))
+            on { getAdditionalSettings() } doReturn settings
         }
 
         val detector = SolanaLowerBoundService(Chain.UNSPECIFIED, upstream)
