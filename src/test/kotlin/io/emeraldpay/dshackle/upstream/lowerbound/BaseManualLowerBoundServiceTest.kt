@@ -170,7 +170,7 @@ class BaseManualLowerBoundServiceTest {
                     },
                     UpstreamsConfig.ManualBoundSetting(ManualLowerBoundType.HEAD, -100),
                     true,
-                )
+                ),
             )
     }
 }

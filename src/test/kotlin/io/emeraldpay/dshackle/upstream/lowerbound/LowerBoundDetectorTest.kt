@@ -28,7 +28,7 @@ class LowerBoundDetectorTest {
                 setOf(
                     LowerBoundData(50L, 1000, LowerBoundType.STATE),
                     LowerBoundData(80L, 1000, LowerBoundType.BLOCK),
-                )
+                ),
             )
             .thenCancel()
             .verify(Duration.ofSeconds(3))
@@ -52,7 +52,7 @@ class LowerBoundDetectorTest {
                 setOf(
                     LowerBoundData(5000L, 1000, LowerBoundType.BLOCK),
                     LowerBoundData(50L, 1000, LowerBoundType.STATE),
-                )
+                ),
             )
             .thenCancel()
             .verify(Duration.ofSeconds(3))
@@ -70,7 +70,7 @@ class LowerBoundDetectorTest {
                 setOf(
                     LowerBoundData(1000L, 1000, LowerBoundType.STATE),
                     LowerBoundData(5000L, 1000, LowerBoundType.BLOCK),
-                )
+                ),
             )
             .thenCancel()
             .verify(Duration.ofSeconds(3))
