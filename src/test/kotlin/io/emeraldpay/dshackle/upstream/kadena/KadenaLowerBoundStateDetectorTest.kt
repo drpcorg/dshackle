@@ -3,6 +3,7 @@ package io.emeraldpay.dshackle.upstream.kadena
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.emeraldpay.dshackle.upstream.lowerbound.NoopManualLowerBoundService
 import org.junit.jupiter.api.Test
 import reactor.test.StepVerifier
 import java.time.Duration
@@ -13,7 +14,7 @@ class KadenaLowerBoundStateDetectorTest {
     fun `kadena lower block is 1`() {
         val detector = KadenaLowerBoundStateDetector(Chain.KADENA__MAINNET)
 
-        StepVerifier.withVirtualTime { detector.detectLowerBound() }
+        StepVerifier.withVirtualTime { detector.detectLowerBound(NoopManualLowerBoundService()) }
             .expectSubscription()
             .expectNoEvent(Duration.ofSeconds(15))
             .expectNext(LowerBoundData(1, LowerBoundType.STATE))

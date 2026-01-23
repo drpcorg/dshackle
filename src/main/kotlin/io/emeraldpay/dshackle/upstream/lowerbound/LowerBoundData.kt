@@ -20,7 +20,23 @@ data class LowerBoundData(
 }
 
 enum class LowerBoundType {
-    UNKNOWN, STATE, SLOT, BLOCK, TX, LOGS, TRACE, PROOF, BLOB, EPOCH, RECEIPTS
+    UNKNOWN, STATE, SLOT, BLOCK, TX, LOGS, TRACE, PROOF, BLOB, EPOCH, RECEIPTS;
+
+    companion object {
+        fun byName(name: String): LowerBoundType {
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: UNKNOWN
+        }
+    }
+}
+
+enum class ManualLowerBoundType {
+    HEAD, FIXED;
+
+    companion object {
+        fun byName(name: String): ManualLowerBoundType? {
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+        }
+    }
 }
 
 fun BlockchainOuterClass.LowerBoundType.fromProtoType(): LowerBoundType {

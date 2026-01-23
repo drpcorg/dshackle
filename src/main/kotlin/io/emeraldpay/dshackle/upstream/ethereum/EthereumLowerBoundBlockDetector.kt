@@ -29,6 +29,7 @@ class EthereumLowerBoundBlockDetector(
             "Unexpected error", // hyperliquid
             "invalid block height", // hyperliquid
             "pruned history unavailable", // xlayer
+            "no transactions snapshot file for",
         )
     }
 

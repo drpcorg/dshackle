@@ -21,7 +21,9 @@ object EthereumStateLowerBoundErrorHandler : EthereumLowerBoundErrorHandler() {
     private val applicableMethods = firstTagIndexMethods + secondTagIndexMethods
 
     override fun canHandle(request: ChainRequest, errorMessage: String?): Boolean {
-        return stateErrors.any { errorMessage?.contains(it) ?: false } && applicableMethods.contains(request.method)
+        return !(errorMessage?.contains("execution reverted") ?: false) &&
+            stateErrors.any { errorMessage?.contains(it) ?: false } &&
+            applicableMethods.contains(request.method)
     }
 
     override fun tagIndex(method: String): Int {

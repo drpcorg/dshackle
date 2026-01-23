@@ -17,12 +17,16 @@
 package io.emeraldpay.dshackle.config
 
 import io.emeraldpay.dshackle.FileResolver
+import io.emeraldpay.dshackle.config.UpstreamsConfig.ManualBoundSetting
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
 import io.emeraldpay.dshackle.foundation.YamlConfigReader
+import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
+import io.emeraldpay.dshackle.upstream.lowerbound.ManualLowerBoundType
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.yaml.snakeyaml.nodes.MappingNode
+import org.yaml.snakeyaml.nodes.Tag
 import java.io.InputStream
 import java.net.URI
 import java.util.Locale
@@ -287,6 +291,7 @@ class UpstreamsConfigReader(
         upstream.options = optionsReader.read(upNode)
         upstream.methods = tryReadMethods(upNode)
         upstream.methodGroups = tryReadMethodGroups(upNode)
+        upstream.additionalSettings = readAdditionalSettings(upNode)
         getValueAsBool(upNode, "enabled")?.let {
             upstream.isEnabled = it
         }
@@ -309,6 +314,38 @@ class UpstreamsConfigReader(
                 upstream.customHeaders = headersMap
             }
         }
+    }
+
+    private fun readAdditionalSettings(upNode: MappingNode): UpstreamsConfig.AdditionalSettings? {
+        return getMapping(upNode, "additional-settings")
+            ?.let { settings ->
+                val manualLowerBounds = getMapping(settings, "manual-lower-bounds")
+                    ?.let { bounds ->
+                        bounds.value.asSequence()
+                            .filter {
+                                StringUtils.isNotBlank(it.keyNode.valueAsString()) && it.valueNode.tag == Tag.MAP
+                            }
+                            .map {
+                                val setting = readManualBoundSetting(it.valueNode as MappingNode)
+
+                                if (setting != null) {
+                                    LowerBoundType.byName(it.keyNode.valueAsString()!!) to setting
+                                } else {
+                                    null
+                                }
+                            }
+                            .filterNotNull()
+                            .associate { it.first to it.second }
+                    } ?: emptyMap()
+                UpstreamsConfig.AdditionalSettings(manualLowerBounds)
+            }
+    }
+
+    private fun readManualBoundSetting(node: MappingNode): ManualBoundSetting? {
+        val type = getValueAsString(node, "type")
+            ?.let { ManualLowerBoundType.byName(it) } ?: return null
+        val value = getValueAsLong(node, "value") ?: return null
+        return ManualBoundSetting(type, value)
     }
 
     private fun readUpstreamGrpc(

@@ -261,6 +261,10 @@ abstract class Multistream(
         return 0
     }
 
+    override fun getAdditionalSettings(): UpstreamsConfig.AdditionalSettings? {
+        return null
+    }
+
     override fun getStatus(): UpstreamAvailability {
         return state.getStatus()
     }
