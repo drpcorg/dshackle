@@ -14,6 +14,8 @@ import reactor.core.publisher.Mono
 import java.util.concurrent.atomic.AtomicInteger
 
 const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const val HL_NATIVE_TX_FROM_MAINNET = "0x2222222222222222222222222222222222222222"
+const val HL_NATIVE_TX_FROM_TESTNET = "0x6ed35e7d6de4b45f4efb8a91eff31afa49362569"
 
 class EthereumUpstreamSettingsDetector(
     private val _upstream: Upstream,
@@ -181,6 +183,11 @@ class EthereumUpstreamSettingsDetector(
         if (chain != Chain.HYPERLIQUID__MAINNET && chain != Chain.HYPERLIQUID__TESTNET) {
             return Flux.empty()
         }
+        val hlNativeTxFrom = when (chain) {
+            Chain.HYPERLIQUID__MAINNET -> HL_NATIVE_TX_FROM_MAINNET
+            Chain.HYPERLIQUID__TESTNET -> HL_NATIVE_TX_FROM_TESTNET
+            else -> return Flux.empty()
+        }
         if (detectCounter.get() % 5 != 1) {
             return Flux.empty() // reduce frequency of detection
         }
@@ -211,7 +218,7 @@ class EthereumUpstreamSettingsDetector(
                     if (receiptsJson.isArray) {
                         receiptsJson.forEach { receipt ->
                             val from = receipt.get("from")?.asText()
-                            if (from == "0x2222222222222222222222222222222222222222") { // system topup transaction
+                            if (from == hlNativeTxFrom) { // system topup transaction
                                 foundHlNativeTx = true
                             }
                         }
