@@ -47,7 +47,7 @@ abstract class LowerBoundDetector(
                 },
         )
             .filter {
-                it.lowerBound >= (lowerBounds.getLastBound(it.type)?.lowerBound ?: 0)
+                (it.lowerBound >= (lowerBounds.getLastBound(it.type)?.lowerBound ?: 0)) || it.lowerBound == 1L
             }
             .map {
                 lowerBounds.updateBound(it)

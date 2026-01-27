@@ -9,6 +9,8 @@ import io.emeraldpay.dshackle.foundation.ChainOptions.Options
 import io.emeraldpay.dshackle.upstream.CallTargetsHolder
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.ManagedCallMethods
+import io.emeraldpay.dshackle.upstream.lowerbound.GoldLowerBounds
+import jakarta.annotation.PostConstruct
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.function.Function
@@ -19,6 +21,11 @@ abstract class UpstreamCreator(
     private val callTargets: CallTargetsHolder,
 ) {
     protected val log: Logger = LoggerFactory.getLogger(this::class.java)
+
+    @PostConstruct
+    fun init() {
+        GoldLowerBounds.init(chainsConfig.getChainConfigs())
+    }
 
     companion object {
         fun getHash(nodeId: Int?, obj: Any, hashes: MutableSet<Short>): Short {

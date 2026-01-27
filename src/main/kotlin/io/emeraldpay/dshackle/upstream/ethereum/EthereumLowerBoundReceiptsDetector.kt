@@ -1,15 +1,19 @@
 package io.emeraldpay.dshackle.upstream.ethereum
 
 import io.emeraldpay.dshackle.Defaults
+import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.upstream.ChainRequest
+import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.lowerbound.GoldLowerBounds
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import io.emeraldpay.dshackle.upstream.lowerbound.detector.RecursiveLowerBound
 import io.emeraldpay.dshackle.upstream.lowerbound.toHex
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 
 class EthereumLowerBoundReceiptsDetector(
     private val upstream: Upstream,
@@ -29,6 +33,7 @@ class EthereumLowerBoundReceiptsDetector(
             "invalid block height", // hyperliquid
             "header not found",
             "pruned history unavailable", // xlayer
+            "transaction indexing is in progress",
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
@@ -39,6 +44,34 @@ class EthereumLowerBoundReceiptsDetector(
     }
 
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
+        val receiptsGoldBound = GoldLowerBounds.getBound(upstream.getChain(), LowerBoundType.RECEIPTS)
+        if (receiptsGoldBound == null || receiptsGoldBound !is ChainsConfig.GoldLowerBoundWithHash) {
+            return recursiveDetectReceiptsLowerBound()
+        }
+        return Mono.just(receiptsGoldBound)
+            .flatMapMany { bound ->
+                upstream.getIngressReader()
+                    .read(ChainRequest("eth_getTransactionReceipt", ListParams(bound.hash)))
+                    .timeout(Defaults.internalCallsTimeout)
+                    .flatMap(ChainResponse::requireResult)
+                    .flatMapMany {
+                        if (it.contentEquals("null".toByteArray())) {
+                            throw IllegalStateException("no gold bound")
+                        } else {
+                            Flux.just(LowerBoundData(1, LowerBoundType.RECEIPTS))
+                        }
+                    }
+                    .onErrorResume {
+                        recursiveDetectReceiptsLowerBound()
+                    }
+            }
+    }
+
+    override fun types(): Set<LowerBoundType> {
+        return setOf(LowerBoundType.RECEIPTS)
+    }
+
+    private fun recursiveDetectReceiptsLowerBound(): Flux<LowerBoundData> {
         return recursiveLowerBound.recursiveDetectLowerBoundWithOffset(MAX_OFFSET) { block ->
             upstream.getIngressReader()
                 .read(
@@ -71,9 +104,5 @@ class EthereumLowerBoundReceiptsDetector(
                         }
                 }
         }
-    }
-
-    override fun types(): Set<LowerBoundType> {
-        return setOf(LowerBoundType.RECEIPTS)
     }
 }
