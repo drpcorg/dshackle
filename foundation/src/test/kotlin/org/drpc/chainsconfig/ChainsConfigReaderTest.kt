@@ -1,12 +1,13 @@
 package org.drpc.chainsconfig
 
+import io.emeraldpay.dshackle.config.ChainsConfig
 import io.emeraldpay.dshackle.config.ChainsConfigReader
 import io.emeraldpay.dshackle.foundation.ChainOptionsReader
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.math.BigInteger
 
-internal class ChainsConfigReaderTest {
+class ChainsConfigReaderTest {
 
     @Test
     fun `read standard config without custom`() {
@@ -41,5 +42,17 @@ internal class ChainsConfigReaderTest {
         assertEquals(config.code, "FTA")
         assertEquals(config.grpcId, 102)
         assertEquals(config.netVersion, BigInteger.valueOf(251))
+        assertEquals(15L, config.goldLowerBounds[ChainsConfig.LowerBoundType.STATE]!!.block)
+        assertEquals(150L, config.goldLowerBounds[ChainsConfig.LowerBoundType.BLOCK]!!.block)
+        assertEquals(1L, config.goldLowerBounds[ChainsConfig.LowerBoundType.TX]!!.block)
+        assertEquals(
+            "0x5e77a04531c7c107af1882d76cbff9486d0a9aa53701c30888509d4f5f2b003a",
+            (config.goldLowerBounds[ChainsConfig.LowerBoundType.TX] as ChainsConfig.GoldLowerBoundWithHash).hash,
+        )
+        assertEquals(1000L, config.goldLowerBounds[ChainsConfig.LowerBoundType.RECEIPTS]!!.block)
+        assertEquals(
+            "0x4e72a04531c7c107af1882d76cbff9486d0a9aa53701c30888509d4f5f2b003a",
+            (config.goldLowerBounds[ChainsConfig.LowerBoundType.RECEIPTS] as ChainsConfig.GoldLowerBoundWithHash).hash,
+        )
     }
 }

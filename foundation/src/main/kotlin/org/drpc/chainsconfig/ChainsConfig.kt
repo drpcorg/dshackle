@@ -44,6 +44,25 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
         fun rules() = conditions.joinToString { (op, limit) -> "$op $limit" }
     }
 
+    enum class LowerBoundType {
+        UNKNOWN, STATE, SLOT, BLOCK, TX, LOGS, TRACE, PROOF, BLOB, EPOCH, RECEIPTS;
+
+        companion object {
+            fun byName(name: String): LowerBoundType {
+                return LowerBoundType.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: UNKNOWN
+            }
+        }
+    }
+
+    open class GoldLowerBound(
+        val block: Long,
+    )
+
+    class GoldLowerBoundWithHash(
+        block: Long,
+        val hash: String,
+    ) : GoldLowerBound(block)
+
     data class ChainConfig(
         val expectedBlockTime: Duration,
         val syncingLagSize: Int,
@@ -59,6 +78,7 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
         val blockchain: String,
         val type: String,
         val gasPriceCondition: GasPriceCondition,
+        val goldLowerBounds: Map<LowerBoundType, GoldLowerBound>
     ) {
         companion object {
             @JvmStatic
@@ -80,6 +100,7 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
                 "undefined",
                 "unknown",
                 GasPriceCondition(emptyList()),
+                emptyMap(),
             )
 
             @JvmStatic
@@ -91,5 +112,9 @@ data class ChainsConfig(private val chains: List<ChainConfig>) : Iterable<Chains
 
     fun resolve(chain: String): ChainConfig {
         return chainMap[chain] ?: ChainConfig.default()
+    }
+
+    fun getChainConfigs(): Collection<ChainConfig> {
+        return chainMap.values
     }
 }
