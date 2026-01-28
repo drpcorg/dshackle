@@ -17,3 +17,14 @@ chain-settings:
           code: FTA
           grpcId: 102
           chain-id: 0xfb
+          lower-bounds:
+            tx:
+              block: 1
+              hash: "0x5e77a04531c7c107af1882d76cbff9486d0a9aa53701c30888509d4f5f2b003a"
+            receipts:
+              block: 1000
+              hash: "0x4e72a04531c7c107af1882d76cbff9486d0a9aa53701c30888509d4f5f2b003a"
+            state:
+              block: 15
+            block:
+              block: 150

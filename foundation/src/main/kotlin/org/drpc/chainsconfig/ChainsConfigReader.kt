@@ -137,7 +137,45 @@ class ChainsConfigReader(
             blockchain = blockchain,
             type = type,
             gasPriceCondition = ChainsConfig.GasPriceCondition(gasPriceConditions),
+            goldLowerBounds = readGoldLowerBounds(node),
         )
+    }
+
+    private fun readGoldLowerBounds(node: MappingNode): Map<ChainsConfig.LowerBoundType, ChainsConfig.GoldLowerBound> {
+        val goldLowerBounds = getMapping(node, "lower-bounds") ?: return emptyMap()
+
+        return goldLowerBounds.value.asSequence()
+            .filter {
+                (it.keyNode.valueAsString()?.isNotBlank() ?: false) && it.valueNode.tag == Tag.MAP
+            }.map {
+                val type = ChainsConfig.LowerBoundType.byName(it.keyNode.valueAsString()!!)
+                val bound =  if (type == ChainsConfig.LowerBoundType.TX || type == ChainsConfig.LowerBoundType.RECEIPTS) {
+                    readHashGoldLowerBound(it.valueNode as MappingNode)
+                } else {
+                    readGoldLowerBound(it.valueNode as MappingNode)
+                }
+
+                if (bound != null) {
+                    type to bound
+                } else {
+                    null
+                }
+            }
+            .filterNotNull()
+            .associate { it }
+    }
+
+    private fun readGoldLowerBound(node: MappingNode): ChainsConfig.GoldLowerBound? {
+        val block = getValueAsLong(node, "block") ?: return null
+
+        return ChainsConfig.GoldLowerBound(block)
+    }
+
+    private fun readHashGoldLowerBound(node: MappingNode): ChainsConfig.GoldLowerBound? {
+        val hash = getValueAsString(node, "hash") ?: return null
+        val block = getValueAsLong(node, "block") ?: return null
+
+        return ChainsConfig.GoldLowerBoundWithHash(block, hash)
     }
 
     override fun read(input: MappingNode?): ChainsConfig {
