@@ -107,8 +107,15 @@ class JsonRpcHttpReader(
             resp.map {
                 when (it) {
                     is AggregateResponse -> {
-                        val parsed = parser.parse(it.response)
                         val statusCode = it.code
+                        if (statusCode == 429) {
+                            return@map ChainResponse.error(
+                                RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE,
+                                "HTTP Code: $statusCode, headers: ${it.headers}",
+                                ChainResponse.NumberId(key.id),
+                            )
+                        }
+                        val parsed = parser.parse(it.response)
                         if (statusCode != 200) {
                             if (parsed.hasError() && parsed.error!!.code != RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE) {
                                 // extracted the error details from the HTTP Body

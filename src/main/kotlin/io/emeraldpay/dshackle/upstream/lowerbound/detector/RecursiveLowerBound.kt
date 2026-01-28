@@ -183,10 +183,11 @@ open class RecursiveLowerBound(
 
     protected fun retrySpec(block: Long, nonRetryableErrors: Set<String>): RetryBackoffSpec {
         return Retry.backoff(
-            Long.MAX_VALUE,
+            90,
             Duration.ofSeconds(1),
         )
-            .maxBackoff(Duration.ofMinutes(3))
+            .maxBackoff(Duration.ofMinutes(5))
+            .jitter(0.3)
             .filter {
                 !nonRetryableErrors.any { err -> it.message?.contains(err, true) ?: false } &&
                     !nonRetryableErrorPatters.any { err -> it.message?.matches(err) ?: false }
