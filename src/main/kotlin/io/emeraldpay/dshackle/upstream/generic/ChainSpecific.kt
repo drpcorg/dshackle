@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.generic
 
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
+import io.emeraldpay.dshackle.BlockchainType.AZTEC
 import io.emeraldpay.dshackle.BlockchainType.COSMOS
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM_BEACON_CHAIN
@@ -36,6 +37,7 @@ import io.emeraldpay.dshackle.upstream.beaconchain.BeaconChainSpecific
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.CallSelector
 import io.emeraldpay.dshackle.upstream.cosmos.CosmosChainSpecific
+import io.emeraldpay.dshackle.upstream.aztec.AztecChainSpecific
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumChainSpecific
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationDetector
@@ -113,6 +115,7 @@ object ChainSpecificRegistry {
     @JvmStatic
     fun resolve(chain: Chain): ChainSpecific {
         return when (chain.type) {
+            AZTEC -> AztecChainSpecific
             ETHEREUM -> EthereumChainSpecific
             STARKNET -> StarknetChainSpecific
             POLKADOT -> PolkadotChainSpecific

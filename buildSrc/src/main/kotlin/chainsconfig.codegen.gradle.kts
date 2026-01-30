@@ -128,6 +128,7 @@ open class CodeGen(private val config: ChainsConfig) {
 
     private fun type(type: String): String {
         return when(type) {
+            "aztec" -> "BlockchainType.AZTEC"
             "eth" -> "BlockchainType.ETHEREUM"
             "bitcoin" -> "BlockchainType.BITCOIN"
             "starknet" -> "BlockchainType.STARKNET"
