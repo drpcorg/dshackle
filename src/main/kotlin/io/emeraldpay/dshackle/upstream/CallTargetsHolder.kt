@@ -1,7 +1,7 @@
 package io.emeraldpay.dshackle.upstream
 
-import io.emeraldpay.dshackle.BlockchainType.BITCOIN
 import io.emeraldpay.dshackle.BlockchainType.AZTEC
+import io.emeraldpay.dshackle.BlockchainType.BITCOIN
 import io.emeraldpay.dshackle.BlockchainType.COSMOS
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM_BEACON_CHAIN
@@ -17,10 +17,10 @@ import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
+import io.emeraldpay.dshackle.upstream.calls.DefaultAztecMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultBeaconChainMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultBitcoinMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultCosmosMethods
-import io.emeraldpay.dshackle.upstream.calls.DefaultAztecMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultKadenaMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultNearMethods
