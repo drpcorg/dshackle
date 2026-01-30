@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.generic
 
+import io.emeraldpay.dshackle.BlockchainType.AZTEC
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
 import io.emeraldpay.dshackle.BlockchainType.COSMOS
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
@@ -32,6 +33,7 @@ import io.emeraldpay.dshackle.upstream.UpstreamRpcMethodsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.UpstreamValidator
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
+import io.emeraldpay.dshackle.upstream.aztec.AztecChainSpecific
 import io.emeraldpay.dshackle.upstream.beaconchain.BeaconChainSpecific
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.CallSelector
@@ -113,6 +115,7 @@ object ChainSpecificRegistry {
     @JvmStatic
     fun resolve(chain: Chain): ChainSpecific {
         return when (chain.type) {
+            AZTEC -> AztecChainSpecific
             ETHEREUM -> EthereumChainSpecific
             STARKNET -> StarknetChainSpecific
             POLKADOT -> PolkadotChainSpecific
