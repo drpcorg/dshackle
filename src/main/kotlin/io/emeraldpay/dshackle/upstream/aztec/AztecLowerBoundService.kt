@@ -7,9 +7,9 @@ import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
 
 class AztecLowerBoundService(
     chain: Chain,
-    upstream: Upstream,
+    private val upstream: Upstream,
 ) : LowerBoundService(chain, upstream) {
     override fun detectors(): List<LowerBoundDetector> {
-        return listOf(AztecLowerBoundStateDetector(chain))
+        return listOf(AztecLowerBoundStateDetector(upstream.getChain()))
     }
 }
