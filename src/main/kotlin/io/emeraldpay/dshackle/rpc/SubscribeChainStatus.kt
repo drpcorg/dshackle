@@ -25,25 +25,25 @@ class SubscribeChainStatus(
     }
 
     fun chainStatuses(): Flux<BlockchainOuterClass.SubscribeChainStatusResponse> {
-        return Flux.merge(
-            // we need to track not only multistreams with upstreams but all of them
-            // because upstreams can be added in runtime with hot config reload
-            multistreamHolder.all()
-                .filter { Common.ChainRef.forNumber(it.getChain().id) != null }
-                .map { ms ->
-                    Flux.concat(
-                        // the first event must be filled with all fields
-                        firstFullEvent(ms),
-                        Flux.merge(
-                            // head events are separated from others
-                            headEvents(ms),
-                            multistreamEvents(ms),
-                        ),
-                    )
-                },
-        ).doOnError {
-            log.error("Error during sending chain statuses", it)
-        }
+        // we need to track not only multistreams with upstreams but all of them
+        // because upstreams can be added in runtime with hot config reload
+        val sources = multistreamHolder.all()
+            .filter { Common.ChainRef.forNumber(it.getChain().id) != null }
+            .map { ms ->
+                Flux.concat(
+                    // the first event must be filled with all fields
+                    firstFullEvent(ms),
+                    Flux.merge(
+                        // head events are separated from others
+                        headEvents(ms),
+                        multistreamEvents(ms),
+                    ),
+                )
+            }
+        return Flux.merge(Flux.fromIterable(sources), sources.size)
+            .doOnError {
+                log.error("Error during sending chain statuses", it)
+            }
     }
 
     private fun multistreamEvents(ms: Multistream): Flux<BlockchainOuterClass.SubscribeChainStatusResponse> {
