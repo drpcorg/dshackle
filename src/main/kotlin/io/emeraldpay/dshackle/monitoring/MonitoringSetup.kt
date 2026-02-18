@@ -52,6 +52,7 @@ class MonitoringSetup(
     }
 
     private fun isTcpPortAvailable(host: String, port: Int): Boolean {
+        
         try {
             ServerSocket().use { serverSocket ->
                 // setReuseAddress(false) is required only on macOS,
