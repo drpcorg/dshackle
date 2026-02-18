@@ -41,12 +41,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Docker
-        run: |
-          docker ps -a
-          docker version
-          docker run --rm nginx -name=ngxtest && docker stop ngxtest
-
       - name: Check
         run: make test
         env:
