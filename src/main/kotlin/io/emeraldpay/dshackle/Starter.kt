@@ -42,14 +42,6 @@ fun main(args: Array<String>) {
     Hooks.enableAutomaticContextPropagation()
     OpenSsl.ensureAvailability()
 
-    if (!System.getProperties().containsKey("sun.net.httpserver.maxReqTime")) {
-        System.setProperty("sun.net.httpserver.maxReqTime", "60")
-    }
-
-    if (!System.getProperties().containsKey("sun.net.httpserver.maxRspTime")) {
-        System.setProperty("sun.net.httpserver.maxRspTime", "600")
-    }
-
     // add metrics for internal reactor schedulers
     Schedulers.addExecutorServiceDecorator("key") { scheduler, execService ->
         val schedulerName = Scannable.from(scheduler).scanOrDefault(Attr.NAME, scheduler.javaClass.name)

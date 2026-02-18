@@ -35,10 +35,12 @@ jobs:
 
       - name: Install System Libs
         run: sudo apt-get install -y openssl libapr1
+
       - name: Setup gradle
         uses: gradle/gradle-build-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check
         run: make test
         env:
