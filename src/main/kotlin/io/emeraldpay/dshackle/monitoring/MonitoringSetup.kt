@@ -15,7 +15,6 @@
  */
 package io.emeraldpay.dshackle.monitoring
 
-import com.sun.net.httpserver.HttpServer
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.MonitoringConfig
 import io.micrometer.core.instrument.Meter
@@ -28,19 +27,10 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.prometheus.metrics.exporter.httpserver.HTTPServer
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import java.io.IOException
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.Executors
-import java.util.concurrent.ThreadFactory
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.zip.GZIPOutputStream
 
 @Service
 class MonitoringSetup(
@@ -49,20 +39,6 @@ class MonitoringSetup(
 
     companion object {
         private val log = LoggerFactory.getLogger(MonitoringSetup::class.java)
-    }
-
-    private fun isTcpPortAvailable(host: String, port: Int): Boolean {
-        try {
-            ServerSocket().use { serverSocket ->
-                // setReuseAddress(false) is required only on macOS,
-                // otherwise the code will not work correctly on that platform
-                serverSocket.reuseAddress = false
-                serverSocket.bind(InetSocketAddress(InetAddress.getByName(host), port), 1)
-                return true
-            }
-        } catch (ex: java.lang.Exception) {
-            return false
-        }
     }
 
     @PostConstruct
@@ -93,77 +69,13 @@ class MonitoringSetup(
         }
 
         if (monitoringConfig.prometheus.enabled) {
-            // use standard JVM server with a single thread blocking processing
-            // prometheus is a single thread periodic call, no reason to setup anything complex
-            Thread {
-                var started = false
-                val scrapeThreadCounter = AtomicInteger(0)
-                val scrapeExecutor = Executors.newFixedThreadPool(
-                    4,
-                    ThreadFactory { runnable ->
-                        Thread(runnable, "prometheus-scrape-${scrapeThreadCounter.incrementAndGet()}").apply {
-                            isDaemon = true
-                        }
-                    },
-                )
-                while (true) {
-                    if (isTcpPortAvailable(monitoringConfig.prometheus.host, monitoringConfig.prometheus.port)) {
-                        started = true
-                        try {
-                            log.info("Run Prometheus metrics on ${monitoringConfig.prometheus.host}:${monitoringConfig.prometheus.port}${monitoringConfig.prometheus.path}")
-                            val server = HttpServer.create(
-                                InetSocketAddress(
-                                    monitoringConfig.prometheus.host,
-                                    monitoringConfig.prometheus.port,
-                                ),
-                                0,
-                            )
-                            server.executor = scrapeExecutor
-                            server.createContext(monitoringConfig.prometheus.path) { httpExchange ->
-                                val startTime = System.nanoTime()
-                                try {
-                                    val response = prometheusRegistry.scrape()
-                                    val responseBytes = response.toByteArray(StandardCharsets.UTF_8)
-                                    httpExchange.responseHeaders.add("Content-Encoding", "gzip")
-                                    httpExchange.responseHeaders.add("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-                                    httpExchange.sendResponseHeaders(200, 0)
-                                    httpExchange.responseBody.use { os ->
-                                        GZIPOutputStream(os).use { gzos ->
-                                            gzos.write(responseBytes)
-                                        }
-                                    }
-                                    val durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
-                                    if (durationMs > 5000) {
-                                        log.warn("Prometheus scrape served in {} ms", durationMs)
-                                    } else {
-                                        log.debug("Prometheus scrape served in {} ms", durationMs)
-                                    }
-                                } catch (e: Exception) {
-                                    log.error("Failed to serve Prometheus metrics", e)
-                                    val messageBytes = "internal error".toByteArray(StandardCharsets.UTF_8)
-                                    runCatching {
-                                        httpExchange.responseHeaders.add("Content-Type", "text/plain; charset=utf-8")
-                                        httpExchange.sendResponseHeaders(500, messageBytes.size.toLong())
-                                        httpExchange.responseBody.use { os ->
-                                            os.write(messageBytes)
-                                        }
-                                    }
-                                } finally {
-                                    httpExchange.close()
-                                }
-                            }
-                            Thread(server::start).start()
-                        } catch (e: IOException) {
-                            log.error("Failed to start Prometheus Server", e)
-                        }
-                    } else {
-                        if (!started) {
-                            log.error("Can't start prometheus metrics on ${monitoringConfig.prometheus.host}:${monitoringConfig.prometheus.port}${monitoringConfig.prometheus.path}")
-                        }
-                        Thread.sleep(1000)
-                    }
-                }
-            }.start()
+            HTTPServer
+                .builder()
+                .hostname(monitoringConfig.prometheus.host)
+                .port(monitoringConfig.prometheus.port)
+                .registry(prometheusRegistry.prometheusRegistry)
+                .metricsHandlerPath(monitoringConfig.prometheus.path)
+                .buildAndStart()
         }
     }
 }

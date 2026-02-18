@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.reactor.grpc.stub)
     implementation(libs.grpc.proto.util)
 
+    implementation libs.prom.exporter.server
     implementation libs.micrometer.registry.prometheus
     implementation libs.micrometer.ctx.prop
     implementation libs.lettuce.core
