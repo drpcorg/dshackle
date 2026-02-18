@@ -57,10 +57,10 @@ class MonitoringSetup(
                 // setReuseAddress(false) is required only on macOS,
                 // otherwise the code will not work correctly on that platform
                 serverSocket.reuseAddress = false
+                
                 serverSocket.bind(InetSocketAddress(InetAddress.getByName(host), port), 1)
                 return true
             }
-
         } catch (ex: java.lang.Exception) {
             return false
         }
