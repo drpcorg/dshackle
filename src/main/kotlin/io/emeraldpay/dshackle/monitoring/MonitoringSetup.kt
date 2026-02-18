@@ -52,7 +52,6 @@ class MonitoringSetup(
     }
 
     private fun isTcpPortAvailable(host: String, port: Int): Boolean {
-        
         try {
             ServerSocket().use { serverSocket ->
                 // setReuseAddress(false) is required only on macOS,
@@ -61,6 +60,7 @@ class MonitoringSetup(
                 serverSocket.bind(InetSocketAddress(InetAddress.getByName(host), port), 1)
                 return true
             }
+
         } catch (ex: java.lang.Exception) {
             return false
         }
