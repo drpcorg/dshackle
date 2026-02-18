@@ -35,10 +35,18 @@ jobs:
 
       - name: Install System Libs
         run: sudo apt-get install -y openssl libapr1
+
       - name: Setup gradle
         uses: gradle/gradle-build-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Docker
+        run: |
+          docker ps -a
+          docker version
+          docker run --rm nginx -name=ngxtest && docker stop ngxtest
+
       - name: Check
         run: make test
         env:
