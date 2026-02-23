@@ -38,6 +38,9 @@ open class Starter
 private val log = LoggerFactory.getLogger(Starter::class.java)
 
 fun main(args: Array<String>) {
+    System.getenv()["HTTP_REQ_TIMEOUT"]
+        ?.let { System.setProperty("sun.net.httpserver.maxReqTime", it) }
+
     ContextRegistry.getInstance().registerThreadLocalAccessor(Slf4jThreadLocalAccessor())
     Hooks.enableAutomaticContextPropagation()
     OpenSsl.ensureAvailability()
