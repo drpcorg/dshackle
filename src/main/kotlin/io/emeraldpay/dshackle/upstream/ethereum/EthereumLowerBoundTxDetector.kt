@@ -29,6 +29,7 @@ class EthereumLowerBoundTxDetector(
             "invalid block height", // hyperliquids
             "pruned history unavailable", // xlayer blocks
             "transaction indexing is in progress",
+            "has been pruned; earliest available is",
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 

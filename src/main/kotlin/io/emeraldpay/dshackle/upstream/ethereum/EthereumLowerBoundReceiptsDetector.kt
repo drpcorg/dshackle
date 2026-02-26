@@ -34,6 +34,7 @@ class EthereumLowerBoundReceiptsDetector(
             "header not found",
             "pruned history unavailable", // xlayer
             "transaction indexing is in progress",
+            "has been pruned; earliest available is",
         ).plus(EthereumLowerBoundBlockDetector.NO_BLOCK_ERRORS)
     }
 
