@@ -85,6 +85,7 @@ class EthereumLowerBoundStateDetector(
             "state histories haven't been fully indexed yet",
             "but it out-of-bounds",
             "not supported",
+            "has been pruned; earliest available is",
         )
     }
 
