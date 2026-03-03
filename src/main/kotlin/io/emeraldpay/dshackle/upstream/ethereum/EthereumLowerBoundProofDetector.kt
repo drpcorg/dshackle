@@ -30,6 +30,7 @@ class EthereumLowerBoundProofDetector(
             "Method not found", // Monad error bc they don't have eth_getProofs
             "invalid block height", // hyperliquid
             "not supported",
+            "evm module does not exist on height",
         )
     }
 
