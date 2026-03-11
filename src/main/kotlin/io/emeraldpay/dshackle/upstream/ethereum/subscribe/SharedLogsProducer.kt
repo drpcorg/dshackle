@@ -22,7 +22,6 @@ import io.emeraldpay.dshackle.upstream.ethereum.hex.Hex32
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.LogMessage
 import org.slf4j.LoggerFactory
 import reactor.core.Disposable
-import reactor.core.publisher.BufferOverflowStrategy
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Scheduler
@@ -81,24 +80,20 @@ class SharedLogsProducer(
     private fun startSharedStream(matcher: Selector.Matcher) {
         val matcherKey = matcher.describeInternal()
 
-        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>(
-            4096,
-            {},
-            BufferOverflowStrategy.DROP_OLDEST
-        )
+        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>(4096)
         logsSinks[matcherKey] = logsSink
 
         val sharedStream = produceLogs.produce(connectBlockUpdates.connect(matcher))
             .subscribe(
                 { logMessage ->
-                    logsSink.emitNext(logMessage) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                    logsSink.tryEmitNext(logMessage)
                 },
                 { error ->
                     log.error("Error in shared logs stream for matcher: $matcherKey", error)
-                    logsSink.emitError(error) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                    logsSink.tryEmitError(error)
                 },
                 {
-                    logsSink.emitComplete { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
+                    logsSink.tryEmitComplete()
                 },
             )
         sharedStreams[matcherKey] = sharedStream
