@@ -22,6 +22,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.hex.Hex32
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.json.LogMessage
 import org.slf4j.LoggerFactory
 import reactor.core.Disposable
+import reactor.core.publisher.BufferOverflowStrategy
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Scheduler
@@ -80,7 +81,11 @@ class SharedLogsProducer(
     private fun startSharedStream(matcher: Selector.Matcher) {
         val matcherKey = matcher.describeInternal()
 
-        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>(4096)
+        val logsSink = Sinks.many().multicast().onBackpressureBuffer<LogMessage>(
+            4096,
+            {},
+            BufferOverflowStrategy.DROP_OLDEST
+        )
         logsSinks[matcherKey] = logsSink
 
         val sharedStream = produceLogs.produce(connectBlockUpdates.connect(matcher))
