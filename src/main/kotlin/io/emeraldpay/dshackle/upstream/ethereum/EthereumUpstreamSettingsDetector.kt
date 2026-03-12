@@ -49,6 +49,7 @@ class EthereumUpstreamSettingsDetector(
                 .map { Global.objectMapper.readValue(it, JsonNode::class.java) }
         }
 
+
         return readPending().flatMap { first ->
 
             val stateRoot = first.get("stateRoot")?.asText()
@@ -57,11 +58,14 @@ class EthereumUpstreamSettingsDetector(
             if (stateRoot == "0x0000000000000000000000000000000000000000000000000000000000000000") {
                 return@flatMap Mono.just(Pair("flashblocks", "true"))
             }
+            if (chain != Chain.BASE__MAINNET && chain != Chain.BASE__SEPOLIA) {
+                return@flatMap Mono.just(Pair("flashblocks", "false"))
+            }
 
+            // second: base
             val firstNumber = first.get("number")?.asText()
             val firstHash = first.get("hash")?.asText()
 
-            // second: rollups
             Mono.delay(java.time.Duration.ofMillis(250))
                 .then(readPending())
                 .map { second ->
