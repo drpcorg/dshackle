@@ -38,23 +38,46 @@ class EthereumUpstreamSettingsDetector(
     }
 
     private fun detectFlashBlocks(): Mono<Pair<String, String>> {
-        return upstream.getIngressReader().read(
-            ChainRequest(
-                "eth_getBlockByNumber",
-                ListParams(
-                    "pending",
-                    false,
+
+        fun readPending(): Mono<JsonNode> {
+            return upstream.getIngressReader().read(
+                ChainRequest(
+                    "eth_getBlockByNumber",
+                    ListParams("pending", false),
                 ),
-            ),
-        ).flatMap {
-            it.requireResult()
-        }.flatMap {
-            val json = Global.objectMapper.readValue(it, JsonNode::class.java)
-            if (json.get("stateRoot")?.asText() == "0x0000000000000000000000000000000000000000000000000000000000000000") {
-                Mono.just(Pair("flashblocks", "true"))
-            } else {
-                Mono.just(Pair("flashblocks", "false"))
+            ).flatMap { it.requireResult() }
+                .map { Global.objectMapper.readValue(it, JsonNode::class.java) }
+        }
+
+        return readPending().flatMap { first ->
+
+            val stateRoot = first.get("stateRoot")?.asText()
+
+            // first approach: Ethereum
+            if (stateRoot == "0x0000000000000000000000000000000000000000000000000000000000000000") {
+                return@flatMap Mono.just(Pair("flashblocks", "true"))
             }
+
+            val firstNumber = first.get("number")?.asText()
+            val firstHash = first.get("hash")?.asText()
+
+            // second: rollups
+            Mono.delay(java.time.Duration.ofMillis(250))
+                .then(readPending())
+                .map { second ->
+
+                    val secondNumber = second.get("number")?.asText()
+                    val secondHash = second.get("hash")?.asText()
+
+                    val sameNumber = firstNumber != null && firstNumber == secondNumber
+                    val hashChanged = firstHash != null && secondHash != null && firstHash != secondHash
+
+                    if (sameNumber && hashChanged) { // if block num same and hash changed == flashblock
+                        Pair("flashblocks", "true")
+                    } else {
+                        Pair("flashblocks", "false")
+                    }
+                }
         }.onErrorResume {
             log.error("Error during flashblocks detection", it)
             Mono.empty()
