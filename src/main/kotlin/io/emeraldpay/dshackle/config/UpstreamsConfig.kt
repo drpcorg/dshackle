@@ -42,6 +42,7 @@ data class UpstreamsConfig(
         val labels: Labels = Labels(),
         var methods: Methods? = null,
         var methodGroups: MethodGroups? = null,
+        var subscriptions: Subscriptions? = null,
         var role: UpstreamRole = UpstreamRole.PRIMARY,
         var customHeaders: Map<String, String> = emptyMap(),
         var additionalSettings: AdditionalSettings? = null,
@@ -214,5 +215,9 @@ data class UpstreamsConfig(
         val name: String,
         val quorum: String? = null,
         val static: String? = null,
+    )
+
+    data class Subscriptions(
+        val disabled: Set<String>,
     )
 }

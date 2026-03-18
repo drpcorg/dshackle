@@ -25,7 +25,6 @@ import io.emeraldpay.dshackle.rpc.NativeCall
 import io.emeraldpay.dshackle.rpc.NativeSubscribe
 import io.emeraldpay.dshackle.upstream.ethereum.json.RequestJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.ResponseJson
-import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.netty.buffer.ByteBufInputStream
 import org.reactivestreams.Publisher
 import org.slf4j.LoggerFactory
@@ -72,7 +71,7 @@ class WebsocketHandler(
 
             val eventHandler = accessHandler.start(req, routeConfig.blockchain)
 
-            val responses = respond(routeConfig.blockchain, routeConfig.disabledSubscriptions, control, requests, eventHandler)
+            val responses = respond(routeConfig.blockchain, control, requests, eventHandler)
 
             resp.sendString(responses, Charsets.UTF_8)
                 .then()
@@ -113,14 +112,6 @@ class WebsocketHandler(
         control: MutableMap<String, Sinks.One<Boolean>>,
         requests: Flux<RequestJson<Any>>,
         eventHandlerFactory: AccessHandlerHttp.WsHandlerFactory,
-    ): Flux<String> = respond(blockchain, emptySet(), control, requests, eventHandlerFactory)
-
-    fun respond(
-        blockchain: Chain,
-        disabledSubscriptions: Set<String>,
-        control: MutableMap<String, Sinks.One<Boolean>>,
-        requests: Flux<RequestJson<Any>>,
-        eventHandlerFactory: AccessHandlerHttp.WsHandlerFactory,
     ): Flux<String> {
         return requests.flatMap { call ->
             val method = call.method
@@ -128,17 +119,6 @@ class WebsocketHandler(
             if (method == "eth_subscribe") {
                 val methodParams = splitMethodParams(call.params)
                 if (methodParams != null) {
-                    val topic = methodParams.first
-                    if (disabledSubscriptions.contains(topic)) {
-                        val errorResponse = ResponseJson<Any, Any>().also {
-                            it.id = call.id
-                            it.error = RpcResponseError(
-                                RpcResponseError.CODE_METHOD_NOT_EXIST,
-                                "subscription $topic is not allowed",
-                            )
-                        }
-                        return@flatMap Mono.just(Global.objectMapper.writeValueAsString(errorResponse))
-                    }
                     val eventHandler: AccessHandlerHttp.SubscriptionHandler = eventHandlerFactory.subscribe()
                     val subscriptionId = nextSubscriptionId()
                     eventHandler.onRequest(

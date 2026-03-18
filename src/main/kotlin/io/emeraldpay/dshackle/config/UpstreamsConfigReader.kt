@@ -291,6 +291,7 @@ class UpstreamsConfigReader(
         upstream.options = optionsReader.read(upNode)
         upstream.methods = tryReadMethods(upNode)
         upstream.methodGroups = tryReadMethodGroups(upNode)
+        upstream.subscriptions = tryReadSubscriptions(upNode)
         upstream.additionalSettings = readAdditionalSettings(upNode)
         getValueAsBool(upNode, "enabled")?.let {
             upstream.isEnabled = it
@@ -404,6 +405,13 @@ class UpstreamsConfigReader(
                 enabled = getListOfString(it, "enabled")?.toSet() ?: emptySet(),
                 disabled = getListOfString(it, "disabled")?.toSet() ?: emptySet(),
             )
+        }
+    }
+
+    private fun tryReadSubscriptions(upNode: MappingNode): UpstreamsConfig.Subscriptions? {
+        return getMapping(upNode, "subscriptions")?.let { snode ->
+            val disabled = getListOfString(snode, "disabled")?.toSet() ?: emptySet()
+            UpstreamsConfig.Subscriptions(disabled)
         }
     }
 }

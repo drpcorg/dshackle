@@ -65,6 +65,7 @@ open class GenericUpstream(
     finalizationDetectorBuilder: FinalizationDetectorBuilder,
     versionRules: Supplier<CompatibleVersionsRules?>,
     private val additionalSettings: UpstreamsConfig.AdditionalSettings?,
+    private val disabledSubscriptions: Set<String> = emptySet(),
 ) : DefaultUpstream(id, hash, null, UpstreamAvailability.OK, options, role, targets, node, chainConfig, chain),
     Lifecycle {
     constructor(
@@ -98,6 +99,7 @@ open class GenericUpstream(
         finalizationDetectorBuilder,
         versionRules,
         config.additionalSettings,
+        config.subscriptions?.disabled ?: emptySet(),
     ) {
         rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this, config)
         detectRpcMethods(config, buildMethods)
@@ -448,6 +450,8 @@ open class GenericUpstream(
     override fun getAdditionalSettings(): UpstreamsConfig.AdditionalSettings? {
         return additionalSettings
     }
+
+    fun getDisabledSubscriptions(): Set<String> = disabledSubscriptions
 
     fun isValid(): Boolean = isUpstreamValid.get()
 

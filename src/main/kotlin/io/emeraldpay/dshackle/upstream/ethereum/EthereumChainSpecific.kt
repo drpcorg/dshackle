@@ -69,9 +69,15 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
 
     override fun subscriptionBuilder(headScheduler: Scheduler): (Multistream) -> EgressSubscription {
         return { ms ->
-            val pendingTxes: PendingTxesSource = (ms.getAll())
+            val allUpstreams = ms.getAll()
                 .filter { it is GenericUpstream }
                 .map { it as GenericUpstream }
+
+            val disabledTopics = allUpstreams
+                .flatMap { it.getDisabledSubscriptions() }
+                .toSet()
+
+            val pendingTxes: PendingTxesSource = allUpstreams
                 .filter { it.getIngressSubscription() is EthereumIngressSubscription }
                 .mapNotNull {
                     (it.getIngressSubscription() as EthereumIngressSubscription).getPendingTxes()
@@ -84,7 +90,7 @@ object EthereumChainSpecific : AbstractPollChainSpecific() {
                         AggregatedPendingTxes(it)
                     }
                 }
-            EthereumEgressSubscription(ms, headScheduler, pendingTxes)
+            EthereumEgressSubscription(ms, headScheduler, pendingTxes, disabledTopics)
         }
     }
 

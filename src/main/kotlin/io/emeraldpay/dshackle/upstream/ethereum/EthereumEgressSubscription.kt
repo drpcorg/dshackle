@@ -44,10 +44,11 @@ data class Transaction(
     val s: String?,
 )
 
-open class EthereumEgressSubscription(
+open class EthereumEgressSubscription @JvmOverloads constructor(
     val upstream: Multistream,
     val scheduler: Scheduler,
     val pendingTxesSource: PendingTxesSource?,
+    private val disabledTopics: Set<String> = emptySet(),
 ) : EgressSubscription {
 
     companion object {
@@ -72,15 +73,19 @@ open class EthereumEgressSubscription(
         } else {
             listOf()
         }
-        return if (pendingTxesSource != null) {
+        val withPending = if (pendingTxesSource != null) {
             subs.plus(listOf(METHOD_PENDING_TXES, METHOD_DRPC_PENDING_TXES))
         } else {
             subs
         }
+        return withPending.filter { it !in disabledTopics }
     }
 
     @Suppress("UNCHECKED_CAST")
     override fun subscribe(topic: String, params: Any?, matcher: Selector.Matcher, unsubscribeMethod: String): Flux<out Any> {
+        if (topic in disabledTopics) {
+            return Flux.error(UnsupportedOperationException("subscription $topic is disabled"))
+        }
         if (topic == METHOD_NEW_HEADS) {
             return newHeads.connect(matcher)
         }
