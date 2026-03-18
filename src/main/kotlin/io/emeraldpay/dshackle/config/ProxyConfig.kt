@@ -74,5 +74,9 @@ open class ProxyConfig {
          * Blockchain to dispatch requests
          */
         val blockchain: Chain,
+        /**
+         * Subscription topics forbidden for clients (e.g. "newPendingTransactions")
+         */
+        val disabledSubscriptions: Set<String> = emptySet(),
     )
 }

@@ -79,7 +79,10 @@ class ProxyConfigReader : YamlConfigReader<ProxyConfig>() {
                 if (StringUtils.isEmpty(blockchain) || Global.chainById(blockchain!!) == Chain.UNSPECIFIED) {
                     throw InvalidConfigYamlException(filename, route.startMark, "Invalid blockchain or not specified")
                 }
-                ProxyConfig.Route(id, Global.chainById(blockchain))
+                val disabledSubscriptions = getMapping(route, "subscriptions")
+                    ?.let { getListOfString(it, "disabled")?.toSet() }
+                    ?: emptySet()
+                ProxyConfig.Route(id, Global.chainById(blockchain), disabledSubscriptions)
             }
         }
         if (config.routes.isEmpty()) {
