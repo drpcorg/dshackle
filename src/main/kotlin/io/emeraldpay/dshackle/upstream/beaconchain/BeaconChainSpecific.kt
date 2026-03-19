@@ -123,6 +123,7 @@ object BeaconChainSpecific : AbstractPollChainSpecific() {
     }
 
     override fun getResponseHeadersToForward(): List<String> = listOf(
+        "Content-Type",
         "Eth-Consensus-Version",
         "Eth-Consensus-Finalized",
         "Eth-Execution-Optimistic",
