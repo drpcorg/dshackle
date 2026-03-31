@@ -30,50 +30,23 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         val height = parseLong(
             findNode(
                 root,
-                "number",
-                "header.number",
-                "blockNumber",
-                "header.blockNumber",
-                "header.globalVariables.blockNumber",
+                "proposed.number",
             ),
         ) ?: 0L
-        val hashValue = parseText(findNode(root, "hash", "header.hash", "blockHash", "header.blockHash"))
-        val parentValue = parseText(
-            findNode(
-                root,
-                "parentHash",
-                "header.parentHash",
-                "parent_hash",
-                "header.parent_hash",
-                "prevHash",
-                "header.prevHash",
-            ),
-        )
-        val timestamp = parseInstant(
-            findNode(
-                root,
-                "timestamp",
-                "header.timestamp",
-                "header.globalVariables.timestamp",
-            ),
-        ) ?: Instant.EPOCH
-
-        if (hashValue == null) {
-            log.warn("Aztec block hash is missing in response from upstream {}", upstreamId)
-        }
+        val hashValue = parseText(findNode(root, "proposed.hash"))
 
         return Mono.just(
             BlockContainer(
                 height = height,
                 hash = BlockId.from(hashValue ?: "0x0"),
                 difficulty = BigInteger.ZERO,
-                timestamp = timestamp,
+                timestamp = Instant.EPOCH,
                 full = false,
                 json = data,
                 parsed = root,
                 transactions = emptyList(),
                 upstreamId = upstreamId,
-                parentHash = parentValue?.let { BlockId.from(it) },
+                parentHash = null,
             ),
         )
     }
@@ -126,7 +99,7 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     }
 
     override fun latestBlockRequest(): ChainRequest =
-        ChainRequest("node_getBlock", ListParams("latest"))
+        ChainRequest("node_getL2Tips", ListParams())
 
     private fun findNode(root: JsonNode, vararg paths: String): JsonNode? {
         for (path in paths) {
