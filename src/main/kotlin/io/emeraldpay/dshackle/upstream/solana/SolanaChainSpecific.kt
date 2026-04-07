@@ -55,8 +55,10 @@ object SolanaChainSpecific : AbstractChainSpecific() {
     private val lastKnownHeights = ConcurrentHashMap<String, Long>()
     private val lastCheckedSlots = ConcurrentHashMap<String, Long>()
 
+    private val getEpochInfoReq = ChainRequest("getEpochInfo", ListParams(mapOf("commitment" to "confirmed")))
+
     override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
-        return api.read(ChainRequest("getEpochInfo", ListParams()))
+        return api.read(getEpochInfoReq)
             .map { response ->
                 val epochInfo = Global.objectMapper.readValue(
                     response.getResult(),
@@ -90,7 +92,7 @@ object SolanaChainSpecific : AbstractChainSpecific() {
 
             if (shouldCheckHeight || estimatedHeight == null) {
                 // Verify actual height using getEpochInfo (single call for both slot and height)
-                api.read(ChainRequest("getEpochInfo", ListParams()))
+                api.read(getEpochInfoReq)
                     .map { response ->
                         val epochInfo = Global.objectMapper.readValue(
                             response.getResult(),
