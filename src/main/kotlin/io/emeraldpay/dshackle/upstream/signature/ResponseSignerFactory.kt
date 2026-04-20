@@ -1,24 +1,23 @@
 package io.emeraldpay.dshackle.upstream.signature
 
-import io.emeraldpay.dshackle.config.SignatureConfig
+import io.emeraldpay.dshackle.config.AuthorizationConfig
 import org.apache.commons.codec.binary.Hex
-import org.bouncycastle.jce.ECNamedCurveTable
-import org.bouncycastle.jce.spec.ECPublicKeySpec
-import org.bouncycastle.math.ec.ECPoint
-import org.bouncycastle.util.io.pem.PemObject
-import org.bouncycastle.util.io.pem.PemReader
+import org.bouncycastle.openssl.PEMParser
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Component
+import java.io.StringReader
 import java.nio.ByteBuffer
 import java.nio.file.Files
-import java.nio.file.Path
+import java.nio.file.Paths
 import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.PublicKey
-import java.security.interfaces.ECPrivateKey
+import java.security.interfaces.RSAPrivateCrtKey
+import java.security.interfaces.RSAPrivateKey
 import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.RSAPublicKeySpec
 
 @Configuration
 open class SignatureBeans {
@@ -29,45 +28,50 @@ open class SignatureBeans {
 
 @Component
 open class ResponseSignerFactory(
-    private val signatureConfig: SignatureConfig,
+    private val authorizationConfig: AuthorizationConfig,
 ) {
 
     companion object {
         private val log = LoggerFactory.getLogger(ResponseSignerFactory::class.java)
     }
 
-    fun readKey(algorithm: SignatureConfig.Algorithm, keyPath: String): Pair<ECPrivateKey, Long> {
-        val reader = PemReader(Files.newBufferedReader(Path.of(keyPath)))
-        return readKey(algorithm, reader.readPemObject())
+    fun createSigner(): ResponseSigner {
+        if (!authorizationConfig.enabled) {
+            log.info("Response signing disabled: auth is not enabled")
+            return DisabledSigner()
+        }
+        val path = authorizationConfig.serverConfig.providerPrivateKeyPath
+        if (path.isBlank()) {
+            log.warn("Response signing disabled: auth.server.provider-private-key is not set")
+            return DisabledSigner()
+        }
+
+        val (privateKey, keyId) = readRsaKey(path)
+        return RsaSigner(privateKey, keyId)
     }
 
-    private fun readKey(algorithm: SignatureConfig.Algorithm, pem: PemObject): Pair<ECPrivateKey, Long> {
-        val keyFactory = KeyFactory.getInstance("EC")
-        val key = when (algorithm) {
-            SignatureConfig.Algorithm.NIST_P256 -> {
-                val keySpec = PKCS8EncodedKeySpec(pem.content)
-                keyFactory.generatePrivate(keySpec)
-            }
+    internal fun readRsaKey(path: String): Pair<RSAPrivateKey, Long> {
+        val pemContent = StringReader(Files.readString(Paths.get(path)))
+        val pemObject = PEMParser(pemContent).readPemObject()
+            ?: throw IllegalStateException("Cannot parse PEM key at $path")
+
+        val keyFactory = KeyFactory.getInstance("RSA")
+        val privateKey = keyFactory.generatePrivate(PKCS8EncodedKeySpec(pemObject.content))
+
+        if (privateKey !is RSAPrivateKey) {
+            throw IllegalStateException("Only RSA keys are supported for response signing")
         }
 
-        if (key !is ECPrivateKey) {
-            throw IllegalStateException("Only EC keys are allowed")
-        }
-
-        if (algorithm == SignatureConfig.Algorithm.NIST_P256 && key.params.toString().indexOf(SignatureConfig.Algorithm.NIST_P256.getCurveName()) < 0) {
-            throw IllegalStateException("Key is not NIST P256, generate NIST P256 or use another algorithm")
-        }
-
-        val publicKey = extractPublicKey(keyFactory, key, algorithm)
-        val id = getPublicKeyId(publicKey)
-
-        return Pair(key, id)
+        val publicKey = extractPublicKey(keyFactory, privateKey)
+        val keyId = getPublicKeyId(publicKey)
+        return Pair(privateKey, keyId)
     }
 
-    fun extractPublicKey(keyFactory: KeyFactory, privateKey: ECPrivateKey, algorithm: SignatureConfig.Algorithm): PublicKey {
-        val ecSpec = ECNamedCurveTable.getParameterSpec(algorithm.getCurveName())
-        val q: ECPoint = ecSpec.g.multiply(privateKey.s)
-        return keyFactory.generatePublic(ECPublicKeySpec(q, ecSpec))
+    private fun extractPublicKey(keyFactory: KeyFactory, privateKey: RSAPrivateKey): PublicKey {
+        val crt = privateKey as? RSAPrivateCrtKey
+            ?: throw IllegalStateException("RSA private key does not expose public exponent; use a PKCS#8 key that contains CRT parameters")
+        val spec = RSAPublicKeySpec(crt.modulus, crt.publicExponent)
+        return keyFactory.generatePublic(spec)
     }
 
     private fun getPublicKeyId(publicKey: PublicKey): Long {
@@ -75,17 +79,5 @@ open class ResponseSignerFactory(
         val fullId = digest.digest(publicKey.encoded)
         log.info("Using key to sign responses: ${Hex.encodeHexString(fullId).substring(0..15)}")
         return ByteBuffer.wrap(fullId).asLongBuffer().get()
-    }
-
-    fun createSigner(): ResponseSigner {
-        if (!signatureConfig.enabled) {
-            return NoSigner()
-        }
-        if (signatureConfig.privateKey == null) {
-            log.warn("Private Key for response signature is not set")
-            return NoSigner()
-        }
-        val key = readKey(signatureConfig.algorithm, signatureConfig.privateKey!!)
-        return EcdsaSigner(key.first, key.second)
     }
 }
