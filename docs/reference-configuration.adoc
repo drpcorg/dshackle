@@ -568,10 +568,11 @@ rejects unauthenticated requests.
 ----
 auth:
   enabled: true
-  public-key-owner: "token-issuer-name"
+  publicKeyOwner: "token-issuer-name"
   server:
-    provider-private-key: "/etc/dshackle/auth/jwt-rsa.pem"
-    external-public-key: "/etc/dshackle/auth/jwt-rsa.pub"
+    keys:
+      provider-private-key: "/etc/dshackle/auth/jwt-rsa.pem"
+      external-public-key: "/etc/dshackle/auth/jwt-rsa.pub"
 ----
 
 |===
@@ -581,31 +582,41 @@ auth:
 | `false`
 | Enables authorization and response signing.
 
-| `public-key-owner`
+| `publicKeyOwner`
 |
-| Human-readable identifier of the JWT-issuing party.
+| Expected value of the `iss` claim on inbound JWT tokens.
 
-| `server.provider-private-key`
+| `server.keys.provider-private-key`
 |
-| Path to a PKCS#8 RSA private key used for signing gRPC responses (see <<response-signing>>).
+| Path to a PKCS#8 PEM RSA private key. Used both to sign session JWTs issued by
+  dshackle and to sign `NativeCall` response payloads (see <<response-signing>>).
 
-| `server.external-public-key`
+| `server.keys.external-public-key`
 |
-| Path to the PEM-encoded RSA public key of the token issuer used to verify inbound JWT tokens.
+| Path to a PEM-encoded RSA public key (X.509 SubjectPublicKeyInfo) used to verify
+  the JWTs clients present to `emerald.Auth/Authenticate`.
 |===
 
 [#response-signing]
 ==== Response Signing
 
-When `auth.enabled` is `true` and `auth.server.provider-private-key` points to a valid
-PKCS#8 RSA private key, dshackle automatically signs gRPC responses with `SHA256withRSA`
-for any `NativeCall` request that provides a non-zero `nonce`. The same key used for
-issuing JWT tokens (RS256) is reused for response signatures — no separate configuration
-is required.
+When `auth.enabled` is `true` and `auth.server.keys.provider-private-key` points to a
+valid PKCS#8 RSA private key, dshackle automatically signs gRPC responses with
+`SHA256withRSA` for any `NativeCall` request that provides a non-zero `nonce`. The same
+key used for issuing JWT tokens (RS256) is reused for response signatures — no separate
+configuration is required.
+
+The signed blob is `DSHACKLESIG/<nonce>/<upstream_id>/<hex-sha256(payload)>`. The
+returned `NativeCallReplySignature` carries the original `nonce`, the signature bytes
+and a `key_id` (first 8 bytes of the SHA-256 of the public key). Clients verify with
+the public half of `provider-private-key`.
 
 If a client sends a nonce but the signing key is not configured (auth disabled or the
 path is empty), dshackle returns an error with code `-32603` and message
 "Response signing requested via nonce but signing key is not configured".
+
+A runnable end-to-end example (dshackle config, demo RSA keys and a Go client) lives
+in `demo/response-signing/` in the repository.
 
 [#cluster]
 == Cluster
