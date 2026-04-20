@@ -4,6 +4,7 @@ import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
 import io.emeraldpay.dshackle.upstream.Multistream
 import io.emeraldpay.dshackle.upstream.Selector
+import io.emeraldpay.dshackle.upstream.signature.DisabledSigner
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -34,7 +35,7 @@ class RequestReaderFactoryTest {
                         ms,
                         Selector.UpstreamFilter(Selector.empty),
                         MaximumValueQuorum(),
-                        null,
+                        DisabledSigner(),
                     ),
                 ),
                 Arguments.of(
@@ -42,7 +43,7 @@ class RequestReaderFactoryTest {
                         ms,
                         Selector.UpstreamFilter(Selector.empty),
                         BroadcastQuorum(),
-                        null,
+                        DisabledSigner(),
                     ),
                 ),
             )

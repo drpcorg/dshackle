@@ -34,6 +34,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import io.emeraldpay.dshackle.upstream.signature.DisabledSigner
 import org.apache.commons.collections4.Factory
 import org.apache.commons.lang3.exception.ExceptionUtils
 import org.slf4j.LoggerFactory
@@ -254,7 +255,7 @@ class EthereumDirectReader(
                         up,
                         Selector.UpstreamFilter(sort, matcher),
                         callMethodsFactory.create().createQuorumFor(request.method),
-                        null,
+                        DisabledSigner(),
                     ),
                 )
             }.flatMap {

@@ -2,7 +2,7 @@ package io.emeraldpay.dshackle.upstream.signature
 
 interface ResponseSigner {
 
-    fun sign(nonce: Long, message: ByteArray, source: String): Signature?
+    fun sign(nonce: Long, message: ByteArray, source: String): Signature
 
     data class Signature(
         val value: ByteArray,
