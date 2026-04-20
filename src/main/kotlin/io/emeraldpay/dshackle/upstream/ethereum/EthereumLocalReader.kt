@@ -48,10 +48,6 @@ class EthereumLocalReader(
         if (!methods.isCallable(key.method)) {
             return Mono.error(RpcException(RpcResponseError.CODE_METHOD_NOT_EXIST, "Unsupported method"))
         }
-        if (key.nonce != null) {
-            // we do not want to serve any requests (except hardcoded) that have nonces from cache
-            return Mono.empty()
-        }
         return commonRequests(key)?.switchIfEmpty {
             // we need to explicitly return null to prevent executeOnRemote
             // for example

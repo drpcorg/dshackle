@@ -30,21 +30,26 @@ class EthereumLocalReaderSpec extends Specification {
         act.resultAsProcessedString == "0x0000000000000000000000000000000000000000"
     }
 
-    def "Returns empty if nonce set"() {
+    def "Serves non-hardcoded call when nonce is set"() {
         setup:
         def methods = new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)
+        def api = TestingCommons.api()
+        api.answer("eth_getTransactionByHash",
+                ["0x0000000000000000000000000000000000000000000000000000000000000001"], null)
         def router = new EthereumLocalReader(
                 new EthereumCachingReader(
-                        TestingCommons.multistream(TestingCommons.api()),
+                        TestingCommons.multistream(api),
                         Caches.default(),
                         ConstantFactory.constantFactory(new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET)),
                 ),
                 methods
         )
         when:
-        def act = router.read(new ChainRequest("eth_getTransactionByHash", new ListParams(["test"]), 10))
+        def act = router.read(new ChainRequest("eth_getTransactionByHash",
+                        new ListParams(["0x0000000000000000000000000000000000000000000000000000000000000001"]),
+                        10))
                 .block(Duration.ofSeconds(1))
         then:
-        act == null
+        act != null
     }
 }
