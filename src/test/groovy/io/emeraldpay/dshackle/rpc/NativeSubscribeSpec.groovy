@@ -22,7 +22,7 @@ import io.emeraldpay.dshackle.test.MultistreamHolderMock
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumEgressSubscription
 import io.emeraldpay.dshackle.upstream.generic.GenericMultistream
-import io.emeraldpay.dshackle.upstream.signature.NoSigner
+import io.emeraldpay.dshackle.upstream.signature.DisabledSigner
 import reactor.core.publisher.Flux
 import reactor.test.StepVerifier
 import spock.lang.Specification
@@ -30,7 +30,7 @@ import spock.lang.Specification
 import java.time.Duration
 
 class NativeSubscribeSpec extends Specification {
-    def signer = new NoSigner()
+    def signer = new DisabledSigner()
 
     def "Call with empty params when not provided"() {
         setup:

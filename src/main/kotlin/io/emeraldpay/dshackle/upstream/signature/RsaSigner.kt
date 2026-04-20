@@ -26,7 +26,7 @@ class RsaSigner(
     }
 
     /**
-     * Same wrapping as EcdsaSigner: `"DSHACKLESIG/" || str(nonce) || "/" || source || "/" || hex(sha256(msg))`
+     * Wrapping format: `"DSHACKLESIG/" || str(nonce) || "/" || source || "/" || hex(sha256(msg))`
      */
     fun wrapMessage(nonce: Long, message: ByteArray, source: String): String {
         val sha256 = MessageDigest.getInstance("SHA-256")
