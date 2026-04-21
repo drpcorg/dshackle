@@ -68,7 +68,7 @@ class RestHttpReader(
                     is AggregateResponse -> {
                         if (it.code == 503) {
                             // 503 bodies (e.g. Cloudflare) are typically plain text / HTML, not JSON,
-                            // so skip JSON parsing and return a direct unavailable error
+                            // so skip JSON parsing to avoid a misleading "Unrecognized token" error
                             val error = ChainCallError(
                                 RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE,
                                 "HTTP Code: 503",
