@@ -57,15 +57,20 @@ class RestHttpReader(
 
     private fun parseErrorSafely(body: ByteArray, statusCode: Int): ChainCallError {
         val parsed = try {
-            parser.readError(Global.objectMapper.createParser(body))
+            Global.objectMapper.createParser(body).use { jsonParser ->
+                parser.readError(jsonParser)
+            }
         } catch (e: JsonParseException) {
-            log.warn("Failed to parse error response from upstream (HTTP $statusCode): ${e.message}")
+            log.warn("Failed to parse error response from upstream (HTTP {})", statusCode, e)
             null
         } catch (e: IOException) {
-            log.warn("Failed to read error response from upstream (HTTP $statusCode): ${e.message}")
+            log.warn("Failed to read error response from upstream (HTTP {})", statusCode, e)
             null
         }
-        return parsed ?: ChainCallError(
+        if (parsed != null && (parsed.code != 0 || parsed.message.isNotBlank())) {
+            return parsed
+        }
+        return ChainCallError(
             RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE,
             "HTTP Code: $statusCode",
         )
