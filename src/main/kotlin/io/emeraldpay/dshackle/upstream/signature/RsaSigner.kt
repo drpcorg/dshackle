@@ -16,6 +16,8 @@ class RsaSigner(
         const val MSG_SEPARATOR = '/'
     }
 
+    override val enabled: Boolean = true
+
     override fun sign(nonce: Long, message: ByteArray, source: String): ResponseSigner.Signature {
         val sig = Signature.getInstance(SIGN_SCHEME, "BC")
         sig.initSign(privateKey)

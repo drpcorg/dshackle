@@ -50,6 +50,14 @@ class RsaSignerSpec extends Specification {
         sig.keyId == 100L
     }
 
+    def "Signer is enabled"() {
+        setup:
+        def signer = new RsaSigner(Stub(RSAPrivateKey), 1L)
+
+        expect:
+        signer.enabled
+    }
+
     def "Different nonce produces different signature"() {
         setup:
         def keyGen = KeyPairGenerator.getInstance("RSA")

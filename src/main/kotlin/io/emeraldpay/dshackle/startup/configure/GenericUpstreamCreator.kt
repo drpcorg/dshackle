@@ -12,6 +12,7 @@ import io.emeraldpay.dshackle.upstream.forkchoice.NoChoiceWithPriorityForkChoice
 import io.emeraldpay.dshackle.upstream.generic.ChainSpecificRegistry
 import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
 import io.emeraldpay.dshackle.upstream.generic.connectors.GenericConnectorFactory
+import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import org.springframework.stereotype.Component
 import java.util.function.Supplier
 
@@ -21,7 +22,8 @@ open class GenericUpstreamCreator(
     callTargets: CallTargetsHolder,
     private val connectorFactoryCreatorResolver: ConnectorFactoryCreatorResolver,
     private val versionRules: Supplier<CompatibleVersionsRules?>,
-) : UpstreamCreator(chainsConfig, callTargets) {
+    signer: ResponseSigner,
+) : UpstreamCreator(chainsConfig, callTargets, signer) {
     private val hashes = HashSet<Short>()
 
     override fun createUpstream(
@@ -78,7 +80,7 @@ open class GenericUpstreamCreator(
             chain,
             hash,
             options,
-            QuorumForLabels.QuorumItem(1, UpstreamsConfig.Labels.fromMap(config.labels)),
+            QuorumForLabels.QuorumItem(1, buildUpstreamLabels(config.labels)),
             chainConfig,
             connectorFactory,
             cs::validator,

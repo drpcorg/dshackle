@@ -2,6 +2,12 @@ package io.emeraldpay.dshackle.upstream.signature
 
 interface ResponseSigner {
 
+    /**
+     * `true` when an actual signing key is configured and [sign] can produce signatures.
+     * `false` for placeholder signers that reject any signing attempt (e.g. when auth is disabled).
+     */
+    val enabled: Boolean
+
     fun sign(nonce: Long, message: ByteArray, source: String): Signature
 
     data class Signature(

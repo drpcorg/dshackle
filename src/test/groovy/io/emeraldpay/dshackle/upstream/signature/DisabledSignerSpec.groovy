@@ -17,4 +17,12 @@ class DisabledSignerSpec extends Specification {
         ex.code == -32603
         ex.rpcMessage.contains("signing key is not configured")
     }
+
+    def "Signer is not enabled"() {
+        setup:
+        def signer = new DisabledSigner()
+
+        expect:
+        !signer.enabled
+    }
 }
