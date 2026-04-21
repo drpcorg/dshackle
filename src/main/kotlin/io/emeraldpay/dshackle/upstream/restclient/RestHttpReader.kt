@@ -3,10 +3,12 @@ package io.emeraldpay.dshackle.upstream.restclient
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.AuthConfig
+import io.emeraldpay.dshackle.upstream.ChainCallError
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.HttpReader
 import io.emeraldpay.dshackle.upstream.RequestMetrics
+import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.generic.ChainSpecificRegistry
 import io.emeraldpay.dshackle.upstream.rpcclient.ResponseRpcParser
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
@@ -64,7 +66,15 @@ class RestHttpReader(
                 when (it) {
                     is StreamResponse -> sink.next(ChainResponse(it.stream, key.id, it.headers))
                     is AggregateResponse -> {
-                        if (it.code != 200) {
+                        if (it.code == 503) {
+                            // 503 bodies (e.g. Cloudflare) are typically plain text / HTML, not JSON,
+                            // so skip JSON parsing to avoid a misleading "Unrecognized token" error
+                            val error = ChainCallError(
+                                RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE,
+                                "HTTP Code: 503",
+                            )
+                            sink.next(ChainResponse(null, error, it.headers))
+                        } else if (it.code != 200) {
                             val error = parser.readError(Global.objectMapper.createParser(it.response))
                             sink.next(ChainResponse(null, error, it.headers))
                         } else {
