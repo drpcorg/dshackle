@@ -16,6 +16,7 @@ import io.emeraldpay.dshackle.upstream.bitcoin.EsploraClient
 import io.emeraldpay.dshackle.upstream.bitcoin.ExtractBlock
 import io.emeraldpay.dshackle.upstream.bitcoin.ZMQServer
 import io.emeraldpay.dshackle.upstream.forkchoice.MostWorkForkChoice
+import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import org.springframework.stereotype.Component
 import reactor.core.scheduler.Scheduler
 import java.util.concurrent.atomic.AtomicInteger
@@ -27,7 +28,8 @@ class BitcoinUpstreamCreator(
     private val genericConnectorFactoryCreator: ConnectorFactoryCreator,
     private val fileResolver: FileResolver,
     private val headScheduler: Scheduler,
-) : UpstreamCreator(chainsConfig, callTargets) {
+    signer: ResponseSigner,
+) : UpstreamCreator(chainsConfig, callTargets, signer) {
     private var seq = AtomicInteger(0)
 
     override fun createUpstream(
@@ -67,7 +69,7 @@ class BitcoinUpstreamCreator(
                 ?: "bitcoin-${seq.getAndIncrement()}",
             chain, directApi, head,
             options, config.role,
-            QuorumForLabels.QuorumItem(1, UpstreamsConfig.Labels.fromMap(config.labels)),
+            QuorumForLabels.QuorumItem(1, buildUpstreamLabels(config.labels)),
             methods, esplora, chainConf,
         )
         upstream.start()

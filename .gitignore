@@ -27,3 +27,9 @@ http-client.env.json
 .DS_Store
 mise.toml
 .claude/
+
+# demo sandbox (local-only, regenerate with demo/response-signing/generate-keys.sh + protoc)
+/demo/response-signing/
+
+# superpowers scratch: specs and plans live locally only for now
+/docs/superpowers/

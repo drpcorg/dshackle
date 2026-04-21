@@ -10,6 +10,7 @@ import io.emeraldpay.dshackle.upstream.CallTargetsHolder
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.ManagedCallMethods
 import io.emeraldpay.dshackle.upstream.lowerbound.GoldLowerBounds
+import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import jakarta.annotation.PostConstruct
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -19,8 +20,23 @@ import kotlin.math.abs
 abstract class UpstreamCreator(
     private val chainsConfig: ChainsConfig,
     private val callTargets: CallTargetsHolder,
+    private val signer: ResponseSigner,
 ) {
     protected val log: Logger = LoggerFactory.getLogger(this::class.java)
+
+    /**
+     * Builds the label map for an upstream starting from the user-provided labels.
+     * When response signing is actually enabled on this dshackle instance, the
+     * `secure-signed=true` label is injected automatically (unless the user has
+     * explicitly overridden it).
+     */
+    protected fun buildUpstreamLabels(userLabels: Map<String, String>): UpstreamsConfig.Labels {
+        val labels = UpstreamsConfig.Labels.fromMap(userLabels)
+        if (signer.enabled && !labels.containsKey(SECURE_SIGNED_LABEL)) {
+            labels[SECURE_SIGNED_LABEL] = "true"
+        }
+        return labels
+    }
 
     @PostConstruct
     fun init() {
@@ -28,6 +44,8 @@ abstract class UpstreamCreator(
     }
 
     companion object {
+        const val SECURE_SIGNED_LABEL = "secure-signed"
+
         fun getHash(nodeId: Int?, obj: Any, hashes: MutableSet<Short>): Short {
             val hash = nodeId?.toShort()
                 ?: run {

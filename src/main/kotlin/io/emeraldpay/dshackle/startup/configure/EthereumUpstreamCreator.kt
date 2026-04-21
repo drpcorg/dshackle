@@ -6,6 +6,7 @@ import io.emeraldpay.dshackle.config.UpstreamsConfig
 import io.emeraldpay.dshackle.config.hot.CompatibleVersionsRules
 import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.upstream.CallTargetsHolder
+import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import org.springframework.stereotype.Component
 import java.util.function.Supplier
 
@@ -15,7 +16,8 @@ class EthereumUpstreamCreator(
     callTargets: CallTargetsHolder,
     connectorFactoryCreatorResolver: ConnectorFactoryCreatorResolver,
     versionRules: Supplier<CompatibleVersionsRules?>,
-) : GenericUpstreamCreator(chainsConfig, callTargets, connectorFactoryCreatorResolver, versionRules) {
+    signer: ResponseSigner,
+) : GenericUpstreamCreator(chainsConfig, callTargets, connectorFactoryCreatorResolver, versionRules, signer) {
 
     override fun createUpstream(
         upstreamsConfig: UpstreamsConfig.Upstream<*>,

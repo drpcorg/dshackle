@@ -19,7 +19,7 @@ import reactor.core.publisher.Flux
 import java.util.concurrent.atomic.AtomicInteger
 
 abstract class RequestReader(
-    private val signer: ResponseSigner?,
+    private val signer: ResponseSigner,
 ) : Reader<ChainRequest, Result> {
     abstract fun attempts(): AtomicInteger
 
@@ -43,7 +43,7 @@ abstract class RequestReader(
     protected fun getSignature(key: ChainRequest, response: ChainResponse, upstreamId: String) =
         response.providedSignature
             ?: if (key.nonce != null) {
-                signer?.sign(key.nonce, response.getResult(), upstreamId)
+                signer.sign(key.nonce, response.getResult(), upstreamId)
             } else {
                 null
             }
@@ -82,6 +82,6 @@ interface RequestReaderFactory {
         val multistream: Multistream,
         val upstreamFilter: Selector.UpstreamFilter,
         val quorum: CallQuorum,
-        val signer: ResponseSigner?,
+        val signer: ResponseSigner,
     )
 }

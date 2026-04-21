@@ -27,6 +27,7 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.error.UpstreamErrorHandler
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
+import io.emeraldpay.dshackle.upstream.signature.DisabledSigner
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
@@ -45,7 +46,7 @@ import java.util.function.Function
 class QuorumRequestReader(
     private val apiControl: ApiSource,
     private val quorum: CallQuorum,
-    signer: ResponseSigner?,
+    signer: ResponseSigner,
 ) : RequestReader(signer) {
     private val errorHandler = UpstreamErrorHandler
 
@@ -53,7 +54,7 @@ class QuorumRequestReader(
         private val log = LoggerFactory.getLogger(QuorumRequestReader::class.java)
     }
 
-    constructor(apiControl: ApiSource, quorum: CallQuorum) : this(apiControl, quorum, null)
+    constructor(apiControl: ApiSource, quorum: CallQuorum) : this(apiControl, quorum, DisabledSigner())
 
     override fun attempts(): AtomicInteger = apiControl.attempts()
 

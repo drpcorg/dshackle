@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class BroadcastReader(
     private val upstreams: List<Upstream>,
     matcher: Selector.Matcher,
-    signer: ResponseSigner?,
+    signer: ResponseSigner,
     private val quorum: CallQuorum,
 ) : RequestReader(signer) {
     private val errorHandler = UpstreamErrorHandler
