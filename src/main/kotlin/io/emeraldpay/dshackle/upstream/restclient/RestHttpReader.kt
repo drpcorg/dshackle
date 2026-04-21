@@ -1,12 +1,15 @@
 package io.emeraldpay.dshackle.upstream.restclient
 
+import com.fasterxml.jackson.core.JsonParseException
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.AuthConfig
+import io.emeraldpay.dshackle.upstream.ChainCallError
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.HttpReader
 import io.emeraldpay.dshackle.upstream.RequestMetrics
+import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.generic.ChainSpecificRegistry
 import io.emeraldpay.dshackle.upstream.rpcclient.ResponseRpcParser
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
@@ -17,11 +20,13 @@ import io.emeraldpay.dshackle.upstream.stream.StreamResponse
 import io.netty.buffer.Unpooled
 import io.netty.handler.codec.http.HttpMethod
 import org.apache.commons.lang3.time.StopWatch
+import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Scheduler
 import reactor.kotlin.core.publisher.switchIfEmpty
 import reactor.netty.http.client.HttpClientResponse
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class RestHttpReader(
@@ -36,6 +41,10 @@ class RestHttpReader(
     customHeaders: Map<String, String> = emptyMap(),
 ) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth, customHeaders) {
 
+    companion object {
+        private val log = LoggerFactory.getLogger(RestHttpReader::class.java)
+    }
+
     private val parser = ResponseRpcParser()
     private val requestParser = RestRequestParser
     private val headersToForward = ChainSpecificRegistry.resolve(chain).getResponseHeadersToForward()
@@ -44,6 +53,22 @@ class RestHttpReader(
         return headersToForward
             .mapNotNull { name -> header.responseHeaders().get(name)?.let { name to it } }
             .toMap()
+    }
+
+    private fun parseErrorSafely(body: ByteArray, statusCode: Int): ChainCallError {
+        val parsed = try {
+            parser.readError(Global.objectMapper.createParser(body))
+        } catch (e: JsonParseException) {
+            log.warn("Failed to parse error response from upstream (HTTP $statusCode): ${e.message}")
+            null
+        } catch (e: IOException) {
+            log.warn("Failed to read error response from upstream (HTTP $statusCode): ${e.message}")
+            null
+        }
+        return parsed ?: ChainCallError(
+            RpcResponseError.CODE_UPSTREAM_INVALID_RESPONSE,
+            "HTTP Code: $statusCode",
+        )
     }
 
     override fun internalRead(key: ChainRequest): Mono<ChainResponse> {
@@ -65,7 +90,7 @@ class RestHttpReader(
                     is StreamResponse -> sink.next(ChainResponse(it.stream, key.id, it.headers))
                     is AggregateResponse -> {
                         if (it.code != 200) {
-                            val error = parser.readError(Global.objectMapper.createParser(it.response))
+                            val error = parseErrorSafely(it.response, it.code)
                             sink.next(ChainResponse(null, error, it.headers))
                         } else {
                             sink.next(ChainResponse(it.response, null, it.headers))
