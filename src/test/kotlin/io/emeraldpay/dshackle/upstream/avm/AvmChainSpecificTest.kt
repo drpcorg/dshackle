@@ -1,8 +1,12 @@
 package io.emeraldpay.dshackle.upstream.avm
 
+import io.emeraldpay.dshackle.reader.ChainReader
+import io.emeraldpay.dshackle.upstream.ChainRequest
+import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
+import reactor.core.publisher.Mono
 
 val avmBlockExample = """
     {
@@ -53,7 +57,9 @@ class AvmChainSpecificTest {
         val result = AvmChainSpecific.parseBlock(
             avmBlockExample.toByteArray(),
             "upstream-1",
-            DummyChainReader,
+            object : ChainReader {
+                override fun read(key: ChainRequest): Mono<ChainResponse> = Mono.empty()
+            },
         ).block()!!
 
         Assertions.assertThat(result.height).isEqualTo(30000000L)
