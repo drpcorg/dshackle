@@ -51,7 +51,7 @@ class CallTargetsHolder {
     ): CallMethods {
         val created = when (chain.type) {
             BITCOIN -> DefaultBitcoinMethods(options.providesBalance == true)
-            AVM -> DefaultAvmMethods(chain)
+            AVM -> DefaultAvmMethods()
             AZTEC -> DefaultAztecMethods()
             ETHEREUM -> DefaultEthereumMethods(chain)
             STARKNET -> DefaultStarknetMethods(chain)

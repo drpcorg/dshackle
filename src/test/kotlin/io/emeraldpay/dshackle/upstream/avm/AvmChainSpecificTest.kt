@@ -8,22 +8,6 @@ import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
 
-val avmBlockExample = """
-    {
-        "block": {
-            "rnd": 30000000,
-            "ts": 1696802363,
-            "prev": "blk-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOP",
-            "seed": "seed-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMN",
-            "txn": "txn-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNO",
-            "gh": "genesis-hash",
-            "gen": "mainnet-v1.0",
-            "proto": "https://github.com/algorandfoundation/specs/tree/somehash"
-        },
-        "cert": {}
-    }
-""".trimIndent()
-
 val avmStatusSynced = """
     {
         "last-round": 30000000,
@@ -53,9 +37,9 @@ val avmStatusCatchingUp = """
 class AvmChainSpecificTest {
 
     @Test
-    fun parseBlockResponse() {
+    fun parseStatusAsBlock() {
         val result = AvmChainSpecific.parseBlock(
-            avmBlockExample.toByteArray(),
+            avmStatusSynced.toByteArray(),
             "upstream-1",
             object : ChainReader {
                 override fun read(key: ChainRequest): Mono<ChainResponse> = Mono.empty()
@@ -64,7 +48,6 @@ class AvmChainSpecificTest {
 
         Assertions.assertThat(result.height).isEqualTo(30000000L)
         Assertions.assertThat(result.upstreamId).isEqualTo("upstream-1")
-        Assertions.assertThat(result.timestamp.epochSecond).isEqualTo(1696802363L)
         Assertions.assertThat(result.hash.toHex()).isNotEmpty()
         Assertions.assertThat(result.parentHash?.toHex()).isNotEmpty()
     }
@@ -82,8 +65,8 @@ class AvmChainSpecificTest {
     }
 
     @Test
-    fun latestBlockRequestUsesGetBlock() {
+    fun latestBlockRequestUsesStatusEndpoint() {
         val request = AvmChainSpecific.latestBlockRequest()
-        Assertions.assertThat(request.method).isEqualTo("algod_getBlock")
+        Assertions.assertThat(request.method).isEqualTo("GET#/v2/status")
     }
 }

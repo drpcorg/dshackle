@@ -17,7 +17,7 @@ import io.emeraldpay.dshackle.upstream.UpstreamAvailability
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
-import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import java.math.BigInteger
@@ -28,54 +28,27 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
     private val log = LoggerFactory.getLogger(AvmChainSpecific::class.java)
 
     override fun latestBlockRequest(): ChainRequest =
-        ChainRequest("algod_getBlock", ListParams("latest"))
+        ChainRequest("GET#/v2/status", RestParams.emptyParams())
 
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        val response = Global.objectMapper.readValue(data, AvmBlockResult::class.java)
-        val block = response.block
+        val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
+        val hashBytes = roundToBytes(status.lastRound)
+        val parentBytes = roundToBytes(status.lastRound - 1)
 
         return Mono.just(
             BlockContainer(
-                height = block.round,
-                hash = BlockId.from(toHashBytes(block.seed ?: block.txnRoot, block.round)),
+                height = status.lastRound,
+                hash = BlockId.from(hashBytes),
                 difficulty = BigInteger.ZERO,
-                timestamp = Instant.ofEpochSecond(block.timestamp),
+                timestamp = Instant.now(),
                 full = false,
                 json = data,
-                parsed = response,
+                parsed = status,
                 transactions = emptyList(),
                 upstreamId = upstreamId,
-                parentHash = BlockId.from(toHashBytes(block.previousBlockHash, block.round - 1)),
+                parentHash = BlockId.from(parentBytes),
             ),
         )
-    }
-
-    private fun toHashBytes(raw: String?, round: Long): ByteArray {
-        if (raw.isNullOrBlank()) {
-            return roundToBytes(round)
-        }
-        val stripped = raw.removePrefix("blk-")
-        return try {
-            java.util.Base64.getDecoder().decode(stripped)
-        } catch (_: IllegalArgumentException) {
-            try {
-                java.util.Base64.getUrlDecoder().decode(stripped)
-            } catch (_: IllegalArgumentException) {
-                stripped.toByteArray(Charsets.UTF_8).let {
-                    if (it.size < 32) it + ByteArray(32 - it.size) else it.copyOfRange(0, 32)
-                }
-            }
-        }
-    }
-
-    private fun roundToBytes(round: Long): ByteArray {
-        val bytes = ByteArray(32)
-        var value = if (round < 0) 0L else round
-        for (i in 0 until 8) {
-            bytes[31 - i] = (value and 0xff).toByte()
-            value = value ushr 8
-        }
-        return bytes
     }
 
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
@@ -98,7 +71,7 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
     ): List<SingleValidator<UpstreamAvailability>> {
         return listOf(
             GenericSingleCallValidator(
-                ChainRequest("algod_status", ListParams()),
+                ChainRequest("GET#/v2/status", RestParams.emptyParams()),
                 upstream,
             ) { data ->
                 validate(data, upstream.getId())
@@ -114,7 +87,7 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
         return listOf(
             GenericSingleCallValidator(
-                ChainRequest("algod_genesis", ListParams()),
+                ChainRequest("GET#/v2/genesis", RestParams.emptyParams()),
                 upstream,
             ) { data ->
                 val genesis = Global.objectMapper.readValue(data, AvmGenesis::class.java)
@@ -148,23 +121,17 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
             UpstreamAvailability.OK
         }
     }
+
+    private fun roundToBytes(round: Long): ByteArray {
+        val bytes = ByteArray(32)
+        var value = if (round < 0) 0L else round
+        for (i in 0 until 8) {
+            bytes[31 - i] = (value and 0xff).toByte()
+            value = value ushr 8
+        }
+        return bytes
+    }
 }
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class AvmBlockResult(
-    @param:JsonProperty("block") var block: AvmBlock,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class AvmBlock(
-    @param:JsonProperty("rnd") var round: Long,
-    @param:JsonProperty("ts") var timestamp: Long,
-    @param:JsonProperty("prev") var previousBlockHash: String? = null,
-    @param:JsonProperty("seed") var seed: String? = null,
-    @param:JsonProperty("txn") var txnRoot: String? = null,
-    @param:JsonProperty("gh") var genesisHash: String? = null,
-    @param:JsonProperty("gen") var genesisId: String? = null,
-)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AvmStatus(

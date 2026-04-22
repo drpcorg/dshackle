@@ -16,88 +16,68 @@
  */
 package io.emeraldpay.dshackle.upstream.calls
 
-import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
 import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
-import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
-import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
 /**
- * Default configuration for AVM (Algorand Virtual Machine) based RPC.
- * Defines optimal Quorum strategies for different methods and provides
- * hardcoded results for chain-identity methods.
+ * Default configuration for AVM (Algorand Virtual Machine) REST API, mirroring
+ * the algod `/v2` endpoints. Method identifiers use the `VERB#/path` convention
+ * consumed by dshackle's REST HTTP reader.
  */
-class DefaultAvmMethods(
-    private val chain: Chain,
-) : CallMethods {
+class DefaultAvmMethods : CallMethods {
 
-    private val stateMethods = setOf(
-        "algod_status",
-        "algod_statusAfterBlock",
-        "algod_getBlock",
-        "algod_getBlockHash",
-        "algod_getBlockHeader",
-        "algod_ledgerSupply",
-        "algod_health",
-        "algod_ready",
-        "algod_versions",
-        "algod_genesis",
-        "algod_metrics",
-        "algod_getSyncRound",
-    )
-
-    private val accountMethods = setOf(
-        "algod_getAccount",
-        "algod_getAccountAssetInfo",
-        "algod_getAccountApplicationInfo",
-        "algod_getApplication",
-        "algod_getApplicationBoxes",
-        "algod_getApplicationBoxByName",
-        "algod_getAsset",
-    )
-
-    private val transactionMethods = setOf(
-        "algod_getPendingTransactions",
-        "algod_getPendingTransactionsByAddress",
-        "algod_getPendingTransaction",
-        "algod_getTransactionProof",
-        "algod_getTransactionParams",
-        "algod_suggestedParams",
-        "algod_dryrun",
-        "algod_simulateTransaction",
-        "algod_compileTEAL",
-        "algod_disassembleTEAL",
+    private val readMethods = setOf(
+        getMethod("/v2/status"),
+        getMethod("/v2/status/wait-for-block-after/*"),
+        getMethod("/v2/genesis"),
+        getMethod("/v2/versions"),
+        getMethod("/v2/health"),
+        getMethod("/v2/ready"),
+        getMethod("/v2/metrics"),
+        getMethod("/v2/ledger/supply"),
+        getMethod("/v2/ledger/sync"),
+        getMethod("/v2/blocks/*"),
+        getMethod("/v2/blocks/*/hash"),
+        getMethod("/v2/blocks/*/header"),
+        getMethod("/v2/blocks/*/transactions"),
+        getMethod("/v2/blocks/*/transactions/*/proof"),
+        getMethod("/v2/accounts/*"),
+        getMethod("/v2/accounts/*/assets"),
+        getMethod("/v2/accounts/*/assets/*"),
+        getMethod("/v2/accounts/*/applications/*"),
+        getMethod("/v2/applications/*"),
+        getMethod("/v2/applications/*/box"),
+        getMethod("/v2/applications/*/boxes"),
+        getMethod("/v2/assets/*"),
+        getMethod("/v2/transactions/params"),
+        getMethod("/v2/transactions/pending"),
+        getMethod("/v2/transactions/pending/*"),
+        getMethod("/v2/stateproofs/*"),
+        getMethod("/v2/lightheader/*"),
     )
 
     private val sendMethods = setOf(
-        "algod_sendRawTransaction",
-        "algod_sendTransaction",
+        postMethod("/v2/transactions"),
+        postMethod("/v2/transactions/async"),
     )
 
-    private val nonLagging = setOf(
-        "algod_getSupply",
+    private val computeMethods = setOf(
+        postMethod("/v2/transactions/dryrun"),
+        postMethod("/v2/transactions/simulate"),
+        postMethod("/v2/teal/compile"),
+        postMethod("/v2/teal/disassemble"),
+        postMethod("/v2/teal/dryrun"),
     )
 
-    private val hardcodedMethods = setOf(
-        "algod_chainId",
-        "algod_genesisId",
-    )
-
-    private val allowedMethods: Set<String> =
-        stateMethods + accountMethods + transactionMethods + sendMethods + nonLagging
+    private val allowedMethods: Set<String> = readMethods + sendMethods + computeMethods
 
     override fun createQuorumFor(method: String): CallQuorum {
-        return when {
-            sendMethods.contains(method) -> BroadcastQuorum()
-            method == "algod_getPendingTransaction" -> NotNullQuorum()
-            method == "algod_getSyncRound" -> MaximumValueQuorum()
-            method == "algod_getBlock" -> NotNullQuorum()
-            method == "algod_getBlockHash" -> NotNullQuorum()
-            method == "algod_getBlockHeader" -> NotNullQuorum()
-            method == "algod_getTransactionProof" -> NotNullQuorum()
-            else -> AlwaysQuorum()
+        return if (sendMethods.contains(method)) {
+            BroadcastQuorum()
+        } else {
+            AlwaysQuorum()
         }
     }
 
@@ -106,16 +86,11 @@ class DefaultAvmMethods(
     }
 
     override fun isHardcoded(method: String): Boolean {
-        return hardcodedMethods.contains(method)
+        return false
     }
 
     override fun executeHardcoded(method: String): ByteArray {
-        val json = when (method) {
-            "algod_chainId" -> "\"${chain.chainId}\""
-            "algod_genesisId" -> "\"${chain.netVersion}\""
-            else -> throw RpcException(-32601, "Method not found")
-        }
-        return json.toByteArray()
+        throw RpcException(-32601, "Method not found")
     }
 
     override fun getGroupMethods(groupName: String): Set<String> =
@@ -125,6 +100,10 @@ class DefaultAvmMethods(
         }
 
     override fun getSupportedMethods(): Set<String> {
-        return (allowedMethods + hardcodedMethods).toSortedSet()
+        return allowedMethods.toSortedSet()
     }
+
+    private fun getMethod(path: String) = "GET#$path"
+
+    private fun postMethod(path: String) = "POST#$path"
 }

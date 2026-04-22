@@ -16,7 +16,7 @@ enum class BlockchainType(
     TON(ApiType.REST),
     RIPPLE(ApiType.JSON_RPC),
     KADENA(ApiType.REST),
-    AVM(ApiType.JSON_RPC),;
+    AVM(ApiType.REST),;
 }
 
 enum class ApiType {
