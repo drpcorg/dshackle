@@ -32,23 +32,33 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
 
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
-        val hashBytes = roundToBytes(status.lastRound)
-        val parentBytes = roundToBytes(status.lastRound - 1)
-
-        return Mono.just(
-            BlockContainer(
-                height = status.lastRound,
-                hash = BlockId.from(hashBytes),
-                difficulty = BigInteger.ZERO,
-                timestamp = Instant.now(),
-                full = false,
-                json = data,
-                parsed = status,
-                transactions = emptyList(),
-                upstreamId = upstreamId,
-                parentHash = BlockId.from(parentBytes),
+        val round = status.lastRound
+        val blockRequest = ChainRequest(
+            "GET#/v2/blocks/$round",
+            RestParams(
+                headers = emptyList(),
+                queryParams = listOf("format" to "json", "header-only" to "true"),
+                pathParams = emptyList(),
+                payload = ByteArray(0),
             ),
         )
+        return api.read(blockRequest)
+            .map { resp ->
+                val blockData = resp.getResult()
+                val block = Global.objectMapper.readValue(blockData, AvmBlockResult::class.java).block
+                BlockContainer(
+                    height = block.round,
+                    hash = BlockId.from(toHashBytes(block.seed ?: block.txnRoot, block.round)),
+                    difficulty = BigInteger.ZERO,
+                    timestamp = Instant.ofEpochSecond(block.timestamp),
+                    full = false,
+                    json = blockData,
+                    parsed = block,
+                    transactions = emptyList(),
+                    upstreamId = upstreamId,
+                    parentHash = BlockId.from(toHashBytes(block.previousBlockHash, block.round - 1)),
+                )
+            }
     }
 
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
@@ -122,6 +132,25 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         }
     }
 
+    // Algorand JSON blocks encode 32-byte fields (seed, prev, txn) in base64.
+    // Decode to raw bytes; if decoding fails or the field is absent, fall back
+    // to a deterministic 32-byte encoding of the round number.
+    private fun toHashBytes(raw: String?, round: Long): ByteArray {
+        if (raw.isNullOrBlank()) {
+            return roundToBytes(round)
+        }
+        val stripped = raw.removePrefix("blk-")
+        return try {
+            java.util.Base64.getDecoder().decode(stripped)
+        } catch (_: IllegalArgumentException) {
+            try {
+                java.util.Base64.getUrlDecoder().decode(stripped)
+            } catch (_: IllegalArgumentException) {
+                roundToBytes(round)
+            }
+        }
+    }
+
     private fun roundToBytes(round: Long): ByteArray {
         val bytes = ByteArray(32)
         var value = if (round < 0) 0L else round
@@ -140,6 +169,22 @@ data class AvmStatus(
     @param:JsonProperty("time-since-last-round") var timeSinceLastRound: Long = 0,
     @param:JsonProperty("last-version") var lastVersion: String? = null,
     @param:JsonProperty("next-version") var nextVersion: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class AvmBlockResult(
+    @param:JsonProperty("block") var block: AvmBlock,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class AvmBlock(
+    @param:JsonProperty("rnd") var round: Long,
+    @param:JsonProperty("ts") var timestamp: Long,
+    @param:JsonProperty("prev") var previousBlockHash: String? = null,
+    @param:JsonProperty("seed") var seed: String? = null,
+    @param:JsonProperty("txn") var txnRoot: String? = null,
+    @param:JsonProperty("gh") var genesisHash: String? = null,
+    @param:JsonProperty("gen") var genesisId: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

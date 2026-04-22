@@ -19,6 +19,7 @@ package io.emeraldpay.dshackle.upstream.calls
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
 import io.emeraldpay.dshackle.quorum.BroadcastQuorum
 import io.emeraldpay.dshackle.quorum.CallQuorum
+import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
 /**
@@ -89,11 +90,35 @@ class DefaultAvmMethods : CallMethods {
     private val allowedMethods: Set<String> =
         commonMethods + nodeMethods + accountMethods + transactionReadMethods + sendMethods + computeMethods
 
+    // Paths that look up a specific resource by id/round and should reject
+    // empty/404 answers via NotNullQuorum, so a single missing-replica
+    // response doesn't silently beat valid ones from other upstreams.
+    private val notNullReadMethods: Set<String> = setOf(
+        getMethod("/v2/blocks/*"),
+        getMethod("/v2/blocks/*/hash"),
+        getMethod("/v2/blocks/*/txids"),
+        getMethod("/v2/blocks/*/logs"),
+        getMethod("/v2/blocks/*/lightheader/proof"),
+        getMethod("/v2/blocks/*/transactions/*/proof"),
+        getMethod("/v2/accounts/*"),
+        getMethod("/v2/accounts/*/assets/*"),
+        getMethod("/v2/accounts/*/applications/*"),
+        getMethod("/v2/applications/*"),
+        getMethod("/v2/applications/*/box"),
+        getMethod("/v2/applications/*/boxes"),
+        getMethod("/v2/assets/*"),
+        getMethod("/v2/transactions/pending/*"),
+        getMethod("/v2/stateproofs/*"),
+        getMethod("/v2/deltas/*"),
+        getMethod("/v2/deltas/*/txn/group"),
+        getMethod("/v2/deltas/txn/group/*"),
+    )
+
     override fun createQuorumFor(method: String): CallQuorum {
-        return if (sendMethods.contains(method)) {
-            BroadcastQuorum()
-        } else {
-            AlwaysQuorum()
+        return when {
+            sendMethods.contains(method) -> BroadcastQuorum()
+            notNullReadMethods.contains(method) -> NotNullQuorum()
+            else -> AlwaysQuorum()
         }
     }
 

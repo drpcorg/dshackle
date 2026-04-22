@@ -2,6 +2,7 @@ package io.emeraldpay.dshackle.upstream.calls
 
 import io.emeraldpay.dshackle.quorum.AlwaysQuorum
 import io.emeraldpay.dshackle.quorum.BroadcastQuorum
+import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -66,11 +67,31 @@ class DefaultAvmMethodsTest {
     }
 
     @Test
-    fun readMethodsUseAlwaysQuorum() {
+    fun listReadMethodsUseAlwaysQuorum() {
         Assertions.assertThat(methods.createQuorumFor("GET#/v2/status"))
             .isInstanceOf(AlwaysQuorum::class.java)
-        Assertions.assertThat(methods.createQuorumFor("GET#/v2/blocks/*"))
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/transactions/pending"))
             .isInstanceOf(AlwaysQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/ledger/supply"))
+            .isInstanceOf(AlwaysQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/genesis"))
+            .isInstanceOf(AlwaysQuorum::class.java)
+    }
+
+    @Test
+    fun byIdLookupsUseNotNullQuorum() {
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/blocks/*"))
+            .isInstanceOf(NotNullQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/blocks/*/hash"))
+            .isInstanceOf(NotNullQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/accounts/*"))
+            .isInstanceOf(NotNullQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/applications/*"))
+            .isInstanceOf(NotNullQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/assets/*"))
+            .isInstanceOf(NotNullQuorum::class.java)
+        Assertions.assertThat(methods.createQuorumFor("GET#/v2/transactions/pending/*"))
+            .isInstanceOf(NotNullQuorum::class.java)
     }
 
     @Test
