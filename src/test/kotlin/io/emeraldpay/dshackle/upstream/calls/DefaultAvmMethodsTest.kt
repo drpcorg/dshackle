@@ -10,17 +10,44 @@ class DefaultAvmMethodsTest {
     private val methods = DefaultAvmMethods()
 
     @Test
-    fun commonReadMethodsAreCallable() {
+    fun rootLevelCommonEndpointsAreCallable() {
+        Assertions.assertThat(methods.isCallable("GET#/genesis")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/health")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/ready")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/versions")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/metrics")).isTrue()
+    }
+
+    @Test
+    fun v2ReadMethodsAreCallable() {
         Assertions.assertThat(methods.isCallable("GET#/v2/status")).isTrue()
-        Assertions.assertThat(methods.isCallable("GET#/v2/genesis")).isTrue()
         Assertions.assertThat(methods.isCallable("GET#/v2/blocks/*")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/v2/blocks/*/hash")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/v2/blocks/*/txids")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/v2/blocks/*/lightheader/proof")).isTrue()
         Assertions.assertThat(methods.isCallable("GET#/v2/accounts/*")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/v2/accounts/*/transactions/pending")).isTrue()
+        Assertions.assertThat(methods.isCallable("GET#/v2/transactions/pending")).isTrue()
     }
 
     @Test
     fun sendMethodsAreCallable() {
         Assertions.assertThat(methods.isCallable("POST#/v2/transactions")).isTrue()
         Assertions.assertThat(methods.isCallable("POST#/v2/transactions/async")).isTrue()
+    }
+
+    @Test
+    fun spuriousAlgodEndpointsAreNotCallable() {
+        // These paths don't exist in algod's OpenAPI spec — regression guards.
+        Assertions.assertThat(methods.isCallable("GET#/v2/genesis")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/versions")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/health")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/ready")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/metrics")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/blocks/*/header")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/blocks/*/transactions")).isFalse()
+        Assertions.assertThat(methods.isCallable("GET#/v2/lightheader/*")).isFalse()
+        Assertions.assertThat(methods.isCallable("POST#/v2/transactions/dryrun")).isFalse()
     }
 
     @Test
@@ -49,7 +76,7 @@ class DefaultAvmMethodsTest {
     @Test
     fun noHardcodedMethods() {
         Assertions.assertThat(methods.isHardcoded("GET#/v2/status")).isFalse()
-        Assertions.assertThat(methods.isHardcoded("GET#/v2/genesis")).isFalse()
+        Assertions.assertThat(methods.isHardcoded("GET#/genesis")).isFalse()
     }
 
     @Test
@@ -63,8 +90,9 @@ class DefaultAvmMethodsTest {
         val supported = methods.getSupportedMethods()
         Assertions.assertThat(supported).contains(
             "GET#/v2/status",
-            "GET#/v2/genesis",
+            "GET#/genesis",
             "POST#/v2/transactions",
+            "POST#/v2/teal/compile",
         )
     }
 }

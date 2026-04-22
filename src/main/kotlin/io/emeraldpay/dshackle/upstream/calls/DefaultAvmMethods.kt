@@ -22,40 +22,56 @@ import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 
 /**
- * Default configuration for AVM (Algorand Virtual Machine) REST API, mirroring
- * the algod `/v2` endpoints. Method identifiers use the `VERB#/path` convention
+ * Default configuration for AVM (Algorand Virtual Machine) REST API, matching
+ * the algod OpenAPI spec. Method identifiers use the `VERB#/path` convention
  * consumed by dshackle's REST HTTP reader.
  */
 class DefaultAvmMethods : CallMethods {
 
-    private val readMethods = setOf(
+    // Root-level common endpoints (not under /v2/*)
+    private val commonMethods = setOf(
+        getMethod("/genesis"),
+        getMethod("/health"),
+        getMethod("/ready"),
+        getMethod("/metrics"),
+        getMethod("/versions"),
+        getMethod("/swagger.json"),
+    )
+
+    // Node / ledger / blocks read endpoints under /v2/*
+    private val nodeMethods = setOf(
         getMethod("/v2/status"),
         getMethod("/v2/status/wait-for-block-after/*"),
-        getMethod("/v2/genesis"),
-        getMethod("/v2/versions"),
-        getMethod("/v2/health"),
-        getMethod("/v2/ready"),
-        getMethod("/v2/metrics"),
         getMethod("/v2/ledger/supply"),
         getMethod("/v2/ledger/sync"),
         getMethod("/v2/blocks/*"),
         getMethod("/v2/blocks/*/hash"),
-        getMethod("/v2/blocks/*/header"),
-        getMethod("/v2/blocks/*/transactions"),
+        getMethod("/v2/blocks/*/txids"),
+        getMethod("/v2/blocks/*/logs"),
+        getMethod("/v2/blocks/*/lightheader/proof"),
         getMethod("/v2/blocks/*/transactions/*/proof"),
+        getMethod("/v2/stateproofs/*"),
+        getMethod("/v2/deltas/*"),
+        getMethod("/v2/deltas/*/txn/group"),
+        getMethod("/v2/deltas/txn/group/*"),
+    )
+
+    private val accountMethods = setOf(
         getMethod("/v2/accounts/*"),
         getMethod("/v2/accounts/*/assets"),
         getMethod("/v2/accounts/*/assets/*"),
         getMethod("/v2/accounts/*/applications/*"),
+        getMethod("/v2/accounts/*/transactions/pending"),
         getMethod("/v2/applications/*"),
         getMethod("/v2/applications/*/box"),
         getMethod("/v2/applications/*/boxes"),
         getMethod("/v2/assets/*"),
+    )
+
+    private val transactionReadMethods = setOf(
         getMethod("/v2/transactions/params"),
         getMethod("/v2/transactions/pending"),
         getMethod("/v2/transactions/pending/*"),
-        getMethod("/v2/stateproofs/*"),
-        getMethod("/v2/lightheader/*"),
     )
 
     private val sendMethods = setOf(
@@ -64,14 +80,14 @@ class DefaultAvmMethods : CallMethods {
     )
 
     private val computeMethods = setOf(
-        postMethod("/v2/transactions/dryrun"),
         postMethod("/v2/transactions/simulate"),
         postMethod("/v2/teal/compile"),
         postMethod("/v2/teal/disassemble"),
         postMethod("/v2/teal/dryrun"),
     )
 
-    private val allowedMethods: Set<String> = readMethods + sendMethods + computeMethods
+    private val allowedMethods: Set<String> =
+        commonMethods + nodeMethods + accountMethods + transactionReadMethods + sendMethods + computeMethods
 
     override fun createQuorumFor(method: String): CallQuorum {
         return if (sendMethods.contains(method)) {

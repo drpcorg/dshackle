@@ -87,7 +87,7 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
         return listOf(
             GenericSingleCallValidator(
-                ChainRequest("GET#/v2/genesis", RestParams.emptyParams()),
+                ChainRequest("GET#/genesis", RestParams.emptyParams()),
                 upstream,
             ) { data ->
                 val genesis = Global.objectMapper.readValue(data, AvmGenesis::class.java)
