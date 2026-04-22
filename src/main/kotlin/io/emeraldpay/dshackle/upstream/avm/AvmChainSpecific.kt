@@ -118,10 +118,8 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
                 upstream,
             ) { data ->
                 val genesis = Global.objectMapper.readValue(data, AvmGenesis::class.java)
-                val expected = chain.netVersion.toString()
-                if (expected != BigInteger.ZERO.toString() && genesis.network.isNotEmpty() &&
-                    genesis.network.lowercase() != expected.lowercase() &&
-                    chain.chainId.isNotEmpty() && genesis.network.lowercase() != chain.chainId.lowercase()
+                if (chain.chainId.isNotEmpty() && genesis.network.isNotEmpty() &&
+                    genesis.network.lowercase() != chain.chainId.lowercase()
                 ) {
                     log.warn(
                         "AVM upstream {} reports network '{}' which doesn't match expected '{}'",
