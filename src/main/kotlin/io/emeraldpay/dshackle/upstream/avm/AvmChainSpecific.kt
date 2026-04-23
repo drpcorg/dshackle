@@ -95,27 +95,7 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         options: Options,
         config: ChainConfig,
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
-        return listOf(
-            GenericSingleCallValidator(
-                ChainRequest("GET#/genesis", RestParams.emptyParams()),
-                upstream,
-            ) { data ->
-                val genesis = Global.objectMapper.readValue(data, AvmGenesis::class.java)
-                if (chain.chainId.isNotEmpty() && genesis.network.isNotEmpty() &&
-                    genesis.network.lowercase() != chain.chainId.lowercase()
-                ) {
-                    log.warn(
-                        "AVM upstream {} reports network '{}' which doesn't match expected '{}'",
-                        upstream.getId(),
-                        genesis.network,
-                        chain.chainId,
-                    )
-                    ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
-                } else {
-                    ValidateUpstreamSettingsResult.UPSTREAM_VALID
-                }
-            },
-        )
+        return emptyList()
     }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
