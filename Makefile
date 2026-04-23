@@ -3,7 +3,7 @@ build-foundation:
 	cd foundation && ../gradlew build publishToMavenLocal
 
 run-main:
-	./gradlew run
+	./gradlew run -x test
 
 build-main:
 	./gradlew build
