@@ -6,7 +6,7 @@ run-main:
 	./gradlew run -x test
 
 build-main:
-	./gradlew build
+	./gradlew build -x test
 
 test: build-foundation
 	./gradlew check
