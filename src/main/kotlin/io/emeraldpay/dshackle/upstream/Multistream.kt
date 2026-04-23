@@ -108,6 +108,7 @@ abstract class Multistream(
 
     private fun monitorUpstream(upstream: Upstream) {
         val upstreamId = upstream.getId()
+        val clientType = upstream.getLabels().firstOrNull()?.get("client_type") ?: ""
 
         // otherwise metric will stuck with prev upstream instance
         removeUpstreamMeters(upstreamId)
@@ -118,11 +119,13 @@ abstract class Multistream(
             }
                 .tag("chain", chain.chainCode)
                 .tag("upstream", upstreamId)
+                .tag("client_type", clientType)
                 .register(Metrics.globalRegistry)
                 .id,
             Gauge.builder("$metrics.availability.status", upstream) { it.getStatus().grpcId.toDouble() }
                 .tag("chain", chain.chainCode)
                 .tag("upstream", upstreamId)
+                .tag("client_type", clientType)
                 .register(Metrics.globalRegistry)
                 .id,
         )
@@ -449,6 +452,7 @@ abstract class Multistream(
                 UpstreamChangeEvent.ChangeType.REVALIDATED -> {}
                 UpstreamChangeEvent.ChangeType.UPDATED -> {
                     onUpstreamsUpdated()
+                    monitorUpstream(event.upstream)
                     updateUpstreams.emitNext(event.upstream) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
                 }
 
