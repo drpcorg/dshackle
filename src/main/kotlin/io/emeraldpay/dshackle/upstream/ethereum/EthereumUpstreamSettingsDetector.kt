@@ -62,7 +62,10 @@ class EthereumUpstreamSettingsDetector(
     }
 
     override fun mapping(node: JsonNode): String {
-        return node.asText()
+        // Some nodes (e.g. Moca Tendermint EVM) return multi-line client versions
+        // like "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)".
+        // Use only the first line so the resulting label is clean.
+        return node.asText().substringBefore('\n').trim()
     }
 
     override fun clientVersionRequest(): ChainRequest {

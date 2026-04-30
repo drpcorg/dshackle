@@ -1,7 +1,7 @@
 package io.emeraldpay.dshackle.upstream
 
+import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Defaults.Companion.internalCallsTimeout
 import io.emeraldpay.dshackle.Global
@@ -47,6 +47,21 @@ abstract class UpstreamSettingsDetector(
     protected abstract fun parseClientVersion(data: ByteArray): String
 }
 
+/**
+ * Parse the response of `web3_clientVersion`-like calls leniently. Some nodes
+ * (e.g. Moca's Tendermint EVM) return a JSON string that contains raw, unescaped
+ * control characters such as line feeds. Jackson rejects those by default with
+ * "Illegal unquoted character", so we enable ALLOW_UNQUOTED_CONTROL_CHARS for
+ * this single call site.
+ */
+internal fun parseLenientJson(data: ByteArray): JsonNode {
+    val factory = Global.objectMapper.factory
+    factory.createParser(data).use { parser ->
+        parser.enable(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS)
+        return Global.objectMapper.readTree(parser)
+    }
+}
+
 abstract class BasicUpstreamSettingsDetector(
     private val upstream: Upstream,
 ) : UpstreamSettingsDetector(upstream) {
@@ -60,7 +75,7 @@ abstract class BasicUpstreamSettingsDetector(
             .getIngressReader()
             .read(nodeTypeRequest.request)
             .flatMap(ChainResponse::requireResult)
-            .map { Global.objectMapper.readValue<JsonNode>(it) }
+            .map { parseLenientJson(it) }
             .flatMapMany { node ->
                 val labels = mutableListOf<Pair<String, String>>()
                 clientType(node)?.let {
