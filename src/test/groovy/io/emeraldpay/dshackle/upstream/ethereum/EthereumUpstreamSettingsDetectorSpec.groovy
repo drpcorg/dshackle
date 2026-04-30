@@ -239,4 +239,81 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
             .expectComplete()
             .verify(Duration.ofSeconds(1))
     }
+
+    // Regression: Moca Tendermint EVM returns a JSON string with raw, unescaped LFs:
+    //   "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"
+    // Jackson's default parser rejects this with "Illegal unquoted character (code 10)",
+    // which previously caused EthereumUpstreamSettingsDetector to fail node type detection.
+    def "Detect node type when client version contains unescaped control chars (Moca Tendermint)"() {
+        setup:
+        def rawVersion = "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"
+        def jsonResultBytes = ('"' + rawVersion + '"').getBytes("UTF-8")
+        def up = Mock(DefaultUpstream) {
+            getId() >> "tiernet-us-east-bcn-05-moca-mainnet"
+            6 * getIngressReader() >> Mock(Reader) {
+                1 * read(new ChainRequest("web3_clientVersion", new ListParams())) >>
+                        Mono.just(new ChainResponse(jsonResultBytes, null))
+                1 * read(new ChainRequest("eth_blockNumber", new ListParams())) >>
+                        Mono.just(new ChainResponse("\"0x10df3e5\"".getBytes(), null))
+                1 * read(new ChainRequest("eth_getBalance", new ListParams(["0x0000000000000000000000000000000000000000", "0x10dccd5"]))) >>
+                        Mono.error(new RuntimeException())
+                1 * read(new ChainRequest("eth_getBalance", new ListParams(["0x0000000000000000000000000000000000000000", "0x2710"]))) >>
+                        Mono.just(new ChainResponse("".getBytes(), null))
+                1 * read(new ChainRequest("eth_call", new ListParams([
+                                "to": "0x53Daa71B04d589429f6d3DF52db123913B818F22",
+                                "data": "0x51be4eaa",
+                        ],
+                        "latest",
+                        [
+                                "0x53Daa71B04d589429f6d3DF52db123913B818F22": [
+                                        "code": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c806351be4eaa14602d575b600080fd5b60336047565b604051603e91906066565b60405180910390f35b60005a905090565b6000819050919050565b606081604f565b82525050565b6000602082019050607960008301846059565b9291505056fea26469706673582212201c0202887c1afe66974b06ee355dee07542bbc424cf4d1659c91f56c08c3dcc064736f6c63430008130033",
+                                ],
+                        ],
+                ))) >>
+                        Mono.just(new ChainResponse("".getBytes(), null))
+                1 * read(new ChainRequest("eth_getBlockByNumber", new ListParams(["pending", false]))) >>
+                        Mono.just(new ChainResponse("{}".getBytes(), null))
+            }
+            getLabels() >> []
+        }
+        def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
+        when:
+        def act = detector.internalDetectLabels()
+        then:
+        // The detector must not crash on the unescaped LF. With ALLOW_UNQUOTED_CONTROL_CHARS
+        // the JSON parses, and the resulting string runs through the existing
+        // slash/semver/dot logic: no slash, not semver-like, contains a dot ->
+        // client_type falls back to "default client" and client_version is the raw
+        // version string (preserved as-is, including the embedded LF).
+        StepVerifier.create(act)
+            .expectNext(new Pair<String, String>("client_type", "default client"))
+            .expectNext(new Pair<String, String>("client_version", rawVersion))
+            .expectNext(new Pair<String, String>("archive", "false"))
+            .expectNext(new Pair<String, String>("flashblocks", "false"))
+            .expectComplete()
+            .verify(Duration.ofSeconds(1))
+    }
+
+    def "detectClientVersion handles unescaped control chars in version string"() {
+        setup:
+        def rawVersion = "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"
+        def jsonResultBytes = ('"' + rawVersion + '"').getBytes("UTF-8")
+        def up = Mock(DefaultUpstream) {
+            2 * getIngressReader() >> Mock(Reader) {
+                1 * read(new ChainRequest("web3_clientVersion", new ListParams())) >>
+                        Mono.just(new ChainResponse(jsonResultBytes, null))
+            }
+            1 * getLabels() >> List.of()
+        }
+        def detector = new EthereumUpstreamSettingsDetector(up, Chain.ETHEREUM__MAINNET)
+        when:
+        def act = detector.detectClientVersion()
+        then:
+        // parseClientVersion only strips the outer JSON quotes; the embedded LF is
+        // passed through unchanged. The important behavior is that it does not throw.
+        StepVerifier.create(act)
+            .expectNext(rawVersion)
+            .expectComplete()
+            .verify(Duration.ofSeconds(1))
+    }
 }
