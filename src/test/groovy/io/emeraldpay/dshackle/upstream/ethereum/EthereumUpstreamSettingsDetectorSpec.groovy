@@ -280,12 +280,15 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         when:
         def act = detector.internalDetectLabels()
         then:
-        // The detector must not crash on the unescaped LF. The first line "Version dev ()"
-        // has no slash and no dot, so client_type is the lowercased first line and
-        // client_version is "unknown" - but, crucially, no parse error is thrown.
+        // The detector must not crash on the unescaped LF. After normalization the
+        // version string becomes single-spaced "Version dev () Compiled at using Go
+        // go1.23.11 (amd64)" - all tokens preserved, no token dropped.
+        // No slash, not semver-like, contains a dot -> falls back to default client
+        // and uses the full normalized string as the version label.
+        def normalized = "Version dev () Compiled at using Go go1.23.11 (amd64)"
         StepVerifier.create(act)
-            .expectNext(new Pair<String, String>("client_type", "version dev ()"))
-            .expectNext(new Pair<String, String>("client_version", "unknown"))
+            .expectNext(new Pair<String, String>("client_type", "default client"))
+            .expectNext(new Pair<String, String>("client_version", normalized))
             .expectNext(new Pair<String, String>("archive", "false"))
             .expectNext(new Pair<String, String>("flashblocks", "false"))
             .expectComplete()
@@ -307,10 +310,12 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         when:
         def act = detector.detectClientVersion()
         then:
-        // detectClientVersion uses parseClientVersion which only strips outer quotes;
-        // it should not throw on raw control chars.
+        // parseClientVersion strips outer quotes and normalizes whitespace, so the
+        // emitted client version is single-line and single-spaced. This matches the
+        // string the node-type detection path produces, keeping the two paths uniform.
+        def normalized = "Version dev () Compiled at using Go go1.23.11 (amd64)"
         StepVerifier.create(act)
-            .expectNext(rawVersion)
+            .expectNext(normalized)
             .expectComplete()
             .verify(Duration.ofSeconds(1))
     }

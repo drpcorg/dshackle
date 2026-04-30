@@ -62,6 +62,18 @@ internal fun parseLenientJson(data: ByteArray): JsonNode {
     }
 }
 
+/**
+ * Normalize a raw client-version string into a single-line, single-spaced form.
+ * Some nodes (e.g. Moca Tendermint EVM) return multi-line versions like
+ *   "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"
+ * Collapsing all whitespace runs (including raw LF/CR/TAB) into single spaces
+ * keeps every token of the version string and produces a clean single-line
+ * label, regardless of where the version token sits.
+ */
+internal fun normalizeVersionString(version: String): String {
+    return version.replace(Regex("\\s+"), " ").trim()
+}
+
 abstract class BasicUpstreamSettingsDetector(
     private val upstream: Upstream,
 ) : UpstreamSettingsDetector(upstream) {

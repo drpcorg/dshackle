@@ -8,6 +8,7 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.NodeTypeRequest
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.normalizeVersionString
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -62,10 +63,7 @@ class EthereumUpstreamSettingsDetector(
     }
 
     override fun mapping(node: JsonNode): String {
-        // Some nodes (e.g. Moca Tendermint EVM) return multi-line client versions
-        // like "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)".
-        // Use only the first line so the resulting label is clean.
-        return node.asText().substringBefore('\n').trim()
+        return normalizeVersionString(node.asText())
     }
 
     override fun clientVersionRequest(): ChainRequest {
@@ -73,11 +71,13 @@ class EthereumUpstreamSettingsDetector(
     }
 
     override fun parseClientVersion(data: ByteArray): String {
-        val version = String(data)
-        if (version.startsWith("\"") && version.endsWith("\"")) {
-            return version.substring(1, version.length - 1)
+        val raw = String(data)
+        val unquoted = if (raw.startsWith("\"") && raw.endsWith("\"")) {
+            raw.substring(1, raw.length - 1)
+        } else {
+            raw
         }
-        return version
+        return normalizeVersionString(unquoted)
     }
 
     /**

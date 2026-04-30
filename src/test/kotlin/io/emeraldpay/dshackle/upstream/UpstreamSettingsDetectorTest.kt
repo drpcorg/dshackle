@@ -48,4 +48,36 @@ class UpstreamSettingsDetectorTest {
         assertEquals("bar", node.get("foo").asText())
         assertEquals(42, node.get("n").asInt())
     }
+
+    @Test
+    fun `normalizeVersionString collapses LF and surrounding whitespace`() {
+        // Real Moca Tendermint EVM client version - multi-line, with double spaces
+        // around the missing 'Compiled at' value. Every token must be preserved and
+        // the result must be single-line, single-spaced.
+        val raw = "Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"
+        assertEquals(
+            "Version dev () Compiled at using Go go1.23.11 (amd64)",
+            normalizeVersionString(raw),
+        )
+    }
+
+    @Test
+    fun `normalizeVersionString collapses CR LF and tabs and trims edges`() {
+        val raw = "  Foo\r\n\tBar/v1.0\t\tbaz\n"
+        assertEquals("Foo Bar/v1.0 baz", normalizeVersionString(raw))
+    }
+
+    @Test
+    fun `normalizeVersionString preserves a token that follows a newline`() {
+        // Guards against the original "first line only" fix that would have
+        // dropped everything after the LF.
+        val raw = "Header line\nGeth/v1.12.0/linux-amd64/go1.20.3"
+        assertTrue(normalizeVersionString(raw).contains("Geth/v1.12.0/linux-amd64/go1.20.3"))
+    }
+
+    @Test
+    fun `normalizeVersionString leaves a normal slash version untouched`() {
+        val raw = "Geth/v1.12.0/linux-amd64/go1.20.3"
+        assertEquals(raw, normalizeVersionString(raw))
+    }
 }
