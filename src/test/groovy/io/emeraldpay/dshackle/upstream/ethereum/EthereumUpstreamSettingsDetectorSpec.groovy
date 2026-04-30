@@ -280,15 +280,14 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         when:
         def act = detector.internalDetectLabels()
         then:
-        // The detector must not crash on the unescaped LF. After normalization the
-        // version string becomes single-spaced "Version dev () Compiled at using Go
-        // go1.23.11 (amd64)" - all tokens preserved, no token dropped.
-        // No slash, not semver-like, contains a dot -> falls back to default client
-        // and uses the full normalized string as the version label.
-        def normalized = "Version dev () Compiled at using Go go1.23.11 (amd64)"
+        // The detector must not crash on the unescaped LF. With ALLOW_UNQUOTED_CONTROL_CHARS
+        // the JSON parses, and the resulting string runs through the existing
+        // slash/semver/dot logic: no slash, not semver-like, contains a dot ->
+        // client_type falls back to "default client" and client_version is the raw
+        // version string (preserved as-is, including the embedded LF).
         StepVerifier.create(act)
             .expectNext(new Pair<String, String>("client_type", "default client"))
-            .expectNext(new Pair<String, String>("client_version", normalized))
+            .expectNext(new Pair<String, String>("client_version", rawVersion))
             .expectNext(new Pair<String, String>("archive", "false"))
             .expectNext(new Pair<String, String>("flashblocks", "false"))
             .expectComplete()
@@ -310,12 +309,10 @@ class EthereumUpstreamSettingsDetectorSpec extends Specification {
         when:
         def act = detector.detectClientVersion()
         then:
-        // parseClientVersion strips outer quotes and normalizes whitespace, so the
-        // emitted client version is single-line and single-spaced. This matches the
-        // string the node-type detection path produces, keeping the two paths uniform.
-        def normalized = "Version dev () Compiled at using Go go1.23.11 (amd64)"
+        // parseClientVersion only strips the outer JSON quotes; the embedded LF is
+        // passed through unchanged. The important behavior is that it does not throw.
         StepVerifier.create(act)
-            .expectNext(normalized)
+            .expectNext(rawVersion)
             .expectComplete()
             .verify(Duration.ofSeconds(1))
     }

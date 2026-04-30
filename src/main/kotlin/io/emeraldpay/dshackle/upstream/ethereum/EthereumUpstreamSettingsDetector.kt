@@ -8,7 +8,6 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.NodeTypeRequest
 import io.emeraldpay.dshackle.upstream.Upstream
-import io.emeraldpay.dshackle.upstream.normalizeVersionString
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -63,7 +62,7 @@ class EthereumUpstreamSettingsDetector(
     }
 
     override fun mapping(node: JsonNode): String {
-        return normalizeVersionString(node.asText())
+        return node.asText()
     }
 
     override fun clientVersionRequest(): ChainRequest {
@@ -71,13 +70,11 @@ class EthereumUpstreamSettingsDetector(
     }
 
     override fun parseClientVersion(data: ByteArray): String {
-        val raw = String(data)
-        val unquoted = if (raw.startsWith("\"") && raw.endsWith("\"")) {
-            raw.substring(1, raw.length - 1)
-        } else {
-            raw
+        val version = String(data)
+        if (version.startsWith("\"") && version.endsWith("\"")) {
+            return version.substring(1, version.length - 1)
         }
-        return normalizeVersionString(unquoted)
+        return version
     }
 
     /**
