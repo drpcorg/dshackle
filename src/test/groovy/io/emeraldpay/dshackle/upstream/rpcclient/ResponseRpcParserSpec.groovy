@@ -235,4 +235,18 @@ class ResponseRpcParserSpec extends Specification {
         !act.hasResult()
     }
 
+    // Regression: Moca's Tendermint EVM returns a web3_clientVersion result
+    // that contains a raw, unescaped LF (CTRL-CHAR, code 10) inside the JSON
+    // string. Default Jackson rejects that with "Illegal unquoted character",
+    // which used to break upstream node-type detection.
+    def "Parse string response with unescaped control chars"() {
+        setup:
+        def json = '{"jsonrpc":"2.0","id":1,"result":"Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"}'
+        when:
+        def act = parser.parse(json.getBytes("UTF-8"))
+        then:
+        act.error == null
+        new String(act.result) == '"Version dev ()\nCompiled at  using Go go1.23.11 (amd64)"'
+    }
+
 }

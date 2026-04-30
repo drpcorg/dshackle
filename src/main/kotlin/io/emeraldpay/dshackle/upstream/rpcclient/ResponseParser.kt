@@ -32,7 +32,15 @@ abstract class ResponseParser<T> {
         private val log = LoggerFactory.getLogger(ResponseParser::class.java)
     }
 
-    private val jsonFactory = JsonFactory()
+    // Some upstreams (e.g. Moca's Tendermint EVM) embed raw control characters
+    // such as LF inside JSON string values (notably in `web3_clientVersion`
+    // results). Default Jackson rejects those with "Illegal unquoted character"
+    // before the response ever reaches the upstream-settings detector, so we
+    // relax just this one rule at the response-parsing layer to keep the
+    // payload flowing.
+    private val jsonFactory = JsonFactory().apply {
+        enable(JsonParser.Feature.ALLOW_UNQUOTED_CONTROL_CHARS)
+    }
 
     abstract fun build(state: Preparsed): T
 
