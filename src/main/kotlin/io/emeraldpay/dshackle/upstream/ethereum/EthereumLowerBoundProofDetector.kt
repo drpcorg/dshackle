@@ -31,6 +31,7 @@ class EthereumLowerBoundProofDetector(
             "invalid block height", // hyperliquid
             "not supported",
             "evm module does not exist on height",
+            "state is not available", // opbnb / bsc — eth_getProof on pruned state
         )
     }
 
