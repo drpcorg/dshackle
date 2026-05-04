@@ -130,7 +130,7 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     }
 
     fun validateTips(data: ByteArray, lagging: Int, upstreamId: String): UpstreamAvailability {
-        if (data.isEmpty() || data.all { it == ' '.code.toByte() || it == '\n'.code.toByte() || it == '\t'.code.toByte() || it == '\r'.code.toByte() }) {
+        if (data.isEmpty() || String(data).isBlank()) {
             log.warn("Aztec node {} returned empty L2 tips response", upstreamId)
             return UpstreamAvailability.SYNCING
         }
@@ -180,7 +180,20 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     }
 
     fun validateChainId(data: ByteArray, chain: Chain, upstreamId: String): ValidateUpstreamSettingsResult {
-        val raw = Global.objectMapper.readTree(data)
+        if (data.isEmpty() || String(data).isBlank()) {
+            log.warn("Aztec node {} returned empty chain id response", upstreamId)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        val raw = try {
+            Global.objectMapper.readTree(data)
+        } catch (e: Exception) {
+            log.warn("Aztec node {} returned unparseable chain id payload: {}", upstreamId, e.message)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        if (raw == null || raw.isNull) {
+            log.warn("Aztec node {} returned null chain id", upstreamId)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
         val reported = parseChainId(raw)
         if (reported.isNullOrBlank()) {
             log.warn("Aztec node {} returned no chain id ({})", upstreamId, raw)
@@ -208,7 +221,7 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         }
     }
 
-    private fun chainIdMatches(reported: String, expected: String): Boolean {
+    fun chainIdMatches(reported: String, expected: String): Boolean {
         val normalize: (String) -> String = { value ->
             val trimmed = value.trim().lowercase()
             val withoutPrefix = if (trimmed.startsWith("0x")) trimmed.substring(2) else trimmed
