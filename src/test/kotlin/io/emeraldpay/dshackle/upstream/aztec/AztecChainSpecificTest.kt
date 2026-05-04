@@ -1,10 +1,12 @@
 package io.emeraldpay.dshackle.upstream.aztec
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.data.BlockId
 import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
@@ -58,6 +60,10 @@ private val l2TipsExcessiveLag = """
 private val emptyReader = object : ChainReader {
     override fun read(key: ChainRequest): Mono<ChainResponse> = Mono.empty()
 }
+
+// Chain.UNSPECIFIED carries chainId="0x0", which makes it convenient as a stand-in
+// for a chain with a known small chain id when testing chain-id matching logic.
+private val zeroChain = Chain.UNSPECIFIED
 
 class AztecChainSpecificTest {
 
@@ -137,5 +143,77 @@ class AztecChainSpecificTest {
         // lagging=5 → threshold=50, gap=900 > 50 → SYNCING
         Assertions.assertThat(AztecChainSpecific.validateTips(l2TipsExcessiveLag.toByteArray(), 5, "up-1"))
             .isEqualTo(UpstreamAvailability.SYNCING)
+    }
+
+    @Test
+    fun `chainIdMatches handles decimal vs hex equivalence`() {
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("1", "0x1")).isTrue()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("0x1", "1")).isTrue()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("0", "0x0")).isTrue()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("11155111", "0xaa36a7")).isTrue()
+    }
+
+    @Test
+    fun `chainIdMatches detects mismatch`() {
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("1", "2")).isFalse()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("0x1", "0x2")).isFalse()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("11155111", "1")).isFalse()
+    }
+
+    @Test
+    fun `chainIdMatches normalizes case and leading zeros`() {
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("0xABC", "0xabc")).isTrue()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("0x00abc", "0xabc")).isTrue()
+        Assertions.assertThat(AztecChainSpecific.chainIdMatches("0x0", "0")).isTrue()
+    }
+
+    @Test
+    fun `validateChainId VALID on matching numeric chain id`() {
+        // node returns the chain id as a JSON number; chain.chainId is hex "0x0"
+        Assertions.assertThat(AztecChainSpecific.validateChainId("0".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+    }
+
+    @Test
+    fun `validateChainId VALID on matching string chain id`() {
+        Assertions.assertThat(AztecChainSpecific.validateChainId("\"0x0\"".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_VALID)
+    }
+
+    @Test
+    fun `validateChainId FATAL on chain id mismatch`() {
+        Assertions.assertThat(AztecChainSpecific.validateChainId("1".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR)
+    }
+
+    @Test
+    fun `validateChainId SETTINGS_ERROR on empty payload`() {
+        Assertions.assertThat(AztecChainSpecific.validateChainId(ByteArray(0), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
+    }
+
+    @Test
+    fun `validateChainId SETTINGS_ERROR on whitespace-only payload`() {
+        Assertions.assertThat(AztecChainSpecific.validateChainId("   \n  ".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
+    }
+
+    @Test
+    fun `validateChainId SETTINGS_ERROR on unparseable payload`() {
+        Assertions.assertThat(AztecChainSpecific.validateChainId("{ not json".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
+    }
+
+    @Test
+    fun `validateChainId SETTINGS_ERROR on JSON null`() {
+        Assertions.assertThat(AztecChainSpecific.validateChainId("null".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
+    }
+
+    @Test
+    fun `validateChainId SETTINGS_ERROR on object payload (no scalar chain id)`() {
+        // chain id RPC returning {"chainId": 1} is unexpected and treated as malformed.
+        Assertions.assertThat(AztecChainSpecific.validateChainId("{\"chainId\":1}".toByteArray(), zeroChain, "up-1"))
+            .isEqualTo(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
     }
 }
