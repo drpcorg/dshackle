@@ -26,10 +26,19 @@ import java.time.Instant
 object AztecChainSpecific : AbstractPollChainSpecific() {
     private val log = LoggerFactory.getLogger(AztecChainSpecific::class.java)
 
+    // node_getL2Tips reshaped between Aztec versions:
+    //   v3 (and earlier): {proposed: {number, hash}, proven: {number, hash}, checkpointed: {number, hash}}
+    //   v4: proven/finalized/checkpointed each became {block: {number, hash}, checkpoint: {number, hash}}
+    // proposed stayed flat. We always look at the v4 nested path first and fall back
+    // to the flat v3 path so an upstream on either version is parsed correctly.
+    private val PROPOSED_NUMBER = arrayOf("proposed.number", "proposed.block.number")
+    private val PROPOSED_HASH = arrayOf("proposed.hash", "proposed.block.hash")
+    private val PROVEN_NUMBER = arrayOf("proven.block.number", "proven.number")
+
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         val root = Global.objectMapper.readTree(data)
-        val height = parseLong(findNode(root, "proposed.number")) ?: 0L
-        val hashValue = parseText(findNode(root, "proposed.hash"))
+        val height = parseLong(findNode(root, *PROPOSED_NUMBER)) ?: 0L
+        val hashValue = parseText(findNode(root, *PROPOSED_HASH))
 
         return Mono.just(
             BlockContainer(
@@ -144,14 +153,14 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
             log.warn("Aztec node {} returned null L2 tips", upstreamId)
             return UpstreamAvailability.SYNCING
         }
-        val proposed = parseLong(findNode(raw, "proposed.number"))
+        val proposed = parseLong(findNode(raw, *PROPOSED_NUMBER))
         if (proposed == null || proposed <= 0L) {
-            log.warn("Aztec node {} has empty proposed tip: {}", upstreamId, raw)
+            log.warn("Aztec node {} has empty proposed tip", upstreamId)
             return UpstreamAvailability.SYNCING
         }
-        val proven = parseLong(findNode(raw, "proven.number"))
+        val proven = parseLong(findNode(raw, *PROVEN_NUMBER))
         if (proven == null) {
-            log.warn("Aztec node {} returned tips without a proven number: {}", upstreamId, raw)
+            log.warn("Aztec node {} returned tips without a proven number", upstreamId)
             return UpstreamAvailability.SYNCING
         }
         // proven trails proposed by definition; if proven is ahead, the upstream is returning stale/fixed data.
