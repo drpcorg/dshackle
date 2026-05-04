@@ -16,6 +16,7 @@
 package io.emeraldpay.dshackle.proxy
 
 import io.emeraldpay.dshackle.Chain
+import io.emeraldpay.dshackle.GracefulShutdown
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.ProxyConfig
 import io.emeraldpay.dshackle.monitoring.accesslog.AccessHandlerHttp
@@ -24,6 +25,7 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.handler.codec.http.HttpResponseStatus
 import org.apache.hc.core5.http.HttpHeaders
 import org.reactivestreams.Publisher
 import org.slf4j.LoggerFactory
@@ -43,6 +45,7 @@ class HttpHandler(
     nativeCall: NativeCall,
     private val accessHandler: AccessHandlerHttp.HandlerFactory,
     private val requestMetrics: ProxyServer.RequestMetricsFactory,
+    private val gracefulShutdown: GracefulShutdown,
 ) : BaseHandler(writeRpcJson, nativeCall, requestMetrics) {
 
     companion object {
@@ -64,17 +67,28 @@ class HttpHandler(
 
     fun proxy(routeConfig: ProxyConfig.Route): BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
         return BiFunction { req, resp ->
-            // handle access events
-            val eventHandler = accessHandler.create(req, routeConfig.blockchain)
-            val request = req.receive()
-                .aggregate()
-                .asByteArray()
-            val results = processRequest(routeConfig.blockchain, request, eventHandler)
-                // make sure that the access log handler is closed at the end, so it can render the logs
-                .doFinally { eventHandler.close() }
-            addCorsHeadersIfSet(resp)
-                .addHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                .send(results)
+            if (gracefulShutdown.isShuttingDown()) {
+                // Reject new traffic during graceful shutdown so the load balancer
+                // routes the request to a healthy instance.
+                addCorsHeadersIfSet(resp)
+                    .status(HttpResponseStatus.SERVICE_UNAVAILABLE)
+                    .addHeader(HttpHeaders.CONNECTION, "close")
+                    .send()
+            } else {
+                // handle access events
+                val eventHandler = accessHandler.create(req, routeConfig.blockchain)
+                val request = req.receive()
+                    .aggregate()
+                    .asByteArray()
+                val results = gracefulShutdown.trackFlux(
+                    processRequest(routeConfig.blockchain, request, eventHandler)
+                        // make sure that the access log handler is closed at the end, so it can render the logs
+                        .doFinally { eventHandler.close() },
+                )
+                addCorsHeadersIfSet(resp)
+                    .addHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                    .send(results)
+            }
         }
     }
 

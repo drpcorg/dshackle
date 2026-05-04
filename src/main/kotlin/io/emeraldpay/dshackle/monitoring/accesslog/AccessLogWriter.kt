@@ -18,6 +18,7 @@ package io.emeraldpay.dshackle.monitoring.accesslog
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.MainConfig
 import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Repository
@@ -94,6 +95,31 @@ class AccessLogWriter(
             lastErrorAt = now
             m()
         }
+    }
+
+    @PreDestroy
+    fun shutdown() {
+        if (!config.enabled) {
+            return
+        }
+        log.info("Flushing access log queue ({} entries pending)", queue.size)
+        scheduler.shutdown()
+        try {
+            scheduler.awaitTermination(2, TimeUnit.SECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        // Drain any remaining queued events. The runner uses a fixed batch limit,
+        // so loop until the queue is empty.
+        while (queue.isNotEmpty()) {
+            try {
+                flush()
+            } catch (t: Throwable) {
+                log.warn("Failed to flush access log on shutdown: ${t.javaClass.simpleName}: ${t.message}")
+                break
+            }
+        }
+        log.info("Access log flush complete")
     }
 
     protected fun flush() {
