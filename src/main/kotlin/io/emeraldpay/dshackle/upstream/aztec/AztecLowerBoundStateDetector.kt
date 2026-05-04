@@ -25,16 +25,14 @@ import reactor.core.publisher.Mono
  * already model this correctly via linear regression over the most recent
  * three samples, so we only need to feed it real readings.
  *
- * On transient errors (the public Aztec endpoint occasionally returns code 19
- * on this method) we **re-emit the cached LowerBoundData unchanged**, which
- * makes `updateBound`'s `newBound.timestamp != lastBound.timestamp` guard skip
- * the regression update. This is safer than:
- *  - emitting STATE=1 (would clobber a real prune boundary because the base
- *    filter accepts `lowerBound == 1L` unconditionally),
- *  - emitting a freshly-timestamped copy (would feed a false "no progress"
- *    sample into the regression and bias `k` toward zero).
- * On the very first tick with no cached value, we emit nothing - the router
- * sees no STATE bound for this upstream until it answers successfully.
+ * Failure handling:
+ *  - On RPC error / unparseable response we re-emit the cached LowerBoundData
+ *    unchanged (same instance / same timestamp) so `updateBound`'s
+ *    `newBound.timestamp != lastBound.timestamp` guard skips the regression
+ *    update and the cached bound stays put.
+ *  - If there is no cached value yet, we emit nothing. We do **not** synthesize
+ *    `STATE=1`: that would falsely advertise full archive history to the
+ *    router. The next refresh tick will retry.
  */
 class AztecLowerBoundStateDetector(
     private val upstream: Upstream,
@@ -53,56 +51,41 @@ class AztecLowerBoundStateDetector(
             .read(ChainRequest("node_getWorldStateSyncStatus", ListParams()))
             .timeout(Defaults.internalCallsTimeout)
             .flatMap(ChainResponse::requireResult)
-            .map(::parseOldestHistoric)
-            .onErrorResume { err ->
-                val cached = lowerBounds.getLastBound(LowerBoundType.STATE)
-                if (cached != null) {
-                    log.debug(
-                        "Aztec upstream {} world state sync status unavailable; retaining cached STATE={}: {}",
-                        upstream.getId(),
-                        cached.lowerBound,
-                        err.message,
-                    )
-                    // Same instance (same timestamp) so updateBound becomes a no-op
-                    // and the linear-regression coefficients are preserved.
-                    Mono.just(cached)
-                } else {
-                    log.debug(
-                        "Aztec upstream {} world state sync status unavailable on initial tick: {}",
-                        upstream.getId(),
-                        err.message,
-                    )
-                    Mono.empty()
-                }
-            }
+            .flatMap { data -> parseOldestHistoric(data) }
+            .onErrorResume { err -> retainCachedOrSkip(err.message) }
             .flux()
     }
 
-    private fun parseOldestHistoric(data: ByteArray): LowerBoundData {
+    private fun parseOldestHistoric(data: ByteArray): Mono<LowerBoundData> {
         val raw = Global.objectMapper.readTree(data)
         val node = raw.get("oldestHistoricBlockNumber")
         if (node != null && !node.isNull && node.isNumber) {
-            return LowerBoundData(node.asLong().coerceAtLeast(1L), LowerBoundType.STATE)
+            return Mono.just(LowerBoundData(node.asLong().coerceAtLeast(1L), LowerBoundType.STATE))
         }
-        // Response parsed but the field is missing/non-numeric. Fall back to the
-        // cached value (or nothing) - never invent a STATE=1 here, that would
-        // overwrite a real prune boundary on a malformed payload.
+        return retainCachedOrSkip("missing oldestHistoricBlockNumber")
+    }
+
+    private fun retainCachedOrSkip(reason: String?): Mono<LowerBoundData> {
         val cached = lowerBounds.getLastBound(LowerBoundType.STATE)
         if (cached != null) {
             log.debug(
-                "Aztec upstream {} returned no oldestHistoricBlockNumber; retaining cached STATE={}",
+                "Aztec upstream {} world state sync status unavailable; retaining cached STATE={}: {}",
                 upstream.getId(),
                 cached.lowerBound,
+                reason,
             )
-            return cached
+            // Same instance (same timestamp) so updateBound becomes a no-op
+            // and the linear-regression coefficients are preserved.
+            return Mono.just(cached)
         }
-        // No cache and a malformed first response: best we can do is emit a
-        // synthetic archive bound. This is the only place STATE=1 is invented;
-        // see the trade-off in the class KDoc.
-        log.warn(
-            "Aztec upstream {} returned no oldestHistoricBlockNumber and we have no cached STATE; assuming STATE=1",
+        // No cached value: skip the tick rather than fabricate STATE=1.
+        // STATE=1 would advertise full archive history, which is a lie if the
+        // node didn't tell us where its prune boundary is.
+        log.debug(
+            "Aztec upstream {} has no usable lower bound and no cache; skipping tick: {}",
             upstream.getId(),
+            reason,
         )
-        return LowerBoundData(1, LowerBoundType.STATE)
+        return Mono.empty()
     }
 }
