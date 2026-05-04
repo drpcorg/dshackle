@@ -79,12 +79,8 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         options: Options,
         config: ChainConfig,
     ): List<SingleValidator<UpstreamAvailability>> {
-        // AztecRetryingValidator wraps the read with a small Retry.backoff over
-        // transient HTTP 5xx errors so a single 502 from the public Aztec endpoint
-        // (HTML body during deploy/failover) does not flap the upstream into
-        // UNAVAILABLE on every probe; see AztecRetryingValidator KDoc.
         return listOf(
-            AztecRetryingValidator(
+            GenericSingleCallValidator(
                 ChainRequest("node_isReady", ListParams()),
                 upstream,
             ) { data ->
@@ -101,7 +97,7 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
                     UpstreamAvailability.SYNCING
                 }
             },
-            AztecRetryingValidator(
+            GenericSingleCallValidator(
                 ChainRequest("node_getL2Tips", ListParams()),
                 upstream,
             ) { data ->
@@ -119,8 +115,6 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         if (chain.chainId.isBlank()) {
             return emptyList()
         }
-        // Settings validators run once at startup, so the default GenericSingleCallValidator
-        // is enough - a flaky 5xx at startup is fine, the next health probe will retry.
         return listOf(
             GenericSingleCallValidator(
                 ChainRequest("node_getChainId", ListParams()),
