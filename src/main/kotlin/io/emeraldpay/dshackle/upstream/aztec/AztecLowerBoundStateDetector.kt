@@ -14,10 +14,15 @@ import reactor.core.publisher.Flux
  * Detects the lowest L2 block for which the upstream still has state available.
  *
  * Aztec full nodes are typically archive nodes (lower bound = 1), but pruning-capable
- * builds can drop historical state. The detector probes node_getBlock(N) over a binary
- * search between [0, currentHeight] - the call returns JSON `null` for a block the node
- * does not have, which we treat as "no data" so the recursive detector keeps searching
- * upward. The first block that comes back as a real object is the upstream's lower bound.
+ * builds can drop historical state. The detector probes node_getBlockHeader(N) over a
+ * binary search between [0, currentHeight] - the call returns JSON `null` for a block
+ * the node does not have, which we treat as "no data" so the recursive detector keeps
+ * searching upward. The first block that comes back as a real header is the upstream's
+ * lower bound.
+ *
+ * node_getBlockHeader is preferred over node_getBlock here because it returns just the
+ * block header (~100 bytes) instead of the full block with transactions (often KBs);
+ * the binary search performs ~log2(currentHeight) probes per refresh cycle.
  */
 class AztecLowerBoundStateDetector(
     private val upstream: Upstream,
@@ -59,7 +64,7 @@ class AztecLowerBoundStateDetector(
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
         return recursiveLowerBound.recursiveDetectLowerBound { block ->
             upstream.getIngressReader()
-                .read(ChainRequest("node_getBlock", ListParams(block)))
+                .read(ChainRequest("node_getBlockHeader", ListParams(block)))
                 .timeout(Defaults.internalCallsTimeout)
                 .doOnNext { response ->
                     // Aztec returns JSON `null` (not an error) for blocks the node does
