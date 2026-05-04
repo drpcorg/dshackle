@@ -35,6 +35,14 @@ class AztecLowerBoundStateDetector(
             "no historical state",
             "pruned",
         )
+
+        internal fun isNullResult(result: ByteArray): Boolean {
+            // Aztec nodes report a missing block as JSON `null`. Be tolerant of trailing
+            // whitespace/newlines and case variations so a stray `\n` does not flip the
+            // search into thinking the block is present.
+            val text = String(result).trim()
+            return text.equals("null", ignoreCase = true)
+        }
     }
 
     private val recursiveLowerBound = RecursiveLowerBound(
@@ -58,7 +66,7 @@ class AztecLowerBoundStateDetector(
                     // not have. Convert to an exception so the recursive detector treats
                     // it the same as a real "not found" RPC error and walks the search
                     // window upward.
-                    if (response.hasResult() && response.getResult().contentEquals("null".toByteArray())) {
+                    if (response.hasResult() && isNullResult(response.getResult())) {
                         throw IllegalStateException(NO_BLOCK)
                     }
                 }
