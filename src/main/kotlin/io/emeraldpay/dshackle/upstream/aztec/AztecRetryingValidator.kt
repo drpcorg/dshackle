@@ -34,7 +34,7 @@ class AztecRetryingValidator(
     private val upstream: Upstream,
     private val check: (ByteArray) -> UpstreamAvailability,
     private val maxRetries: Long = DEFAULT_MAX_RETRIES,
-    private val backoff: Duration = DEFAULT_BACKOFF,
+    private val retryBackoff: Duration = DEFAULT_BACKOFF,
 ) : SingleValidator<UpstreamAvailability> {
 
     companion object {
@@ -46,13 +46,17 @@ class AztecRetryingValidator(
         // Sequencer/proxy LB occasionally answers with HTML 5xx during deploys or
         // failovers; treat these as transient and retry rather than ejecting the
         // upstream from the rotation.
-        private val TRANSIENT_HTTP_CODES = setOf(502, 503, 504)
+        private val TRANSIENT_HTTP_CODES: List<String> = listOf(
+            "HTTP Code: 502",
+            "HTTP Code: 503",
+            "HTTP Code: 504",
+        )
+    }
 
-        internal fun isTransientHttpError(throwable: Throwable): Boolean {
-            if (throwable !is ChainException) return false
-            val message = throwable.error.message
-            return TRANSIENT_HTTP_CODES.any { code -> message.contains("HTTP Code: $code") }
-        }
+    private fun isTransient(throwable: Throwable): Boolean {
+        if (throwable !is ChainException) return false
+        val message = throwable.error.message
+        return TRANSIENT_HTTP_CODES.any { code -> message.contains(code) }
     }
 
     override fun validate(onError: UpstreamAvailability): Mono<UpstreamAvailability> {
@@ -60,19 +64,18 @@ class AztecRetryingValidator(
             .read(request)
             .flatMap(ChainResponse::requireResult)
             .retryWhen(
-                Retry.backoff(maxRetries, backoff)
-                    .filter(::isTransientHttpError)
+                Retry.backoff(maxRetries, retryBackoff)
+                    .filter { throwable -> isTransient(throwable) }
                     .doBeforeRetry { signal ->
                         log.warn(
                             "Transient HTTP error from {} on Aztec validator {}: {}; retry {}/{}",
                             upstream.getId(),
                             request.method,
-                            signal.failure().message,
+                            signal.failure().message ?: signal.failure().javaClass.simpleName,
                             signal.totalRetries() + 1,
                             maxRetries,
                         )
-                    }
-                    .onRetryExhaustedThrow { _, signal -> signal.failure() },
+                    },
             )
             .map(check)
             .timeout(Defaults.timeoutInternal)
