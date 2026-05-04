@@ -130,34 +130,51 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     }
 
     fun validateTips(data: ByteArray, lagging: Int, upstreamId: String): UpstreamAvailability {
-        val raw = Global.objectMapper.readTree(data)
-        if (raw.isNull || raw.isMissingNode) {
-            log.warn("Aztec node {} returned empty L2 tips", upstreamId)
+        if (data.isEmpty() || data.all { it == ' '.code.toByte() || it == '\n'.code.toByte() || it == '\t'.code.toByte() || it == '\r'.code.toByte() }) {
+            log.warn("Aztec node {} returned empty L2 tips response", upstreamId)
             return UpstreamAvailability.SYNCING
         }
-        val proposed = parseLong(findNode(raw, "proposed.number")) ?: 0L
-        val proven = parseLong(findNode(raw, "proven.number")) ?: 0L
-        if (proposed <= 0) {
+        val raw = try {
+            Global.objectMapper.readTree(data)
+        } catch (e: Exception) {
+            log.warn("Aztec node {} returned unparseable L2 tips: {}", upstreamId, e.message)
+            return UpstreamAvailability.SYNCING
+        }
+        if (raw == null || raw.isNull) {
+            log.warn("Aztec node {} returned null L2 tips", upstreamId)
+            return UpstreamAvailability.SYNCING
+        }
+        val proposed = parseLong(findNode(raw, "proposed.number"))
+        if (proposed == null || proposed <= 0L) {
             log.warn("Aztec node {} has empty proposed tip: {}", upstreamId, raw)
             return UpstreamAvailability.SYNCING
         }
-        // proven trails proposed by definition; sanity-check it isn't way ahead (would mean stale upstream returning fixed data)
+        val proven = parseLong(findNode(raw, "proven.number"))
+        if (proven == null) {
+            log.warn("Aztec node {} returned tips without a proven number: {}", upstreamId, raw)
+            return UpstreamAvailability.SYNCING
+        }
+        // proven trails proposed by definition; if proven is ahead, the upstream is returning stale/fixed data.
         if (proven > proposed) {
             log.warn("Aztec node {} returned inconsistent tips: proposed={} proven={}", upstreamId, proposed, proven)
             return UpstreamAvailability.SYNCING
         }
-        if (lagging > 0 && proposed - proven > lagging.toLong() * 10) {
-            // proposed-proven gap grows during normal operation, but a gap > lagging*10 indicates the prover is
-            // significantly stuck on this node; mark as SYNCING so head-skewed traffic prefers a healthier peer.
-            log.warn(
-                "Aztec node {} prover lag is excessive: proposed={} proven={} (gap={}, threshold={})",
-                upstreamId,
-                proposed,
-                proven,
-                proposed - proven,
-                lagging * 10,
-            )
-            return UpstreamAvailability.SYNCING
+        if (lagging > 0) {
+            val threshold = lagging.toLong() * 10L
+            val gap = proposed - proven
+            if (gap > threshold) {
+                // proposed-proven gap grows during normal operation, but a gap > lagging*10 indicates the prover is
+                // significantly stuck on this node; mark as SYNCING so head-skewed traffic prefers a healthier peer.
+                log.warn(
+                    "Aztec node {} prover lag is excessive: proposed={} proven={} (gap={}, threshold={})",
+                    upstreamId,
+                    proposed,
+                    proven,
+                    gap,
+                    threshold,
+                )
+                return UpstreamAvailability.SYNCING
+            }
         }
         return UpstreamAvailability.OK
     }
