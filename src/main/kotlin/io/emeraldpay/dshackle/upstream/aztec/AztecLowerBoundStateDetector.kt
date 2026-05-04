@@ -82,10 +82,10 @@ class AztecLowerBoundStateDetector(
         // synthetic archive bound. This is the only place STATE=1 is invented;
         // see the trade-off in the class KDoc.
         log.warn(
-            "Aztec upstream {} returned no oldestHistoricBlockNumber and we have no cached STATE",
+            "Aztec upstream {} returned no oldestHistoricBlockNumber and we have no cached STATE: {}",
             upstream.getId(),
             reason,
         )
-        return LowerBoundData(0, LowerBoundType.UNKNOWN)
+        return Mono.just(LowerBoundData(0, LowerBoundType.UNKNOWN))
     }
 }

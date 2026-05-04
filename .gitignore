@@ -20,6 +20,7 @@ env
 /test*
 /test/
 Test*.kt
+*_test.sh
 
 # http-client config
 http-client.env.json
