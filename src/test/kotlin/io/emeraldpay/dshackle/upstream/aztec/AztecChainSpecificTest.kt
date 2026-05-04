@@ -11,11 +11,23 @@ import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
 
+// v3-style flat shape: proven/checkpointed are flat {number, hash}.
 private val l2TipsOk = """
     {
       "proposed":     {"number": 21360, "hash": "0x4242"},
       "proven":       {"number": 21331, "hash": "0x1111"},
       "checkpointed": {"number": 21358, "hash": "0x2222"}
+    }
+""".trimIndent()
+
+// v4-style nested shape from aztec-testnet 4.2.0-rc.1: proven/finalized/checkpointed
+// each became {block: {number, hash}, checkpoint: {number, hash}}; proposed stayed flat.
+private val l2TipsOkV4 = """
+    {
+      "proposed":  {"number": 66934, "hash": "0xaaaa"},
+      "proven":    {"block": {"number": 66908, "hash": "0xbbbb"}, "checkpoint": {"number": 64070, "hash": "0xcccc"}},
+      "finalized": {"block": {"number": 66908, "hash": "0xbbbb"}, "checkpoint": {"number": 64070, "hash": "0xcccc"}},
+      "checkpointed": {"block": {"number": 66933, "hash": "0xdddd"}, "checkpoint": {"number": 64095, "hash": "0xeeee"}}
     }
 """.trimIndent()
 
@@ -68,7 +80,7 @@ private val zeroChain = Chain.UNSPECIFIED
 class AztecChainSpecificTest {
 
     @Test
-    fun `parseBlock extracts proposed tip`() {
+    fun `parseBlock extracts proposed tip (v3 flat)`() {
         val result = AztecChainSpecific.parseBlock(l2TipsOk.toByteArray(), "up-1", emptyReader).block()!!
 
         Assertions.assertThat(result.height).isEqualTo(21360)
@@ -78,8 +90,23 @@ class AztecChainSpecificTest {
     }
 
     @Test
-    fun `validateTips OK on healthy tips`() {
+    fun `parseBlock extracts proposed tip (v4 nested)`() {
+        val result = AztecChainSpecific.parseBlock(l2TipsOkV4.toByteArray(), "up-1", emptyReader).block()!!
+
+        Assertions.assertThat(result.height).isEqualTo(66934)
+        Assertions.assertThat(result.hash).isEqualTo(BlockId.from("0xaaaa"))
+    }
+
+    @Test
+    fun `validateTips OK on healthy v3 tips`() {
         Assertions.assertThat(AztecChainSpecific.validateTips(l2TipsOk.toByteArray(), 5, "up-1"))
+            .isEqualTo(UpstreamAvailability.OK)
+    }
+
+    @Test
+    fun `validateTips OK on healthy v4 tips`() {
+        // gap is 66934 - 66908 = 26; lagging=5 → threshold=50; 26 ≤ 50 → OK.
+        Assertions.assertThat(AztecChainSpecific.validateTips(l2TipsOkV4.toByteArray(), 5, "up-1"))
             .isEqualTo(UpstreamAvailability.OK)
     }
 
