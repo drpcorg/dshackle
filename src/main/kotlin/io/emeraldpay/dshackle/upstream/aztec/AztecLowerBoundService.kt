@@ -10,6 +10,6 @@ class AztecLowerBoundService(
     private val upstream: Upstream,
 ) : LowerBoundService(chain, upstream) {
     override fun detectors(): List<LowerBoundDetector> {
-        return listOf(AztecLowerBoundStateDetector(upstream.getChain()))
+        return listOf(AztecLowerBoundStateDetector(upstream))
     }
 }
