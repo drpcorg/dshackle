@@ -40,7 +40,10 @@ class AztecRetryingValidator(
     companion object {
         private val log = LoggerFactory.getLogger(AztecRetryingValidator::class.java)
 
-        const val DEFAULT_MAX_RETRIES: Long = 2
+        @JvmField
+        val DEFAULT_MAX_RETRIES: Long = 2L
+
+        @JvmField
         val DEFAULT_BACKOFF: Duration = Duration.ofMillis(500)
 
         // Sequencer/proxy LB occasionally answers with HTML 5xx during deploys or
@@ -80,7 +83,10 @@ class AztecRetryingValidator(
             .map(check)
             .timeout(Defaults.timeoutInternal)
             .doOnError { err ->
-                log.error("Error during {} validation for {}: {}", request.method, upstream.getId(), err.message)
+                // Pass the throwable as a positional arg so slf4j prints the full stack
+                // trace; without it diagnosing validator failures (timeouts, upstream
+                // exceptions, retry exhaustion) loses the cause chain.
+                log.error("Error during ${request.method} validation for ${upstream.getId()}", err)
             }
             .onErrorReturn(onError)
     }
