@@ -20,10 +20,11 @@ import reactor.core.publisher.Mono
  * `oldestHistoricBlockNumber` - the prune boundary kept by the world-state
  * synchronizer. One RPC call per refresh, no binary search needed.
  *
- * On transient errors (the public Aztec endpoint occasionally returns code 19 on
- * this method) we fall back to STATE=1 since Aztec full nodes are archive by
- * default. Subsequent refresh ticks will retry and pick up the real prune
- * boundary if the node is actually pruning.
+ * On transient errors (the public Aztec endpoint occasionally returns code 19
+ * on this method) we re-emit the previously cached STATE bound, so a flaky
+ * tick can't clobber a real prune boundary with a fabricated default. If no
+ * value has been read yet, the tick is skipped entirely - the router will
+ * pick up the bound the next time the upstream answers successfully.
  */
 class AztecLowerBoundStateDetector(
     private val upstream: Upstream,
@@ -44,12 +45,32 @@ class AztecLowerBoundStateDetector(
             .flatMap(ChainResponse::requireResult)
             .map(::parseOldestHistoric)
             .onErrorResume { err ->
-                log.debug(
-                    "Aztec upstream {} did not report oldestHistoricBlockNumber, defaulting to STATE=1: {}",
-                    upstream.getId(),
-                    err.message,
-                )
-                Mono.just(LowerBoundData(1, LowerBoundType.STATE))
+                val cached = lowerBounds.getLastBound(LowerBoundType.STATE)
+                if (cached != null) {
+                    // Re-emit the cached value. The base detector's filter
+                    // (lowerBound >= last) will pass it through and updateBound
+                    // becomes a no-op. The cache stays at its last good value
+                    // until the next successful refresh.
+                    log.debug(
+                        "Aztec upstream {} world state sync status unavailable; retaining cached STATE={}: {}",
+                        upstream.getId(),
+                        cached.lowerBound,
+                        err.message,
+                    )
+                    Mono.just(LowerBoundData(cached.lowerBound, LowerBoundType.STATE))
+                } else {
+                    // First tick failed - we have no idea what the bound is.
+                    // Skip the tick entirely (don't fake STATE=1). The base
+                    // detector's switchIfEmpty will publish a default UNKNOWN/0
+                    // for routing telemetry, but the STATE slot stays empty
+                    // until we successfully read a real value.
+                    log.debug(
+                        "Aztec upstream {} world state sync status unavailable on initial tick: {}",
+                        upstream.getId(),
+                        err.message,
+                    )
+                    Mono.empty()
+                }
             }
             .flux()
     }
@@ -60,7 +81,9 @@ class AztecLowerBoundStateDetector(
         val oldest = if (node != null && !node.isNull && node.isNumber) {
             node.asLong().coerceAtLeast(1L)
         } else {
-            1L
+            // Response parsed but the field is missing/non-numeric. Re-emit cache
+            // (or nothing) instead of guessing STATE=1.
+            lowerBounds.getLastBound(LowerBoundType.STATE)?.lowerBound ?: 1L
         }
         return LowerBoundData(oldest, LowerBoundType.STATE)
     }
