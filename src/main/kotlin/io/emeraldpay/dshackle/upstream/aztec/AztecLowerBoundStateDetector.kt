@@ -24,17 +24,6 @@ import reactor.core.publisher.Mono
  * older blocks (configured by `historyToKeep`). The base detector + LowerBounds
  * already model this correctly via linear regression over the most recent
  * three samples, so we only need to feed it real readings.
- *
- * On transient errors (the public Aztec endpoint occasionally returns code 19
- * on this method) we **re-emit the cached LowerBoundData unchanged**, which
- * makes `updateBound`'s `newBound.timestamp != lastBound.timestamp` guard skip
- * the regression update. This is safer than:
- *  - emitting STATE=1 (would clobber a real prune boundary because the base
- *    filter accepts `lowerBound == 1L` unconditionally),
- *  - emitting a freshly-timestamped copy (would feed a false "no progress"
- *    sample into the regression and bias `k` toward zero).
- * On the very first tick with no cached value, we emit nothing - the router
- * sees no STATE bound for this upstream until it answers successfully.
  */
 class AztecLowerBoundStateDetector(
     private val upstream: Upstream,
@@ -100,9 +89,9 @@ class AztecLowerBoundStateDetector(
         // synthetic archive bound. This is the only place STATE=1 is invented;
         // see the trade-off in the class KDoc.
         log.warn(
-            "Aztec upstream {} returned no oldestHistoricBlockNumber and we have no cached STATE; assuming STATE=1",
+            "Aztec upstream {} returned no oldestHistoricBlockNumber and we have no cached STATE",
             upstream.getId(),
         )
-        return LowerBoundData(1, LowerBoundType.STATE)
+        return LowerBoundData(0, LowerBoundType.UNKNOWN)
     }
 }
