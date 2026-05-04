@@ -33,7 +33,6 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     // to the flat v3 path so an upstream on either version is parsed correctly.
     private val PROPOSED_NUMBER = arrayOf("proposed.number", "proposed.block.number")
     private val PROPOSED_HASH = arrayOf("proposed.hash", "proposed.block.hash")
-    private val PROVEN_NUMBER = arrayOf("proven.block.number", "proven.number")
 
     override fun parseBlock(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
         val root = Global.objectMapper.readTree(data)
