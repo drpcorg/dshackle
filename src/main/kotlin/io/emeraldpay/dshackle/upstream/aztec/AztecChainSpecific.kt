@@ -47,16 +47,20 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         )
     }
 
+    // Aztec exposes only HTTP polling - there is no websocket newHeads subscription.
+    // getFromHeader is reachable only from GenericWsHead, which is never wired for a
+    // polling chain; route it through parseBlock so a future WS-capable backend can
+    // reuse the same parser without changes.
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        throw NotImplementedError()
+        return parseBlock(data, upstreamId, api)
     }
 
     override fun listenNewHeadsRequest(): ChainRequest {
-        throw NotImplementedError()
+        throw UnsupportedOperationException("Aztec does not support websocket subscriptions")
     }
 
     override fun unsubscribeNewHeadsRequest(subId: Any): ChainRequest {
-        throw NotImplementedError()
+        throw UnsupportedOperationException("Aztec does not support websocket subscriptions")
     }
 
     override fun upstreamValidators(
@@ -98,7 +102,17 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         options: Options,
         config: ChainConfig,
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
-        return emptyList()
+        if (chain.chainId.isBlank()) {
+            return emptyList()
+        }
+        return listOf(
+            GenericSingleCallValidator(
+                ChainRequest("node_getChainId", ListParams()),
+                upstream,
+            ) { data ->
+                validateChainId(data, chain, upstream.getId())
+            },
+        )
     }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
@@ -146,6 +160,51 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
             return UpstreamAvailability.SYNCING
         }
         return UpstreamAvailability.OK
+    }
+
+    fun validateChainId(data: ByteArray, chain: Chain, upstreamId: String): ValidateUpstreamSettingsResult {
+        val raw = Global.objectMapper.readTree(data)
+        val reported = parseChainId(raw)
+        if (reported.isNullOrBlank()) {
+            log.warn("Aztec node {} returned no chain id ({})", upstreamId, raw)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        val expected = chain.chainId
+        return if (chainIdMatches(reported, expected)) {
+            ValidateUpstreamSettingsResult.UPSTREAM_VALID
+        } else {
+            log.warn(
+                "Aztec node {} chain id mismatch: reported={} expected={}",
+                upstreamId,
+                reported,
+                expected,
+            )
+            ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
+        }
+    }
+
+    private fun parseChainId(node: JsonNode): String? {
+        return when {
+            node.isNumber -> node.asLong().toString()
+            node.isTextual -> node.asText().trim().ifBlank { null }
+            else -> null
+        }
+    }
+
+    private fun chainIdMatches(reported: String, expected: String): Boolean {
+        val normalize: (String) -> String = { value ->
+            val trimmed = value.trim().lowercase()
+            val withoutPrefix = if (trimmed.startsWith("0x")) trimmed.substring(2) else trimmed
+            // Aztec returns chain id as a decimal number; configured chainId may be hex.
+            // Compare numerically when both sides parse, fall back to literal match.
+            withoutPrefix.trimStart('0').ifEmpty { "0" }
+        }
+        val a = normalize(reported)
+        val b = normalize(expected)
+        if (a == b) return true
+        val aNum = runCatching { BigInteger(a, if (reported.lowercase().startsWith("0x")) 16 else 10) }.getOrNull()
+        val bNum = runCatching { BigInteger(b, if (expected.lowercase().startsWith("0x")) 16 else 10) }.getOrNull()
+        return aNum != null && bNum != null && aNum == bNum
     }
 
     private fun findNode(root: JsonNode, vararg paths: String): JsonNode? {
