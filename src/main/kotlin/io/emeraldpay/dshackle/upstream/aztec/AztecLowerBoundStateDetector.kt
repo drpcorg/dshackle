@@ -62,6 +62,12 @@ class AztecLowerBoundStateDetector(
     }
 
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
+        // If recursiveDetectLowerBound returns empty (head not yet known on the very
+        // first detection tick) the base LowerBoundDetector falls back to
+        // LowerBoundData.default(), which is (0, UNKNOWN). That UNKNOWN bound then sits
+        // in LowerBounds forever next to the real STATE bound discovered later. Aztec
+        // full nodes are archive by default, so substitute STATE=1 as our own
+        // empty-fallback - same shape as the real result, no UNKNOWN slot ever appears.
         return recursiveLowerBound.recursiveDetectLowerBound { block ->
             upstream.getIngressReader()
                 .read(ChainRequest("node_getBlockHeader", ListParams(block)))
@@ -75,7 +81,7 @@ class AztecLowerBoundStateDetector(
                         throw IllegalStateException(NO_BLOCK)
                     }
                 }
-        }
+        }.switchIfEmpty(Flux.just(LowerBoundData(1, LowerBoundType.STATE)))
     }
 
     override fun types(): Set<LowerBoundType> {
