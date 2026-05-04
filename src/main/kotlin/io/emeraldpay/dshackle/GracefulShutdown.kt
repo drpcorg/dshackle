@@ -53,7 +53,6 @@ class GracefulShutdown(
 
     companion object {
         private val log = LoggerFactory.getLogger(GracefulShutdown::class.java)
-        private val TRACK_TOKEN = Any()
     }
 
     private val shuttingDown = AtomicBoolean(false)
@@ -105,23 +104,17 @@ class GracefulShutdown(
     }
 
     /** Wraps a Mono so the call is counted as in-flight while it executes. */
-    fun <T> trackMono(source: Mono<T>): Mono<T> {
-        return Mono.using(
-            { beginRequest(); TRACK_TOKEN },
-            { _ -> source },
-            { _ -> endRequest() },
-            true,
-        )
+    fun <T : Any> trackMono(source: Mono<T>): Mono<T> {
+        return source
+            .doOnSubscribe { beginRequest() }
+            .doFinally { endRequest() }
     }
 
     /** Wraps a Flux so the call is counted as in-flight while it executes. */
-    fun <T> trackFlux(source: Flux<T>): Flux<T> {
-        return Flux.using(
-            { beginRequest(); TRACK_TOKEN },
-            { _ -> source },
-            { _ -> endRequest() },
-            true,
-        )
+    fun <T : Any> trackFlux(source: Flux<T>): Flux<T> {
+        return source
+            .doOnSubscribe { beginRequest() }
+            .doFinally { endRequest() }
     }
 
     private fun awaitDrain(timeoutMillis: Long): Boolean {
