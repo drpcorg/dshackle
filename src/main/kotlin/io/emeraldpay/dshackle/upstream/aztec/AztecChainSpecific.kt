@@ -56,12 +56,13 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
         )
     }
 
-    // Aztec exposes only HTTP polling - there is no websocket newHeads subscription.
-    // getFromHeader is reachable only from GenericWsHead, which is never wired for a
-    // polling chain; route it through parseBlock so a future WS-capable backend can
-    // reuse the same parser without changes.
+    // Aztec is HTTP-poll only; getFromHeader / listenNewHeadsRequest /
+    // unsubscribeNewHeadsRequest are reachable only from GenericWsHead, which is
+    // never wired for a polling chain. Fail fast so a misconfigured WS connector
+    // surfaces immediately instead of silently producing height=0 blocks from a
+    // header-shaped event being parsed as the L2Tips response.
     override fun getFromHeader(data: ByteArray, upstreamId: String, api: ChainReader): Mono<BlockContainer> {
-        return parseBlock(data, upstreamId, api)
+        throw UnsupportedOperationException("Aztec does not support websocket subscriptions")
     }
 
     override fun listenNewHeadsRequest(): ChainRequest {
