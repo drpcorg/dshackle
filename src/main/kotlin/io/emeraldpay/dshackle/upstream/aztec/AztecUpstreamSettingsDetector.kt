@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.aztec
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.upstream.BasicUpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.NodeTypeRequest
@@ -23,7 +24,23 @@ class AztecUpstreamSettingsDetector(
         return ChainRequest("node_getNodeVersion", ListParams())
     }
 
+    /**
+     * node_getNodeVersion typically returns a JSON string ("v1.2.3"), but a few
+     * builds wrap it in an object like {"nodeVersion": "v1.2.3", "l1ChainId": ...}
+     * - the same payload node_getNodeInfo returns. Try parsing the payload as JSON
+     * first and reuse [clientVersion] so detectClientVersion() and detectLabels()
+     * agree on the version they extract; fall back to a literal trim/quote-strip
+     * for raw non-JSON answers.
+     */
     override fun parseClientVersion(data: ByteArray): String {
+        val parsed = runCatching { Global.objectMapper.readTree(data) }.getOrNull()
+        if (parsed != null && !parsed.isNull && !parsed.isMissingNode) {
+            val fromJson = clientVersion(parsed)
+            if (fromJson != UNKNOWN_CLIENT_VERSION) {
+                return fromJson
+            }
+        }
+
         var version = String(data).trim()
         if (version.startsWith("\"") && version.endsWith("\"") && version.length >= 2) {
             version = version.substring(1, version.length - 1)
