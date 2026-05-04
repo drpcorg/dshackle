@@ -16,8 +16,8 @@
 package io.emeraldpay.dshackle.proxy
 
 import io.emeraldpay.dshackle.Chain
-import io.emeraldpay.dshackle.GracefulShutdown
 import io.emeraldpay.dshackle.Global
+import io.emeraldpay.dshackle.GracefulShutdown
 import io.emeraldpay.dshackle.config.ProxyConfig
 import io.emeraldpay.dshackle.monitoring.accesslog.AccessHandlerHttp
 import io.emeraldpay.dshackle.rpc.NativeCall

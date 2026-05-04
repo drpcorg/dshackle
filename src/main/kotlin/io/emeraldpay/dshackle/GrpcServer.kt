@@ -150,6 +150,6 @@ open class GrpcServer(
             srv.shutdownNow()
             srv.awaitTermination(5, TimeUnit.SECONDS)
         }
-        log.info("GRPC Server shot down")
+        log.info("GRPC Server shut down")
     }
 }

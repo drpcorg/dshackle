@@ -56,7 +56,6 @@ class GracefulShutdown(
     }
 
     private val shuttingDown = AtomicBoolean(false)
-    private val drainComplete = AtomicBoolean(false)
     private val inFlight = AtomicInteger(0)
 
     // Replay sink so subscribers that are created after shutdown is signaled also receive the cancel.
@@ -153,7 +152,6 @@ class GracefulShutdown(
 
         // Phase 2: wait for short-lived calls to finish.
         val drained = awaitDrain(drainTimeoutSeconds * 1000)
-        drainComplete.set(true)
         if (drained) {
             log.info("All in-flight requests completed within drain window")
         } else {
