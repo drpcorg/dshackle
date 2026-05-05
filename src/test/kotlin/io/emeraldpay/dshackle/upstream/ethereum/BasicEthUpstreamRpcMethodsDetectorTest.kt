@@ -84,6 +84,24 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             ChainCallError(32602, "missing value for required argument 0"),
                         ),
                     )
+                on {
+                    read(ChainRequest("trace_rawTransaction", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getStorageValues", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
             }
 
         val upstream =
@@ -169,6 +187,24 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             ChainCallError(32602, "missing value for required argument 0"),
                         ),
                     )
+                on {
+                    read(ChainRequest("trace_rawTransaction", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getStorageValues", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
             }
 
         val upstream =
@@ -180,10 +216,12 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
         val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
         Assertions.assertThat(detector.detectRpcMethods().block()).apply {
             isNotNull()
-            hasSize(6)
+            hasSize(8)
             containsEntry("eth_getBlockReceipts", true)
             containsEntry("trace_callMany", true)
+            containsEntry("trace_rawTransaction", true)
             containsEntry("eth_simulateV1", true)
+            containsEntry("eth_getStorageValues", true)
             containsEntry("debug_storageRangeAt", true)
             containsEntry("eth_getTdByNumber", true)
             containsEntry("eth_callBundle", true)
@@ -259,6 +297,24 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                             ChainCallError(32602, "missing value for required argument 0"),
                         ),
                     )
+                on {
+                    read(ChainRequest("trace_rawTransaction", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getStorageValues", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
             }
 
         val upstream =
@@ -284,6 +340,111 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
             containsEntry("debug_storageRangeAt", true)
             containsEntry("eth_getTdByNumber", true)
             containsEntry("eth_callBundle", true)
+        }
+    }
+
+    @Test
+    fun `rpc_modules present but trace_rawTransaction and eth_getStorageValues not implemented`() {
+        val reader =
+            mock<ChainReader> {
+                on {
+                    read(ChainRequest("rpc_modules", ListParams()))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            """{"net": "1.0","debug": "1.0","txpool": "1.0","drpc": "1.0","erigon": "1.0","eth": "1.0","trace": "1.0"}"""
+                                .toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getBlockReceipts", ListParams("latest")))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            """[{"blockHash": "0xd12897f54acaa79f4824aa4f8e1d0f045b5568f5b942073555e9977202c5c474","blockNumber": "0x13c1108"}]"""
+                                .toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
+                    read(ChainRequest("trace_callMany", ListParams(listOf(listOf<Any>()))))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            "[]".toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
+                    read(ChainRequest("trace_rawTransaction", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32601, "the method trace_rawTransaction does not exist/is not available"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_simulateV1", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            "[]".toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getStorageValues", ListParams(listOf<Any>())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32601, "the method eth_getStorageValues does not exist/is not available"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("debug_storageRangeAt", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_getTdByNumber", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_callBundle", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+            }
+
+        val upstream =
+            mock<Upstream> {
+                on { getIngressReader() } doReturn reader
+                on { getChain() } doReturn Chain.ETHEREUM__MAINNET
+            }
+        val config = mock<UpstreamsConfig.Upstream<*>> { }
+        val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
+        Assertions.assertThat(detector.detectRpcMethods().block()).apply {
+            isNotNull()
+            containsEntry("trace_rawTransaction", false)
+            containsEntry("eth_getStorageValues", false)
+            containsEntry("trace_callMany", true)
+            containsEntry("eth_getBlockReceipts", true)
         }
     }
 }

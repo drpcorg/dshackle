@@ -34,7 +34,9 @@ class BasicEthUpstreamRpcMethodsDetector(
         setOf(
             "eth_getBlockReceipts" to ListParams("latest"),
             "trace_callMany" to ListParams(listOf(listOf<Any>())),
+            "trace_rawTransaction" to ListParams(listOf<Any>()),
             "eth_simulateV1" to ListParams(listOf()),
+            "eth_getStorageValues" to ListParams(listOf<Any>()),
             "debug_storageRangeAt" to ListParams(listOf()),
             "eth_getTdByNumber" to ListParams(listOf()),
             "eth_callBundle" to ListParams(listOf()),
