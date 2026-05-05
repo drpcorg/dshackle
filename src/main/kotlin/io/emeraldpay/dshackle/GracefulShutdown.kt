@@ -40,6 +40,12 @@ import java.util.concurrent.atomic.AtomicInteger
  *   6. Force-close any still-active inbound servers.
  *   7. Allow Spring's normal `@PreDestroy` lifecycle (upstream connections, log flushing)
  *      to run for the remaining beans.
+ *
+ * Shutdown is triggered from two places (both idempotent via [shuttingDown]):
+ *   - A JVM shutdown hook registered in [registerJvmShutdownHook] — fires reliably on
+ *     SIGINT (Ctrl+C) and SIGTERM, regardless of Spring quirks.
+ *   - A [ContextClosedEvent] listener — fires when the application context is closed
+ *     programmatically (e.g. from tests).
  */
 @Service
 class GracefulShutdown(
@@ -129,7 +135,11 @@ class GracefulShutdown(
         return inFlight.get() == 0
     }
 
-    override fun onApplicationEvent(event: ContextClosedEvent) {
+    /**
+     * Idempotent: runs the full shutdown orchestration on the first call only.
+     * Safe to call from multiple paths (JVM hook, ContextClosedEvent listener, tests).
+     */
+    fun triggerShutdown() {
         if (!shuttingDown.compareAndSet(false, true)) {
             return
         }
@@ -167,6 +177,14 @@ class GracefulShutdown(
         runHooks(forceCloseHooks)
 
         log.info("Graceful shutdown coordinator finished; handing off to bean destruction")
+    }
+
+    /**
+     * Backstop for programmatic context closes (tests, embedded use). The JVM shutdown
+     * hook registered in `main()` is the primary trigger for SIGINT/SIGTERM.
+     */
+    override fun onApplicationEvent(event: ContextClosedEvent) {
+        triggerShutdown()
     }
 
     private fun runHooks(hooks: List<ShutdownHook>) {
