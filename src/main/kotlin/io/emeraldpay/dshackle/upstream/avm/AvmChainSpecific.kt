@@ -14,6 +14,7 @@ import io.emeraldpay.dshackle.upstream.GenericSingleCallValidator
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
@@ -95,26 +96,77 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         options: Options,
         config: ChainConfig,
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
-        return emptyList()
+        if (chain.chainId.isBlank()) {
+            return emptyList()
+        }
+        return listOf(
+            GenericSingleCallValidator(
+                ChainRequest("GET#/genesis", RestParams.emptyParams()),
+                upstream,
+            ) { data ->
+                validateGenesis(data, chain, upstream.getId())
+            },
+        )
+    }
+
+    override fun upstreamSettingsDetector(
+        chain: Chain,
+        upstream: Upstream,
+    ): UpstreamSettingsDetector {
+        return AvmUpstreamSettingsDetector(upstream)
     }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
         return AvmLowerBoundService(chain, upstream)
     }
 
-    fun validate(data: ByteArray, upstreamId: String): UpstreamAvailability {
-        val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
-        return if (status.catchupTime > 0L) {
-            log.warn("AVM node {} is catching up: catchupTime={}ns", upstreamId, status.catchupTime)
-            UpstreamAvailability.SYNCING
-        } else {
-            UpstreamAvailability.OK
+    fun validateGenesis(data: ByteArray, chain: Chain, upstreamId: String): ValidateUpstreamSettingsResult {
+        val expected = chain.chainId.trim()
+        if (expected.isBlank()) {
+            return ValidateUpstreamSettingsResult.UPSTREAM_VALID
         }
+        if (data.isEmpty()) {
+            log.warn("AVM node {} returned empty genesis response", upstreamId)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        val genesis = try {
+            Global.objectMapper.readValue(data, AvmGenesis::class.java)
+        } catch (e: Exception) {
+            log.warn("AVM node {} returned unparseable genesis payload: {}", upstreamId, e.message)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        val expectedNetwork = chain.chainName.substringAfterLast(" ").lowercase()
+        if (genesis.network.equals(expectedNetwork, ignoreCase = true)) {
+            return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+        }
+        log.warn(
+            "AVM node {} chain mismatch: chain={} (expected network={}) but node reports network={} id={}",
+            upstreamId,
+            chain.chainName,
+            expectedNetwork,
+            genesis.network,
+            genesis.id,
+        )
+        return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
     }
 
-    // Algorand JSON blocks encode 32-byte fields (seed, prev, txn) in base64.
-    // Decode to raw bytes; if decoding fails or the field is absent, fall back
-    // to a deterministic 32-byte encoding of the round number.
+    fun validate(data: ByteArray, upstreamId: String): UpstreamAvailability {
+        val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
+        if (status.lastRound == 0L) {
+            log.warn("AVM node {} reports no last-round", upstreamId)
+            return UpstreamAvailability.UNAVAILABLE
+        }
+        if (status.stoppedAtUnsupportedRound) {
+            log.warn("AVM node {} halted on an unsupported consensus round", upstreamId)
+            return UpstreamAvailability.UNAVAILABLE
+        }
+        if (status.catchupTime > 0L) {
+            log.warn("AVM node {} is catching up: catchupTime={}ns", upstreamId, status.catchupTime)
+            return UpstreamAvailability.SYNCING
+        }
+        return UpstreamAvailability.OK
+    }
+
     private fun toHashBytes(raw: String?, round: Long): ByteArray {
         if (raw.isNullOrBlank()) {
             return roundToBytes(round)
@@ -149,6 +201,7 @@ data class AvmStatus(
     @param:JsonProperty("time-since-last-round") var timeSinceLastRound: Long = 0,
     @param:JsonProperty("last-version") var lastVersion: String? = null,
     @param:JsonProperty("next-version") var nextVersion: String? = null,
+    @param:JsonProperty("stopped-at-unsupported-round") var stoppedAtUnsupportedRound: Boolean = false,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
