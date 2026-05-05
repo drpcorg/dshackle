@@ -12,7 +12,9 @@ import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundDetector
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import io.emeraldpay.dshackle.upstream.lowerbound.detector.RecursiveLowerBound
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
+import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
 import reactor.kotlin.core.publisher.toFlux
 
 class AvmLowerBoundStateDetector(
@@ -22,6 +24,8 @@ class AvmLowerBoundStateDetector(
     private val recursiveLowerBound = RecursiveLowerBound(upstream, LowerBoundType.STATE, notFoundErrors, lowerBounds)
 
     companion object {
+        private val log = LoggerFactory.getLogger(AvmLowerBoundStateDetector::class.java)
+
         val notFoundErrors = setOf(
             "block not found",
             "not available",
@@ -46,10 +50,32 @@ class AvmLowerBoundStateDetector(
                 .read(ChainRequest("GET#/v2/blocks/*/hash", params))
                 .timeout(Defaults.internalCallsTimeout)
                 .map { response -> interpretHashResponse(round, response) }
-        }.toFlux()
+        }
+            .switchIfEmpty(Mono.fromSupplier { cachedOrUnknown("recursive search returned no bound") })
+            .onErrorResume { err -> Mono.just(cachedOrUnknown(err.message ?: "unknown error")) }
+            .toFlux()
     }
 
-    override fun types(): Set<LowerBoundType> = setOf(LowerBoundType.STATE)
+    override fun types(): Set<LowerBoundType> = setOf(LowerBoundType.STATE, LowerBoundType.UNKNOWN)
+
+    private fun cachedOrUnknown(reason: String): LowerBoundData {
+        val cached = lowerBounds.getLastBound(LowerBoundType.STATE)
+        if (cached != null) {
+            log.debug(
+                "AVM upstream {} lower-bound search failed ({}); retaining cached STATE={}",
+                upstream.getId(),
+                reason,
+                cached.lowerBound,
+            )
+            return cached
+        }
+        log.warn(
+            "AVM upstream {} lower-bound search failed ({}) and no cache is available; emitting UNKNOWN",
+            upstream.getId(),
+            reason,
+        )
+        return LowerBoundData(0, LowerBoundType.UNKNOWN)
+    }
 
     private fun interpretHashResponse(round: Long, response: ChainResponse): ChainResponse {
         if (response.hasError()) {
