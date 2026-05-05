@@ -135,30 +135,20 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
             log.warn("AVM node {} returned unparseable genesis payload: {}", upstreamId, e.message)
             return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
         }
-        val expectedNetwork = ALGORAND_CHAIN_ID_NETWORK[expected.lowercase()]
-        if (expectedNetwork == null) {
-            log.warn("AVM upstream {} has unknown Algorand chain-id {}", upstreamId, expected)
-            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
-        }
+        val expectedNetwork = chain.chainName.substringAfterLast(" ").lowercase()
         if (genesis.network.equals(expectedNetwork, ignoreCase = true)) {
             return ValidateUpstreamSettingsResult.UPSTREAM_VALID
         }
         log.warn(
-            "AVM node {} chain mismatch: chain-id={} (expected={}) but node reports network={} id={}",
+            "AVM node {} chain mismatch: chain={} (expected network={}) but node reports network={} id={}",
             upstreamId,
-            expected,
+            chain.chainName,
             expectedNetwork,
             genesis.network,
             genesis.id,
         )
         return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
     }
-
-    private val ALGORAND_CHAIN_ID_NETWORK = mapOf(
-        "0x65901" to "mainnet",
-        "0x65902" to "testnet",
-        "0x65903" to "betanet",
-    )
 
     fun validate(data: ByteArray, upstreamId: String): UpstreamAvailability {
         val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
