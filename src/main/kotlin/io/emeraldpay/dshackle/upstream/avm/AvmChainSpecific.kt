@@ -123,14 +123,14 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
     }
 
     /**
-     * Algorand has no EVM-style numeric chain-id; drpc assigns synthetic ones
-     * (`0x65901` mainnet, `0x65902` testnet, `0x65903` betanet) in chains.yaml,
-     * while algod's `/v2/genesis` reports `network` as `mainnet`/`testnet`/
-     * `betanet`. We translate the configured chain-id to its expected algod
-     * network and compare. As a fallback - so this still works on dshackle
-     * deployments that point chain-id at the network/id literal directly -
-     * we also accept matches against `network`, `id`, or composed `network-id`
-     * (e.g. `mainnet-v1.0`).
+     * Algorand assigns one chain-id per network (`0x65901` mainnet,
+     * `0x65902` testnet, `0x65903` betanet). algod's `/v2/genesis` does
+     * not echo it back as a number; it reports the human network name
+     * (`mainnet`/`testnet`/`betanet`/...) via the `network` field. We
+     * translate the configured chain-id to its expected algod network and
+     * require an exact match - the schema `id` (e.g. `v1.0`) is shared
+     * across networks so it cannot be used as an additional acceptance
+     * candidate.
      */
     fun validateGenesis(data: ByteArray, chain: Chain, upstreamId: String): ValidateUpstreamSettingsResult {
         val expected = chain.chainId.trim()
@@ -148,31 +148,31 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
             return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
         }
         val expectedNetwork = ALGORAND_CHAIN_ID_NETWORK[expected.lowercase()]
-        if (expectedNetwork != null && genesis.network.equals(expectedNetwork, ignoreCase = true)) {
-            return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+        if (expectedNetwork == null) {
+            log.warn(
+                "AVM upstream {} has unknown Algorand chain-id {}; cannot validate against /v2/genesis",
+                upstreamId,
+                expected,
+            )
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
         }
-        val candidates = listOfNotNull(
-            genesis.network.takeIf { it.isNotBlank() },
-            genesis.id.takeIf { it.isNotBlank() },
-            if (genesis.network.isNotBlank() && genesis.id.isNotBlank()) "${genesis.network}-${genesis.id}" else null,
-        )
-        if (candidates.any { it.equals(expected, ignoreCase = true) }) {
+        if (genesis.network.equals(expectedNetwork, ignoreCase = true)) {
             return ValidateUpstreamSettingsResult.UPSTREAM_VALID
         }
         log.warn(
             "AVM node {} chain mismatch: configured chain-id={} (expected network={}) but node reports network={} id={}",
             upstreamId,
             expected,
-            expectedNetwork ?: "<unknown>",
+            expectedNetwork,
             genesis.network,
             genesis.id,
         )
         return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
     }
 
-    // Synthetic chain-ids drpc assigns to Algorand networks in chains.yaml,
-    // mapped to the network name algod publishes via /v2/genesis. Keep keys
-    // lowercase so callers can normalise without the map needing to.
+    // Official Algorand chain-ids per network, mapped to the network name
+    // algod publishes via /v2/genesis. Keep keys lowercase so callers can
+    // normalise without the map having to.
     private val ALGORAND_CHAIN_ID_NETWORK = mapOf(
         "0x65901" to "mainnet",
         "0x65902" to "testnet",
