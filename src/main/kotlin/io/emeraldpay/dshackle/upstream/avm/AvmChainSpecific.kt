@@ -14,6 +14,7 @@ import io.emeraldpay.dshackle.upstream.GenericSingleCallValidator
 import io.emeraldpay.dshackle.upstream.SingleValidator
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.UpstreamSettingsDetector
 import io.emeraldpay.dshackle.upstream.ValidateUpstreamSettingsResult
 import io.emeraldpay.dshackle.upstream.generic.AbstractPollChainSpecific
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundService
@@ -95,11 +96,71 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         options: Options,
         config: ChainConfig,
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
-        return emptyList()
+        // dshackle's AVM blockchain type currently has no per-chain `chain-id`
+        // entries in chains.yaml. Skip cleanly when it is unset so the
+        // validator framework doesn't reject every Algorand upstream.
+        if (chain.chainId.isBlank()) {
+            return emptyList()
+        }
+        return listOf(
+            GenericSingleCallValidator(
+                ChainRequest("GET#/v2/genesis", RestParams.emptyParams()),
+                upstream,
+            ) { data ->
+                validateGenesis(data, chain, upstream.getId())
+            },
+        )
+    }
+
+    override fun upstreamSettingsDetector(
+        chain: Chain,
+        upstream: Upstream,
+    ): UpstreamSettingsDetector {
+        return AvmUpstreamSettingsDetector(upstream)
     }
 
     override fun lowerBoundService(chain: Chain, upstream: Upstream): LowerBoundService {
         return AvmLowerBoundService(chain, upstream)
+    }
+
+    /**
+     * Algorand has no EVM-style numeric chain-id; the network identifier
+     * exposed by algod is the genesis id (e.g. `mainnet-v1.0`) plus the
+     * genesis hash. Treat the configured `chain-id` as either of those:
+     * exact match against `network` (e.g. `mainnet`), `id` (e.g. `v1.0`), or
+     * the composed `network-id` (`mainnet-v1.0`). Case-insensitive.
+     */
+    fun validateGenesis(data: ByteArray, chain: Chain, upstreamId: String): ValidateUpstreamSettingsResult {
+        val expected = chain.chainId.trim()
+        if (expected.isBlank()) {
+            return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+        }
+        if (data.isEmpty()) {
+            log.warn("AVM node {} returned empty genesis response", upstreamId)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        val genesis = try {
+            Global.objectMapper.readValue(data, AvmGenesis::class.java)
+        } catch (e: Exception) {
+            log.warn("AVM node {} returned unparseable genesis payload: {}", upstreamId, e.message)
+            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
+        }
+        val candidates = listOfNotNull(
+            genesis.network.takeIf { it.isNotBlank() },
+            genesis.id.takeIf { it.isNotBlank() },
+            if (genesis.network.isNotBlank() && genesis.id.isNotBlank()) "${genesis.network}-${genesis.id}" else null,
+        )
+        if (candidates.any { it.equals(expected, ignoreCase = true) }) {
+            return ValidateUpstreamSettingsResult.UPSTREAM_VALID
+        }
+        log.warn(
+            "AVM node {} chain mismatch: configured chain-id={} but node reports network={} id={}",
+            upstreamId,
+            expected,
+            genesis.network,
+            genesis.id,
+        )
+        return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
     }
 
     fun validate(data: ByteArray, upstreamId: String): UpstreamAvailability {
