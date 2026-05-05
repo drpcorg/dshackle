@@ -101,7 +101,7 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         }
         return listOf(
             GenericSingleCallValidator(
-                ChainRequest("GET#/v2/genesis", RestParams.emptyParams()),
+                ChainRequest("GET#/genesis", RestParams.emptyParams()),
                 upstream,
             ) { data ->
                 validateGenesis(data, chain, upstream.getId())
