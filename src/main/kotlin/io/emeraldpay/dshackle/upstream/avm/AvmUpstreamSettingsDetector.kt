@@ -9,23 +9,6 @@ import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import reactor.core.publisher.Flux
 
-/**
- * Reads node identity from algod's `/v2/versions` endpoint, which returns:
- *
- * ```
- * {
- *   "build": {"major":3,"minor":24,"build_number":2,"branch":"rel/stable","channel":"stable", ...},
- *   "genesis_id": "mainnet-v1.0",
- *   "genesis_hash_b64": "...",
- *   "versions": ["v1","v2"]
- * }
- * ```
- *
- * algod is the only public algorand node implementation, so client_type is
- * fixed to `algod`. Client version is reconstructed from the build object
- * (major.minor.build_number) which is the form algorand themselves publish in
- * release notes.
- */
 class AvmUpstreamSettingsDetector(
     upstream: Upstream,
 ) : BasicUpstreamSettingsDetector(upstream) {

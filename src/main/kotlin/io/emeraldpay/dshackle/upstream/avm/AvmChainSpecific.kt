@@ -96,8 +96,6 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         options: Options,
         config: ChainConfig,
     ): List<SingleValidator<ValidateUpstreamSettingsResult>> {
-        // Skip cleanly when chain-id is unset so the validator framework
-        // doesn't reject every Algorand upstream.
         if (chain.chainId.isBlank()) {
             return emptyList()
         }
@@ -122,16 +120,6 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         return AvmLowerBoundService(chain, upstream)
     }
 
-    /**
-     * Algorand assigns one chain-id per network (`0x65901` mainnet,
-     * `0x65902` testnet, `0x65903` betanet). algod's `/v2/genesis` does
-     * not echo it back as a number; it reports the human network name
-     * (`mainnet`/`testnet`/`betanet`/...) via the `network` field. We
-     * translate the configured chain-id to its expected algod network and
-     * require an exact match - the schema `id` (e.g. `v1.0`) is shared
-     * across networks so it cannot be used as an additional acceptance
-     * candidate.
-     */
     fun validateGenesis(data: ByteArray, chain: Chain, upstreamId: String): ValidateUpstreamSettingsResult {
         val expected = chain.chainId.trim()
         if (expected.isBlank()) {
@@ -149,18 +137,14 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         }
         val expectedNetwork = ALGORAND_CHAIN_ID_NETWORK[expected.lowercase()]
         if (expectedNetwork == null) {
-            log.warn(
-                "AVM upstream {} has unknown Algorand chain-id {}; cannot validate against /v2/genesis",
-                upstreamId,
-                expected,
-            )
+            log.warn("AVM upstream {} has unknown Algorand chain-id {}", upstreamId, expected)
             return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
         }
         if (genesis.network.equals(expectedNetwork, ignoreCase = true)) {
             return ValidateUpstreamSettingsResult.UPSTREAM_VALID
         }
         log.warn(
-            "AVM node {} chain mismatch: configured chain-id={} (expected network={}) but node reports network={} id={}",
+            "AVM node {} chain mismatch: chain-id={} (expected={}) but node reports network={} id={}",
             upstreamId,
             expected,
             expectedNetwork,
@@ -170,9 +154,6 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
     }
 
-    // Official Algorand chain-ids per network, mapped to the network name
-    // algod publishes via /v2/genesis. Keep keys lowercase so callers can
-    // normalise without the map having to.
     private val ALGORAND_CHAIN_ID_NETWORK = mapOf(
         "0x65901" to "mainnet",
         "0x65902" to "testnet",
@@ -189,9 +170,6 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         }
     }
 
-    // Algorand JSON blocks encode 32-byte fields (seed, prev, txn) in base64.
-    // Decode to raw bytes; if decoding fails or the field is absent, fall back
-    // to a deterministic 32-byte encoding of the round number.
     private fun toHashBytes(raw: String?, round: Long): ByteArray {
         if (raw.isNullOrBlank()) {
             return roundToBytes(round)
