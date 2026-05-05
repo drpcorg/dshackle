@@ -20,7 +20,7 @@ class AvmUpstreamSettingsDetector(
     }
 
     override fun clientVersionRequest(): ChainRequest =
-        ChainRequest("GET#/v2/versions", RestParams.emptyParams())
+        ChainRequest("GET#/versions", RestParams.emptyParams())
 
     override fun parseClientVersion(data: ByteArray): String {
         if (data.isEmpty()) return UNKNOWN_CLIENT_VERSION
