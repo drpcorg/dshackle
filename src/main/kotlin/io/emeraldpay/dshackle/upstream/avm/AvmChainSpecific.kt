@@ -125,6 +125,11 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         if (expected.isBlank()) {
             return ValidateUpstreamSettingsResult.UPSTREAM_VALID
         }
+        val expectedNetwork = ALGORAND_CHAIN_ID_NETWORK[expected.lowercase()]
+        if (expectedNetwork == null) {
+            log.warn("AVM upstream {} has unknown Algorand chain-id {}", upstreamId, expected)
+            return ValidateUpstreamSettingsResult.UPSTREAM_FATAL_SETTINGS_ERROR
+        }
         if (data.isEmpty()) {
             log.warn("AVM node {} returned empty genesis response", upstreamId)
             return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
@@ -133,11 +138,6 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
             Global.objectMapper.readValue(data, AvmGenesis::class.java)
         } catch (e: Exception) {
             log.warn("AVM node {} returned unparseable genesis payload: {}", upstreamId, e.message)
-            return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
-        }
-        val expectedNetwork = ALGORAND_CHAIN_ID_NETWORK[expected.lowercase()]
-        if (expectedNetwork == null) {
-            log.warn("AVM upstream {} has unknown Algorand chain-id {}", upstreamId, expected)
             return ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR
         }
         if (genesis.network.equals(expectedNetwork, ignoreCase = true)) {
@@ -162,12 +162,19 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
 
     fun validate(data: ByteArray, upstreamId: String): UpstreamAvailability {
         val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
-        return if (status.catchupTime > 0L) {
-            log.warn("AVM node {} is catching up: catchupTime={}ns", upstreamId, status.catchupTime)
-            UpstreamAvailability.SYNCING
-        } else {
-            UpstreamAvailability.OK
+        if (status.lastRound == 0L) {
+            log.warn("AVM node {} reports no last-round", upstreamId)
+            return UpstreamAvailability.UNAVAILABLE
         }
+        if (status.stoppedAtUnsupportedRound) {
+            log.warn("AVM node {} halted on an unsupported consensus round", upstreamId)
+            return UpstreamAvailability.UNAVAILABLE
+        }
+        if (status.catchupTime > 0L) {
+            log.warn("AVM node {} is catching up: catchupTime={}ns", upstreamId, status.catchupTime)
+            return UpstreamAvailability.SYNCING
+        }
+        return UpstreamAvailability.OK
     }
 
     private fun toHashBytes(raw: String?, round: Long): ByteArray {
@@ -204,6 +211,7 @@ data class AvmStatus(
     @param:JsonProperty("time-since-last-round") var timeSinceLastRound: Long = 0,
     @param:JsonProperty("last-version") var lastVersion: String? = null,
     @param:JsonProperty("next-version") var nextVersion: String? = null,
+    @param:JsonProperty("stopped-at-unsupported-round") var stoppedAtUnsupportedRound: Boolean = false,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
