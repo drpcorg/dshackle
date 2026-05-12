@@ -13,6 +13,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeoutException
 
 class GenericIngressSubscription(
     val chain: Chain,
@@ -49,6 +50,7 @@ class GenericSubscriptionConnect(
 
     companion object {
         private val log = LoggerFactory.getLogger(GenericSubscriptionConnect::class.java)
+        private val IDLE_TIMEOUT: Duration = Duration.ofSeconds(85)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -56,16 +58,16 @@ class GenericSubscriptionConnect(
         val sub = conn.subscribe(ChainRequest(topic, ListParams(getParams(params) as List<Any>)))
         return sub.data
             .flatMapMany { it.t2 }
+            // Some upstreams (notably Solana RPCs) silently stop delivering events on a subscription
+            // while keeping the WebSocket connection alive. Emit a TimeoutException so the surrounding
+            // DurableFlux re-invokes createConnection() and re-issues `subscribe` with a fresh subId.
             .timeout(
-                Duration.ofSeconds(85),
-                Mono.empty<ByteArray>().doOnEach {
-                    log.warn("Timeout during subscription to $topic after 85 seconds")
-                },
+                IDLE_TIMEOUT,
+                Mono.error(
+                    TimeoutException("No events from subscription to $topic in $IDLE_TIMEOUT, forcing resubscribe"),
+                ),
             )
-            .onErrorResume {
-                log.error("Error during subscription to $topic", it)
-                Mono.empty()
-            }
+            .doOnError { log.warn("Error during subscription to $topic: {}", it.message) }
             .doFinally {
                 if (unsubscribeMethod != "") {
                     conn.unsubscribe(

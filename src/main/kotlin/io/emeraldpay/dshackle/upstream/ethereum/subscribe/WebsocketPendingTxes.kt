@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
+import java.util.concurrent.TimeoutException
 
 class WebsocketPendingTxes(
     private val chain: Chain,
@@ -35,6 +36,7 @@ class WebsocketPendingTxes(
 
     companion object {
         private val log = LoggerFactory.getLogger(WebsocketPendingTxes::class.java)
+        private val IDLE_TIMEOUT: Duration = Duration.ofSeconds(85)
     }
 
     override fun createConnection(): Flux<TransactionId> {
@@ -42,7 +44,15 @@ class WebsocketPendingTxes(
         return sub
             .data
             .flatMapMany { it.t2 }
-            .timeout(Duration.ofSeconds(85), Mono.empty())
+            // Surface stalls as TimeoutException so the surrounding DurableFlux re-invokes
+            // createConnection() and issues a fresh eth_subscribe. Without this, a silent
+            // upstream pubsub leaves the shared Flux completed and clients stop receiving events.
+            .timeout(
+                IDLE_TIMEOUT,
+                Mono.error(
+                    TimeoutException("No events from eth_subscribe newPendingTransactions in $IDLE_TIMEOUT, forcing resubscribe"),
+                ),
+            )
             .map {
                 // comes as a JS string, i.e., within quotes
                 val value = ByteArray(it.size - 2)
@@ -60,7 +70,6 @@ class WebsocketPendingTxes(
                         log.info("unsubscribed from ${sub.subId.get()}")
                     }
             }
-            .doOnError { t -> log.warn("Invalid pending transaction", t) }
-            .onErrorResume { Mono.empty() }
+            .doOnError { t -> log.warn("Error during pending tx subscription: {}", t.message) }
     }
 }
