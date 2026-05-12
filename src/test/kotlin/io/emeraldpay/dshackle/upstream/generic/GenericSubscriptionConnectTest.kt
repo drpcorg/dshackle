@@ -73,13 +73,11 @@ class GenericSubscriptionConnectTest {
         val param: List<Any> = listOf("all")
         val topic = "slotSubscribe"
 
-        @Suppress("UNCHECKED_CAST")
         val secondAttempt = WsSubscriptions.SubscribeData(
             Mono.just(Tuples.of("sub-id-2", Flux.just("recovered".toByteArray()))),
             "conn-1",
             AtomicReference("sub-id-2"),
         )
-        @Suppress("UNCHECKED_CAST")
         val firstAttempt = WsSubscriptions.SubscribeData(
             Mono.just(Tuples.of("sub-id-1", Flux.never<ByteArray>())),
             "conn-1",
