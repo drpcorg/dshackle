@@ -29,13 +29,18 @@ class RsaSigner(
 
     /**
      * Wrapping format: `"DSHACKLESIG/" || str(nonce) || "/" || source || "/" || hex(sha256(msg))`
+     *
+     * `nonce` carries an unsigned uint64 bit pattern (proto3 uint64 ↔ Java long).
+     * Format it as unsigned decimal so verifiers reconstruct the same wrap for
+     * nonces ≥ 2^63 — otherwise `Long.toString` emits a negative number and
+     * signature verification fails.
      */
     fun wrapMessage(nonce: Long, message: ByteArray, source: String): String {
         val sha256 = MessageDigest.getInstance("SHA-256")
-        val formatterMsg = StringBuilder(11 + 1 + 18 + 1 + 64 + 1 + 64)
+        val formatterMsg = StringBuilder(11 + 1 + 20 + 1 + 64 + 1 + 64)
         formatterMsg.append(MSG_PREFIX)
             .append(MSG_SEPARATOR)
-            .append(nonce.toString())
+            .append(java.lang.Long.toUnsignedString(nonce))
             .append(MSG_SEPARATOR)
             .append(source)
             .append(MSG_SEPARATOR)

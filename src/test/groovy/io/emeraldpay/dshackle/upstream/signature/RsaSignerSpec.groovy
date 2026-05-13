@@ -50,6 +50,20 @@ class RsaSignerSpec extends Specification {
         sig.keyId == 100L
     }
 
+    def "Wrap nonce >= 2^63 as unsigned"() {
+        setup:
+        def signer = new RsaSigner(Stub(RSAPrivateKey), 100L)
+        // bit pattern of 12241848404401059555 (uint64) == -6204895669308492061 (signed Long)
+        def nonceBits = -6204895669308492061L
+
+        when:
+        def act = signer.wrapMessage(nonceBits, "test".bytes, "infura")
+
+        then:
+        act == "DSHACKLESIG/12241848404401059555/infura/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        !act.contains("-")
+    }
+
     def "Signer is enabled"() {
         setup:
         def signer = new RsaSigner(Stub(RSAPrivateKey), 1L)
