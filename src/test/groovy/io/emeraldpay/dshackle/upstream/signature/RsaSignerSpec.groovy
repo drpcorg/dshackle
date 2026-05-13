@@ -50,6 +50,43 @@ class RsaSignerSpec extends Specification {
         sig.keyId == 100L
     }
 
+    def "Wrap nonce >= 2^63 as unsigned"() {
+        setup:
+        def signer = new RsaSigner(Stub(RSAPrivateKey), 100L)
+        // bit pattern of 12241848404401059555 (uint64) == -6204895669308492061 (signed Long)
+        def nonceBits = -6204895669308492061L
+
+        when:
+        def act = signer.wrapMessage(nonceBits, "test".bytes, "infura")
+
+        then:
+        act == "DSHACKLESIG/12241848404401059555/infura/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        !act.contains("-")
+    }
+
+    def "Signed message is valid for nonce >= 2^63"() {
+        setup:
+        def result = "test".bytes
+        def keyGen = KeyPairGenerator.getInstance("RSA")
+        keyGen.initialize(2048)
+        def pair = keyGen.generateKeyPair()
+        // bit pattern of 12241848404401059555 (uint64) == -6204895669308492061 (signed Long)
+        def nonceBits = -6204895669308492061L
+
+        def sha256 = MessageDigest.getInstance("SHA-256")
+        def verifier = Signature.getInstance("SHA256withRSA", "BC")
+        verifier.initVerify(pair.getPublic())
+        verifier.update("DSHACKLESIG/12241848404401059555/infura/${Hex.encodeHexString(sha256.digest(result))}".getBytes())
+
+        def signer = new RsaSigner((pair.getPrivate() as RSAPrivateKey), 100L)
+
+        when:
+        def sig = signer.sign(nonceBits, result, "infura")
+
+        then:
+        verifier.verify(sig.value)
+    }
+
     def "Signer is enabled"() {
         setup:
         def signer = new RsaSigner(Stub(RSAPrivateKey), 1L)
