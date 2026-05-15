@@ -17,14 +17,19 @@ abstract class EthereumLowerBoundErrorHandler : ErrorHandler {
                     if (currentHeight == null) {
                         log.warn(
                             "Skip {} lower bound update for {}: head height unknown (parsed={})",
-                            type(), upstream.getId(), parsed,
+                            type(),
+                            upstream.getId(),
+                            parsed,
                         )
                         return@let
                     }
                     if (parsed > currentHeight) {
                         log.warn(
                             "Skip {} lower bound update for {}: parsed tag {} exceeds head {}",
-                            type(), upstream.getId(), parsed, currentHeight,
+                            type(),
+                            upstream.getId(),
+                            parsed,
+                            currentHeight,
                         )
                         return@let
                     }
