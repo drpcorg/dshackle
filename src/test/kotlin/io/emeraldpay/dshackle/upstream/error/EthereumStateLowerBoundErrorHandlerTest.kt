@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.error
 
 import io.emeraldpay.dshackle.upstream.ChainRequest
+import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
@@ -10,22 +11,70 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.Arguments.of
 import org.junit.jupiter.params.provider.MethodSource
 import org.mockito.Mockito.anyLong
-import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 
 class EthereumStateLowerBoundErrorHandlerTest {
 
     @ParameterizedTest
     @MethodSource("requests")
     fun `update lower bound`(request: ChainRequest) {
-        val upstream = mock<Upstream>()
+        val upstream = mockUpstreamWithHead(300_000_000L)
         val handler = EthereumStateLowerBoundErrorHandler
 
         handler.handle(upstream, request, "missing trie node d5648cc9aef48154159d53800f2f")
 
         verify(upstream).updateLowerBound(213229736, LowerBoundType.STATE)
+    }
+
+    @Test
+    fun `no update lower bound if parsed tag exceeds head`() {
+        val upstream = mockUpstreamWithHead(100_000_000L)
+
+        EthereumStateLowerBoundErrorHandler.handle(
+            upstream,
+            ChainRequest("eth_getBalance", ListParams("0x343", "0xCB5A0A8")),
+            "missing trie node d5648cc9aef48154159d53800f2f",
+        )
+
+        verify(upstream, never()).updateLowerBound(anyLong(), any())
+    }
+
+    @Test
+    fun `no update lower bound if head height is null`() {
+        val upstream = mockUpstreamWithHead(null)
+
+        EthereumStateLowerBoundErrorHandler.handle(
+            upstream,
+            ChainRequest("eth_getBalance", ListParams("0x343", "0xCB5A0A8")),
+            "missing trie node d5648cc9aef48154159d53800f2f",
+        )
+
+        verify(upstream, never()).updateLowerBound(anyLong(), any())
+    }
+
+    @Test
+    fun `no update lower bound for the Base prod incident value`() {
+        val upstream = mockUpstreamWithHead(30_000_000L)
+
+        EthereumStateLowerBoundErrorHandler.handle(
+            upstream,
+            ChainRequest("eth_getBalance", ListParams("0x343", "0xD150C7F1")),
+            "missing trie node d5648cc9aef48154159d53800f2f",
+        )
+
+        verify(upstream, never()).updateLowerBound(anyLong(), any())
+    }
+
+    private fun mockUpstreamWithHead(height: Long?): Upstream {
+        val head = mock<Head>()
+        whenever(head.getCurrentHeight()).thenReturn(height)
+        val upstream = mock<Upstream>()
+        whenever(upstream.getHead()).thenReturn(head)
+        return upstream
     }
 
     @Test
