@@ -12,8 +12,28 @@ abstract class EthereumLowerBoundErrorHandler : ErrorHandler {
     override fun handle(upstream: Upstream, request: ChainRequest, errorMessage: String?) {
         try {
             if (canHandle(request, errorMessage)) {
-                parseTagParam(request, tagIndex(request.method))?.let {
-                    upstream.updateLowerBound(it, type())
+                parseTagParam(request, tagIndex(request.method))?.let { parsed ->
+                    val currentHeight = upstream.getHead().getCurrentHeight()
+                    if (currentHeight == null) {
+                        log.warn(
+                            "Skip {} lower bound update for {}: head height unknown (parsed={})",
+                            type(),
+                            upstream.getId(),
+                            parsed,
+                        )
+                        return@let
+                    }
+                    if (parsed > currentHeight) {
+                        log.warn(
+                            "Skip {} lower bound update for {}: parsed tag {} exceeds head {}",
+                            type(),
+                            upstream.getId(),
+                            parsed,
+                            currentHeight,
+                        )
+                        return@let
+                    }
+                    upstream.updateLowerBound(parsed, type())
                 }
             }
         } catch (e: RuntimeException) {
