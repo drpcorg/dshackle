@@ -1,33 +1,33 @@
 [versions]
-groovy = "5.0.3"
-protoc = "4.33.2"
-jackson = "2.20.1"
-grpc = "1.78.0"
-spring-boot = "4.0.1"
-reactor = "3.8.1"
-netty = "4.2.9.Final"
-netty-tcnative = "2.0.74.Final"
-kotlin = "2.3.0"
-httpcomponents = "5.5.1"
+groovy = "5.0.6"
+protoc = "4.34.1"
+jackson = "2.21.3"
+grpc = "1.81.0"
+spring-boot = "4.0.6"
+reactor = "3.8.5"
+netty = "4.2.13.Final"
+netty-tcnative = "2.0.77.Final"
+kotlin = "2.3.21"
+httpcomponents = "5.6.1"
 
 [libraries]
-apache-commons-lang3 = "org.apache.commons:commons-lang3:3.9"
-apache-commons-collections4 = "org.apache.commons:commons-collections4:4.3"
+apache-commons-lang3 = "org.apache.commons:commons-lang3:3.20.0"
+apache-commons-collections4 = "org.apache.commons:commons-collections4:4.5.0"
 apache-commons-math3 = "org.apache.commons:commons-math3:3.6.1"
-commons-codec = "commons-codec:commons-codec:1.20.0"
+commons-codec = "commons-codec:commons-codec:1.22.0"
 
-bitcoinj = "org.bitcoinj:bitcoinj-core:0.15.8"
+bitcoinj = "org.bitcoinj:bitcoinj-core:0.17.1"
 
 logstash-encoder = "net.logstash.logback:logstash-logback-encoder:7.2"
 
-janino = "org.codehaus.janino:janino:3.1.9"
+janino = "org.codehaus.janino:janino:3.1.12"
 
-bouncycastle-prov = "org.bouncycastle:bcprov-jdk15on:1.61"
-bouncycastle-pkix = 'org.bouncycastle:bcpkix-jdk15on:1.61'
+bouncycastle-prov = "org.bouncycastle:bcprov-jdk15on:1.70"
+bouncycastle-pkix = 'org.bouncycastle:bcpkix-jdk15on:1.70'
 
 caffeine = "com.github.ben-manes.caffeine:caffeine:2.8.5"
 
-commons-io = "commons-io:commons-io:2.6"
+commons-io = "commons-io:commons-io:2.22.0"
 
 cglib-nodep = "cglib:cglib-nodep:3.3.0"
 
@@ -52,7 +52,7 @@ jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-dat
 jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
 
-java-websocket = "org.java-websocket:Java-WebSocket:1.5.1"
+java-websocket = "org.java-websocket:Java-WebSocket:1.6.0"
 
 javax-annotations = "javax.annotation:javax.annotation-api:1.3.2"
 
@@ -61,13 +61,13 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 
 lettuce-core = "io.lettuce:lettuce-core:5.2.2.RELEASE"
 
-prom-exporter-server = "io.prometheus:prometheus-metrics-exporter-httpserver:1.5.0"
-micrometer-registry-prometheus = "io.micrometer:micrometer-registry-prometheus:1.16.0"
-micrometer-ctx-prop = "io.micrometer:context-propagation:1.2.0"
+prom-exporter-server = "io.prometheus:prometheus-metrics-exporter-httpserver:1.6.1"
+micrometer-registry-prometheus = "io.micrometer:micrometer-registry-prometheus:1.16.5"
+micrometer-ctx-prop = "io.micrometer:context-propagation:1.2.1"
 
 mockserver-netty = "org.mock-server:mockserver-netty:5.15.0"
 
-mockito-kotlin = "org.mockito.kotlin:mockito-kotlin:6.1.0"
+mockito-kotlin = "org.mockito.kotlin:mockito-kotlin:6.3.0"
 
 netty-common = { module = "io.netty:netty-common", version.ref = "netty" }
 netty-transport = { module = "io.netty:netty-transport", version.ref = "netty" }
@@ -83,18 +83,18 @@ netty-tcnative-core = { module = "io.netty:netty-tcnative", version.ref = "netty
 netty-tcnative-boringssl = { module = "io.netty:netty-tcnative-boringssl-static", version.ref = "netty-tcnative"}
 netty-macos =  { module = "io.netty:netty-resolver-dns-native-macos", version.ref = "netty" }
 
-zeromq = "org.zeromq:jeromq:0.5.2"
+zeromq = "org.zeromq:jeromq:0.6.0"
 
-objgenesis = "org.objenesis:objenesis:3.1"
+objgenesis = "org.objenesis:objenesis:3.5"
 
 reactor-core = { module = "io.projectreactor:reactor-core", version.ref = "reactor" }
 reactor-micrometer = { module = "io.projectreactor:reactor-core-micrometer", version.ref = "reactor" }
-reactor-netty = { module = "io.projectreactor.netty:reactor-netty", version = "1.3.1" }
+reactor-netty = { module = "io.projectreactor.netty:reactor-netty", version = "1.3.5" }
 reactor-extra = { module = "io.projectreactor.addons:reactor-extra", version = "3.6.0" }
-reactor-kotlin = { module = "io.projectreactor.kotlin:reactor-kotlin-extensions", version = "1.1.7" }
+reactor-kotlin = { module = "io.projectreactor.kotlin:reactor-kotlin-extensions", version = "1.3.0" }
 reactor-test = { module = "io.projectreactor:reactor-test", version.ref = "reactor" }
 
-reactor-grpc-stub = "com.salesforce.servicelibs:reactor-grpc-stub:1.2.0"
+reactor-grpc-stub = "com.salesforce.servicelibs:reactor-grpc-stub:1.2.4"
 
 snake-yaml = "org.yaml:snakeyaml:1.24"
 
@@ -105,15 +105,15 @@ spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-
 
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 
-testcontainers = "org.testcontainers:testcontainers:2.0.3"
+testcontainers = "org.testcontainers:testcontainers:2.0.5"
 testcontainers-ganache = "io.github.ganchix:testcontainers-java-module-ganache:0.0.4"
 
-assertj = "org.assertj:assertj-core:3.23.1"
+assertj = "org.assertj:assertj-core:3.27.7"
 
-brave-instrumentation-grpc = "io.zipkin.brave:brave-instrumentation-grpc:6.3.0"
-brave-ctx-slf4j = "io.zipkin.brave:brave-context-slf4j:6.3.0"
+brave-instrumentation-grpc = "io.zipkin.brave:brave-instrumentation-grpc:6.3.1"
+brave-ctx-slf4j = "io.zipkin.brave:brave-context-slf4j:6.3.1"
 
-auth0-jwt = "com.auth0:java-jwt:4.4.0"
+auth0-jwt = "com.auth0:java-jwt:4.5.2"
 
 mockito-inline = "org.mockito:mockito-inline:4.0.0"
 
@@ -135,8 +135,8 @@ bouncycastle = ["bouncycastle-pkix", "bouncycastle-prov"]
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-jib = { id = "com.google.cloud.tools.jib", version = "3.5.2" }
-spring = { id = "org.springframework.boot", version = "4.0.1" }
+jib = { id = "com.google.cloud.tools.jib", version = "3.5.3" }
+spring = { id = "org.springframework.boot", version = "4.0.6" }
 git = { id = "com.palantir.git-version", version = "5.0.0" }
-protobuf = { id = "com.google.protobuf", version = "0.9.6" }
+protobuf = { id = "com.google.protobuf", version = "0.10.0" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.6.0" }
