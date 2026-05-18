@@ -1,0 +1,79 @@
+# Dependabot configuration
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  # Gradle — main module
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "master"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "gradle"
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Gradle — foundation module
+  - package-ecosystem: "gradle"
+    directory: "/foundation"
+    schedule:
+      interval: "weekly"
+    target-branch: "master"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "gradle"
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Gradle — buildSrc (build logic / plugins)
+  - package-ecosystem: "gradle"
+    directory: "/buildSrc"
+    schedule:
+      interval: "weekly"
+    target-branch: "master"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "gradle"
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker — base image in Dockerfile
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "master"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions — workflow action versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "master"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
