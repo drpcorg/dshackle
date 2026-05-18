@@ -22,10 +22,12 @@ import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.test.StepVerifier
 import reactor.util.function.Tuples
 import spock.lang.Specification
 
 import java.time.Duration
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicReference
 
 class WebsocketPendingTxesSpec extends Specification {
@@ -54,5 +56,27 @@ class WebsocketPendingTxesSpec extends Specification {
                 "0x911548eb0f3bf353a54e03a3506c7c3e747470d6c201f03babbc07ff6e14cd6e",
                 "0x67f22a3b441ea312306f97694ca8159f8d6faaccf0f5ce6442c84b13991f1d23",
         ]
+    }
+
+    def "Emits TimeoutException when upstream goes silent past idle timeout"() {
+        // Pins the fix for the silent-stall bug: a healthy WS that simply stops delivering
+        // newPendingTransactions events must surface a TimeoutException so DurableFlux
+        // re-issues eth_subscribe.
+        setup:
+        def ws = Stub(WsSubscriptions) {
+            subscribe(new ChainRequest("eth_subscribe", new ListParams(["newPendingTransactions"]))) >> new WsSubscriptions.SubscribeData(
+                    Mono.just(Tuples.of("sub-1", Flux.never())), "conn-1", new AtomicReference<String>("sub-1")
+            )
+            unsubscribe(_) >> Mono.empty()
+        }
+        def pending = new WebsocketPendingTxes(Chain.ETHEREUM__MAINNET, ws)
+
+        expect:
+        StepVerifier.withVirtualTime { pending.createConnection() }
+                .expectSubscription()
+                .expectNoEvent(Duration.ofSeconds(84))
+                .thenAwait(Duration.ofSeconds(2))
+                .expectError(TimeoutException)
+                .verify(Duration.ofSeconds(5))
     }
 }
