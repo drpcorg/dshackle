@@ -34,7 +34,7 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import reactor.kotlin.extra.retry.retryRandomBackoff
+import reactor.util.retry.Retry
 import java.math.BigInteger
 import java.time.Duration
 import java.util.concurrent.TimeoutException
@@ -75,12 +75,17 @@ abstract class AbstractCallLimitValidator(
                 Mono.fromCallable { log.error("No response for eth_call limit check from ${upstream.getId()}") }
                     .then(Mono.error(TimeoutException("Validation timeout for call limit"))),
             )
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
-                log.warn(
-                    "error during validateCallLimit for ${upstream.getId()}, iteration ${ctx.iteration()}, " +
-                        "message ${ctx.exception().message}",
-                )
-            }
+            .retryWhen(
+                Retry.backoff(3, Duration.ofMillis(100))
+                    .maxBackoff(Duration.ofMillis(500))
+                    .jitter(1.0)
+                    .doBeforeRetry { signal ->
+                        log.warn(
+                            "error during validateCallLimit for ${upstream.getId()}, iteration ${signal.totalRetries() + 1}, " +
+                                "message ${signal.failure().message}",
+                        )
+                    },
+            )
             .onErrorReturn(ValidateUpstreamSettingsResult.UPSTREAM_SETTINGS_ERROR)
     }
 
@@ -164,14 +169,19 @@ class ChainIdValidator(
     private fun chainId(): Mono<String> {
         return validatorReader.get()
             .read(ChainRequest("eth_chainId", ListParams()))
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
-                log.warn(
-                    "error during chainId retrieving for {}, iteration {}, reason - {}",
-                    upstream.getId(),
-                    ctx.iteration(),
-                    ctx.exception().message,
-                )
-            }
+            .retryWhen(
+                Retry.backoff(3, Duration.ofMillis(100))
+                    .maxBackoff(Duration.ofMillis(500))
+                    .jitter(1.0)
+                    .doBeforeRetry { signal ->
+                        log.warn(
+                            "error during chainId retrieving for {}, iteration {}, reason - {}",
+                            upstream.getId(),
+                            signal.totalRetries() + 1,
+                            signal.failure().message,
+                        )
+                    },
+            )
             .doOnError { log.error("Error during execution 'eth_chainId' - {} for {}", it.message, upstream.getId()) }
             .flatMap(ChainResponse::requireStringResult)
     }
@@ -179,14 +189,19 @@ class ChainIdValidator(
     private fun netVersion(): Mono<String> {
         return validatorReader.get()
             .read(ChainRequest("net_version", ListParams()))
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
-                log.warn(
-                    "error during netVersion retrieving for {}, iteration {}, reason - {}",
-                    upstream.getId(),
-                    ctx.iteration(),
-                    ctx.exception().message,
-                )
-            }
+            .retryWhen(
+                Retry.backoff(3, Duration.ofMillis(100))
+                    .maxBackoff(Duration.ofMillis(500))
+                    .jitter(1.0)
+                    .doBeforeRetry { signal ->
+                        log.warn(
+                            "error during netVersion retrieving for {}, iteration {}, reason - {}",
+                            upstream.getId(),
+                            signal.totalRetries() + 1,
+                            signal.failure().message,
+                        )
+                    },
+            )
             .doOnError { log.error("Error during execution 'net_version' - {} for {}", it.message, upstream.getId()) }
             .flatMap(ChainResponse::requireStringResult)
     }
@@ -264,14 +279,19 @@ class ErigonBuggedValidator(
     private fun isErigon(): Mono<Boolean> =
         upstream.getIngressReader()
             .read(ChainRequest("web3_clientVersion", ListParams()))
-            .retryRandomBackoff(3, Duration.ofMillis(100), Duration.ofMillis(500)) { ctx ->
-                log.warn(
-                    "error during clientVersion retrieving for {}, iteration {}, reason - {}",
-                    upstream.getId(),
-                    ctx.iteration(),
-                    ctx.exception().message,
-                )
-            }
+            .retryWhen(
+                Retry.backoff(3, Duration.ofMillis(100))
+                    .maxBackoff(Duration.ofMillis(500))
+                    .jitter(1.0)
+                    .doBeforeRetry { signal ->
+                        log.warn(
+                            "error during clientVersion retrieving for {}, iteration {}, reason - {}",
+                            upstream.getId(),
+                            signal.totalRetries() + 1,
+                            signal.failure().message,
+                        )
+                    },
+            )
             .flatMap(ChainResponse::requireStringResult)
             .map { it.lowercase().contains("erigon") }
             .doOnError { log.error("Error during execution 'web3_clientVersion' - {} for {}", it.message, upstream.getId()) }

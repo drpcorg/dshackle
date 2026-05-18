@@ -15,8 +15,7 @@
  */
 package io.emeraldpay.dshackle.upstream.bitcoin
 
-import org.bitcoinj.core.Address
-import org.bitcoinj.params.MainNetParams
+import org.bitcoinj.base.AddressParser
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
 import spock.lang.Specification
@@ -119,7 +118,7 @@ class XpubAddressesSpec extends Specification {
     def "list when only fist is active"() {
         setup:
         AddressActiveCheck check = Mock(AddressActiveCheck) {
-            1 * isActive(Address.fromString(MainNetParams.get(), "bc1qaexx257l7sgm62szw2ulj6n2v99t5ph9ekkul3")) >> Mono.just(true)
+            1 * isActive(AddressParser.getDefault().parseAddress("bc1qaexx257l7sgm62szw2ulj6n2v99t5ph9ekkul3")) >> Mono.just(true)
             20 * isActive(_) >> Mono.just(false)
         }
         XpubAddresses addresses = new XpubAddresses(check)
@@ -143,7 +142,7 @@ class XpubAddressesSpec extends Specification {
     def "list when only 3rd is active"() {
         setup:
         AddressActiveCheck check = Mock(AddressActiveCheck) {
-            1 * isActive(Address.fromString(MainNetParams.get(), "bc1qah84zz7aavf3f5eyx5f29809y6xugqyphq0wtz")) >> Mono.just(true)
+            1 * isActive(AddressParser.getDefault().parseAddress("bc1qah84zz7aavf3f5eyx5f29809y6xugqyphq0wtz")) >> Mono.just(true)
             // 2 times before, 20 times after
             22 * isActive(_) >> Mono.just(false)
         }
@@ -169,11 +168,11 @@ class XpubAddressesSpec extends Specification {
         setup:
         AddressActiveCheck check = Mock(AddressActiveCheck) {
             // 2
-            1 * isActive(Address.fromString(MainNetParams.get(), "bc1qah84zz7aavf3f5eyx5f29809y6xugqyphq0wtz")) >> Mono.just(true)
+            1 * isActive(AddressParser.getDefault().parseAddress("bc1qah84zz7aavf3f5eyx5f29809y6xugqyphq0wtz")) >> Mono.just(true)
             // 11
-            1 * isActive(Address.fromString(MainNetParams.get(), "bc1q3kqug4cx95a02yhwn6geelftmw3zklrgmhjll8")) >> Mono.just(true)
+            1 * isActive(AddressParser.getDefault().parseAddress("bc1q3kqug4cx95a02yhwn6geelftmw3zklrgmhjll8")) >> Mono.just(true)
             // 22
-            1 * isActive(Address.fromString(MainNetParams.get(), "bc1qf7m2rrmrksj34vhgxmm04y43dlj7c5f58f8ku6")) >> Mono.just(true)
+            1 * isActive(AddressParser.getDefault().parseAddress("bc1qf7m2rrmrksj34vhgxmm04y43dlj7c5f58f8ku6")) >> Mono.just(true)
             // 0..1 = 2
             // + 3..10 = 8
             // + 12..21 = 10

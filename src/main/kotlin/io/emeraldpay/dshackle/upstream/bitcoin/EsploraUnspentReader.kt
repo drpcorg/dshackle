@@ -18,7 +18,7 @@ package io.emeraldpay.dshackle.upstream.bitcoin
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.bitcoin.data.EsploraUnspent
 import io.emeraldpay.dshackle.upstream.bitcoin.data.SimpleUnspent
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import java.util.function.Function

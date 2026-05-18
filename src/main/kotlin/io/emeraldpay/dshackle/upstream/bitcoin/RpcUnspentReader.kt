@@ -24,7 +24,7 @@ import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.bitcoin.data.RpcUnspent
 import io.emeraldpay.dshackle.upstream.bitcoin.data.SimpleUnspent
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 

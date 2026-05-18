@@ -35,7 +35,7 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Scheduler
-import reactor.kotlin.extra.retry.retryExponentialBackoff
+import reactor.util.retry.Retry
 import java.time.Duration
 import java.util.function.Function
 
@@ -108,14 +108,14 @@ class GrpcHead(
 
         blocks = blocks.doOnNext {
             log.trace("Received block ${it.height}")
-        }.retryExponentialBackoff(
-            Long.MAX_VALUE,
-            Duration.ofMillis(100),
-            Duration.ofSeconds(60),
-            true,
-        ) {
-            log.debug("Retry grpc head connection ${parent.getId()}")
-        }
+        }.retryWhen(
+            Retry.backoff(Long.MAX_VALUE, Duration.ofMillis(100))
+                .maxBackoff(Duration.ofSeconds(60))
+                .jitter(0.5)
+                .doBeforeRetry {
+                    log.debug("Retry grpc head connection ${parent.getId()}")
+                },
+        )
 
         headSubscription = super.follow(blocks)
     }

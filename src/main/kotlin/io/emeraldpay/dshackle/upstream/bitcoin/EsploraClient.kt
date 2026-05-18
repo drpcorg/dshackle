@@ -22,7 +22,7 @@ import io.netty.handler.codec.http.HttpHeaderNames
 import io.netty.handler.codec.http.HttpHeaders
 import io.netty.handler.ssl.SslContextBuilder
 import io.netty.resolver.DefaultAddressResolverGroup
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient

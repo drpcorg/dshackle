@@ -15,15 +15,16 @@
  */
 package io.emeraldpay.dshackle.upstream.bitcoin
 
-import org.bitcoinj.core.Address
-import org.bitcoinj.core.ECKey
+import org.bitcoinj.base.Address
+import org.bitcoinj.base.BitcoinNetwork
+import org.bitcoinj.base.LegacyAddress
+import org.bitcoinj.base.ScriptType
+import org.bitcoinj.base.SegwitAddress
 import org.bitcoinj.core.NetworkParameters
 import org.bitcoinj.crypto.ChildNumber
 import org.bitcoinj.crypto.DeterministicKey
+import org.bitcoinj.crypto.ECKey
 import org.bitcoinj.crypto.HDKeyDerivation
-import org.bitcoinj.params.MainNetParams
-import org.bitcoinj.params.TestNet3Params
-import org.bitcoinj.script.Script
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Flux
 import reactor.util.function.Tuples
@@ -35,8 +36,6 @@ open class XpubAddresses(
 
     companion object {
         private val log = LoggerFactory.getLogger(XpubAddresses::class.java)
-        private val MAINNET = MainNetParams()
-        private val TESTNET = TestNet3Params()
         private val INACTIVE_LIMIT = 20
     }
 
@@ -45,39 +44,45 @@ open class XpubAddresses(
         // https://electrum.readthedocs.io/en/latest/xpub_version_bytes.html
         // TODO doesn't support SH keys right now. should?
         val prefix = xpub.substring(0, 4)
-        val type: Script.ScriptType
-        val network: NetworkParameters
+        val type: ScriptType
+        val params: NetworkParameters
 
         when (prefix) {
             "xpub" -> {
-                type = Script.ScriptType.P2PKH
-                network = MAINNET
+                type = ScriptType.P2PKH
+                params = NetworkParameters.of(BitcoinNetwork.MAINNET)
             }
             "zpub" -> {
-                type = Script.ScriptType.P2WPKH
-                network = MAINNET
+                type = ScriptType.P2WPKH
+                params = NetworkParameters.of(BitcoinNetwork.MAINNET)
             }
             "tpub" -> {
-                type = Script.ScriptType.P2PKH
-                network = TESTNET
+                type = ScriptType.P2PKH
+                params = NetworkParameters.of(BitcoinNetwork.TESTNET)
             }
             "vpub" -> {
-                type = Script.ScriptType.P2WPKH
-                network = TESTNET
+                type = ScriptType.P2WPKH
+                params = NetworkParameters.of(BitcoinNetwork.TESTNET)
             }
             else -> return Flux.error(IllegalArgumentException("Unsupported type: $prefix"))
         }
 
         val key: DeterministicKey
         try {
-            key = DeterministicKey.deserializeB58(xpub, network)
+            key = DeterministicKey.deserializeB58(xpub, params)
         } catch (t: Throwable) {
             return Flux.error(t)
         }
 
         return Flux.range(start, limit)
             .map { HDKeyDerivation.deriveChildKey(key, ChildNumber(it, false)) }
-            .map { Address.fromKey(network, ECKey.fromPublicOnly(it.pubKeyPoint), type) }
+            .map { addressFromKey(params, ECKey.fromPublicOnly(it.pubKey), type) }
+    }
+
+    private fun addressFromKey(params: NetworkParameters, key: ECKey, type: ScriptType): Address = when (type) {
+        ScriptType.P2PKH -> LegacyAddress.fromKey(params, key)
+        ScriptType.P2WPKH -> SegwitAddress.fromKey(params, key)
+        else -> throw IllegalArgumentException("Unsupported script type: $type")
     }
 
     open fun activeAddresses(xpub: String, start: Int, limit: Int): Flux<Address> {

@@ -26,7 +26,8 @@ import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
+import org.bitcoinj.base.AddressParser
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 
@@ -70,7 +71,7 @@ class LocalCallRouter(
             }
             val addresses = key.params.list[2]
             if (addresses is List<*> && addresses.size > 0) {
-                val address = addresses[0].toString().let { Address.fromString(null, it) }
+                val address = addresses[0].toString().let { AddressParser.getDefault().parseAddress(it) }
                 return reader.listUnspent(address).map {
                     val rpc = it.map(convertUnspent(address))
                     val json = Global.objectMapper.writeValueAsBytes(rpc)
