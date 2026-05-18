@@ -18,7 +18,7 @@ jobs:
           distribution: 'zulu'
           java-version: 21
       - name: Setup gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
       - name: Upload to Docker
         run: make jib
         env:
@@ -38,7 +38,7 @@ jobs:
           distribution: 'zulu'
           java-version: 21
       - name: Setup gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
       - name: Build zip
         run: make distZip
       - name: Upload Release

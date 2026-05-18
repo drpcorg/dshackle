@@ -37,7 +37,7 @@ jobs:
         run: sudo apt-get install -y openssl libapr1
 
       - name: Setup gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
