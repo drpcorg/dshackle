@@ -17,6 +17,6 @@ package io.emeraldpay.dshackle.upstream.bitcoin
 
 import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.upstream.bitcoin.data.SimpleUnspent
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
 
 interface UnspentReader : Reader<Address, List<SimpleUnspent>>

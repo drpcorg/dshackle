@@ -15,7 +15,7 @@
  */
 package io.emeraldpay.dshackle.upstream.bitcoin
 
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 

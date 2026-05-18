@@ -1,7 +1,7 @@
 package io.emeraldpay.dshackle.upstream.bitcoin
 
 import io.emeraldpay.dshackle.upstream.bitcoin.data.EsploraUnspent
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.AddressParser
 
 /**
  * Copyright (c) 2020 EmeraldPay, Inc
@@ -19,8 +19,6 @@ import org.bitcoinj.core.Address
  * limitations under the License.
  */
 
-import org.bitcoinj.params.MainNetParams
-import org.bitcoinj.params.TestNet3Params
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
@@ -53,7 +51,7 @@ class EsploraClientSpec extends Specification {
         )
         def client = new EsploraClient(new URI("http://localhost:${mockServer.port}"), null, null)
         when:
-        def act = client.getUtxo(Address.fromString(new MainNetParams(), "35vktkPo4wdK8Twu4VMiuPLdCx23XEykGY"))
+        def act = client.getUtxo(AddressParser.getDefault().parseAddress("35vktkPo4wdK8Twu4VMiuPLdCx23XEykGY"))
 
         then:
         StepVerifier.create(act)
@@ -74,7 +72,7 @@ class EsploraClientSpec extends Specification {
                 .verify(Duration.ofSeconds(3))
 
         when:
-        def actTotal = client.getUtxo(Address.fromString(new MainNetParams(), "35vktkPo4wdK8Twu4VMiuPLdCx23XEykGY"))
+        def actTotal = client.getUtxo(AddressParser.getDefault().parseAddress("35vktkPo4wdK8Twu4VMiuPLdCx23XEykGY"))
                 .block()
                 .sum { it.value }
 
@@ -94,7 +92,7 @@ class EsploraClientSpec extends Specification {
         )
         def client = new EsploraClient(new URI("http://localhost:${mockServer.port}"), null, null)
         when:
-        def act = client.getTransactions(Address.fromString(TestNet3Params.get(), "tb1qyatuwvkfx8thy2ntmtuea6v42vp3zefqvll8kx"))
+        def act = client.getTransactions(AddressParser.getDefault().parseAddress("tb1qyatuwvkfx8thy2ntmtuea6v42vp3zefqvll8kx"))
 
         then:
         StepVerifier.create(act)
@@ -124,7 +122,7 @@ class EsploraClientSpec extends Specification {
         )
         def client = new EsploraClient(new URI("http://localhost:${mockServer.port}"), null, null)
         when:
-        def act = client.getTransactions(Address.fromString(TestNet3Params.get(), "tb1qyatuwvkfx8thy2ntmtuea6v42vp3zefqvll8kx"))
+        def act = client.getTransactions(AddressParser.getDefault().parseAddress("tb1qyatuwvkfx8thy2ntmtuea6v42vp3zefqvll8kx"))
 
         then:
         StepVerifier.create(act)

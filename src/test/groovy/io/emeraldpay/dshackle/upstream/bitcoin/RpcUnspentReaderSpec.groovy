@@ -19,8 +19,7 @@ import io.emeraldpay.dshackle.reader.Reader
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
-import org.bitcoinj.core.Address
-import org.bitcoinj.params.MainNetParams
+import org.bitcoinj.base.AddressParser
 import reactor.core.publisher.Mono
 import spock.lang.Specification
 
@@ -38,7 +37,7 @@ class RpcUnspentReaderSpec extends Specification {
         def reader = new RpcUnspentReader(upstreams)
 
         when:
-        def act = reader.read(Address.fromString(new MainNetParams(), "1K7xkspJg7DDKNwzXgoRSDCUxiFsRegsSK")).block()
+        def act = reader.read(AddressParser.getDefault().parseAddress("1K7xkspJg7DDKNwzXgoRSDCUxiFsRegsSK")).block()
 
         then:
         // cat src/test/resources/bitcoin/unspent-one-addr.json | jq '. | length'
@@ -72,7 +71,7 @@ class RpcUnspentReaderSpec extends Specification {
         def reader = new RpcUnspentReader(upstreams)
 
         when:
-        def act = reader.read(Address.fromString(new MainNetParams(), "35hK24tcLEWcgNA4JxpvbkNkoAcDGqQPsP")).block()
+        def act = reader.read(AddressParser.getDefault().parseAddress("35hK24tcLEWcgNA4JxpvbkNkoAcDGqQPsP")).block()
 
         then:
         // cat src/test/resources/bitcoin/unspent-two-addr.json | jq '[.[] | select(.address == "35hK24tcLEWcgNA4JxpvbkNkoAcDGqQPsP")] | length'
@@ -107,7 +106,7 @@ class RpcUnspentReaderSpec extends Specification {
         def reader = new RpcUnspentReader(upstreams)
 
         when:
-        def act = reader.read(Address.fromString(new MainNetParams(), "1K7xkspJg7DDKNwzXgoRSDCUxiFsRegsSK")).block()
+        def act = reader.read(AddressParser.getDefault().parseAddress("1K7xkspJg7DDKNwzXgoRSDCUxiFsRegsSK")).block()
 
         then:
         // cat src/test/resources/bitcoin/unspent-two-addr.json | jq '[.[] | select(.address == "1K7xkspJg7DDKNwzXgoRSDCUxiFsRegsSK")] | length'

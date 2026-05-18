@@ -3,7 +3,7 @@ package io.emeraldpay.dshackle.upstream.bitcoin
 import io.emeraldpay.dshackle.upstream.Capability
 import io.emeraldpay.dshackle.upstream.Selector
 import io.emeraldpay.dshackle.upstream.bitcoin.data.SimpleUnspent
-import org.bitcoinj.core.Address
+import org.bitcoinj.base.Address
 import reactor.core.publisher.Mono
 
 class RemoteUnspentReader(

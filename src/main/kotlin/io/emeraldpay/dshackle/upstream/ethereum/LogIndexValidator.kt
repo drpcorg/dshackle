@@ -26,7 +26,7 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
-import reactor.kotlin.extra.retry.retryRandomBackoff
+import reactor.util.retry.Retry
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -84,12 +84,17 @@ class LogIndexValidator(
                 }
             }
             .timeout(Duration.ofSeconds(15))
-            .retryRandomBackoff(2, Duration.ofMillis(200), Duration.ofMillis(1000)) { ctx ->
-                log.debug(
-                    "Retry logIndex validation for ${upstream.getId()}, iteration ${ctx.iteration()}, " +
-                        "error: ${ctx.exception().message}",
-                )
-            }
+            .retryWhen(
+                Retry.backoff(2, Duration.ofMillis(200))
+                    .maxBackoff(Duration.ofMillis(1000))
+                    .jitter(1.0)
+                    .doBeforeRetry { signal ->
+                        log.debug(
+                            "Retry logIndex validation for ${upstream.getId()}, iteration ${signal.totalRetries() + 1}, " +
+                                "error: ${signal.failure().message}",
+                        )
+                    },
+            )
             .onErrorResume { err ->
                 log.warn("Error during logIndex validation for ${upstream.getId()}: ${err.message}")
                 // In case of error, return last known state to avoid false positives

@@ -18,13 +18,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    ignore:
-      # 0.x bumps are effectively major (API breaks); upgrade manually.
-      - dependency-name: "org.bitcoinj:bitcoinj-core"
-      - dependency-name: "io.projectreactor.kotlin:reactor-kotlin-extensions"
-      # bcprov 1.70+ removed ECPoint.isCompressed() which bitcoinj 0.15 still calls.
-      - dependency-name: "org.bouncycastle:bcprov-jdk15on"
-      - dependency-name: "org.bouncycastle:bcpkix-jdk15on"
 
   # Gradle — foundation module
   - package-ecosystem: "gradle"
