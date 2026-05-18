@@ -31,7 +31,7 @@ commons-io = "commons-io:commons-io:2.6"
 
 cglib-nodep = "cglib:cglib-nodep:3.3.0"
 
-equals-verifier = "nl.jqno.equalsverifier:equalsverifier:3.10.1"
+equals-verifier = "nl.jqno.equalsverifier:equalsverifier:4.5"
 
 groovy = { module = "org.apache.groovy:groovy", version.ref = "groovy" }
 
