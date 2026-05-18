@@ -137,6 +137,6 @@ bouncycastle = ["bouncycastle-pkix", "bouncycastle-prov"]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 jib = { id = "com.google.cloud.tools.jib", version = "3.5.2" }
 spring = { id = "org.springframework.boot", version = "4.0.1" }
-git = { id = "com.palantir.git-version", version = "0.12.3" }
+git = { id = "com.palantir.git-version", version = "5.0.0" }
 protobuf = { id = "com.google.protobuf", version = "0.9.6" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.6.0" }
