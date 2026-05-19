@@ -159,7 +159,7 @@ application {
 
 jib {
     from {
-        image = 'amazoncorretto:25'
+        image = 'docker://drpc-dshackle'
     }
     to {
         // by default publish as:
