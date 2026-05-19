@@ -1,125 +1,172 @@
 ---
 name: smoke-test
-description: Use when asked to run a service locally and verify it works end-to-end with real requests ("запусти и проверь", "make sure it actually runs", "проверь что запросы делаются"), after a dependency bump, on a fresh checkout, or after a config change that could affect startup or routing.
+description: Use when asked to run dshackle locally and verify it actually serves requests end-to-end via gRPC ("запусти и проверь", "make sure it works"), after a dependency bump, on a fresh checkout, or after a config change that could affect upstream connectivity, the gRPC API, or subscriptions.
 ---
 
-# Smoke Test a Local Service
+# Smoke Test dshackle (gRPC)
 
 ## Overview
 
-A smoke test verifies a service actually serves real requests, not just that it compiles. The non-obvious parts: discovering the right probe path, knowing when the service is *truly* ready, and catching silent misconfig in logs.
+dshackle's primary API is gRPC on port `2449`. A smoke test brings the service up against a real public upstream and exercises four things that a green build alone doesn't prove: reflection serves, the upstream actually connects, a unary call returns a fresh result, and server-streaming subscriptions deliver real data.
+
+The HTTP JSON-RPC proxy is a thin wrapper on top of gRPC and is **not** covered here — verify gRPC and the HTTP path is implied.
 
 ## When to Use
 
 - "Run it locally and check it works" / "запусти и проверь"
-- Verifying a config change didn't break startup
+- Verifying a config-loading or upstream-connector change didn't break startup
 - Validating a fresh checkout / new contributor setup
-- After a dependency bump, before relying on a feature
+- After a dependency bump (gRPC, Netty, Spring), before relying on the API
 
 **Don't use for:** unit/integration tests (those are project-scoped); production health checks (use the project's monitoring).
 
+## The test config — copy this verbatim
+
+Write to `/tmp/dshackle-test/dshackle.yaml` (outside the repo). This is the *minimum* config that exercises everything: gRPC, real upstream, and subscriptions.
+
+```yaml
+version: v1
+host: 0.0.0.0
+port: 2449
+tls:
+  enabled: false
+
+monitoring:
+  enabled: false
+
+cluster:
+  upstreams:
+    - id: drpc-eth
+      chain: ethereum
+      role: primary
+      labels:
+        provider: drpc
+      connection:
+        ethereum:
+          rpc:
+            url: "https://eth.drpc.org"
+          ws:
+            url: "wss://eth.drpc.org"
+```
+
+Why exactly these pieces:
+- **No `proxy:` block** — we don't test HTTP, so don't open port 8545.
+- **No `auth:` block** — keeps the request flow as simple as possible; if you also need to validate signing, use `demo/response-signing/dshackle.yaml` instead.
+- **Both `rpc:` and `ws:`** — `NativeSubscribe` to `newHeads`/`newPendingTransactions` requires a WebSocket upstream. RPC-only will start fine but subscriptions stay empty and the log warns: `"Setting up connector for drpc-eth upstream with RPC-only access, less effective than WS+RPC"`.
+- **`https://eth.drpc.org` / `wss://eth.drpc.org`** — public, no API key, used by the response-signing demo, so it's known-good.
+- **Ethereum mainnet** — the canonical EVM chain with high block/tx throughput, so subscriptions produce data within seconds.
+
 ## Workflow
 
-1. **Pick the config.** Prefer existing `demo/`, `examples/`, `testdata/`, or docs configs. If none fits, copy the smallest one and point the upstream/backing service at a **public free endpoint** (no secrets, no creds). Write the config to `/tmp/<project>-test/` — not the repo.
-2. **Build the way the project says.** Check `Makefile`, `README`, `CONTRIBUTING`. Multi-module projects often need a foundation/lib build before the main build (e.g. `make build-foundation` then `./gradlew installDist`). `installDist`/`distZip` is usually friendlier than `./gradlew run` because it produces a launchable binary.
-3. **Start in background, log to file.** `cmd > run.log 2>&1` with `run_in_background: true`. Do NOT use `./gradlew run` for background — daemon doesn't detach cleanly.
-4. **Wait for the LISTEN port, not the "Started" log line.** Many services finish their startup banner but then asynchronously connect to upstreams, register routes, or warm caches. Poll with `lsof -nP -iTCP:<port> -sTCP:LISTEN` OR grep the log for the specific "Listening on" / "Proxy on" lines. Also break the loop on visible errors so you don't hang.
-5. **Discover the probe path from the config, not the docs.** Common bite: hitting `/` returns 404 because the proxy defines routed paths (`/eth`, `/api/v1`, etc.). Read the route/path config before probing.
-6. **Probe happy + edge.** At minimum: one normal call, one batch (if supported), one invalid input. For JSON-RPC: `chainId`/`blockNumber` + batch + unknown method (expect `-32601`). **If the service exposes both HTTP and gRPC, probe both** — they're separate code paths and a regression can land in one without the other.
-7. **Scan the log for soft failures.** `grep -iE "warn|error|exception"` in `run.log`. Things like "method not available, do not detect" are usually fine; "Failed to connect", "Address already in use", "Unauthorized" are not.
-8. **Clean up.** Kill by PID on the listen port: `PID=$(lsof -nP -iTCP:<port> -sTCP:LISTEN -t | head -1); kill "$PID"`. Verify the port is free. Don't leave background processes for the user.
+1. **Build:** `make build-foundation && ./gradlew installDist`. Produces a launchable binary at `build/install/dshackle/bin/dshackle`. Don't use `./gradlew run` — the Gradle daemon doesn't detach cleanly for background use.
+2. **Start in background:** `cd /tmp/dshackle-test && rm -f dshackle.log && <repo>/build/install/dshackle/bin/dshackle > dshackle.log 2>&1` with `run_in_background: true`. dshackle picks up `dshackle.yaml` from CWD.
+3. **Wait for LISTEN on 2449,** not the "Started" log line. The `Started StarterKt` line appears before the upstream connector finishes initialising:
+   ```bash
+   until lsof -nP -iTCP:2449 -sTCP:LISTEN >/dev/null 2>&1 \
+      || grep -qiE "failed to start|address already in use|fatal" dshackle.log; do
+     sleep 1
+   done
+   ```
+   Then verify the WS upstream actually connected: `grep "Connecting to WebSocket" dshackle.log` should appear, no `"WS connection failed"` after it.
+4. **Run the probes below** (reflection → Describe → NativeCall → SubscribeNodeStatus → NativeSubscribe).
+5. **Scan the log for soft failures:** `grep -iE "warn|error|exception" dshackle.log`. Soft signal you can ignore: `eth_getTdByNumber failed with method is not available, do not detect`. Real failures: `Failed to connect`, `Unauthorized`, `WS connection failed`.
+6. **Clean up:** `kill $(lsof -nP -iTCP:2449 -sTCP:LISTEN -t | head -1)`, verify port is free.
 
-## Readiness wait — the right pattern
-
-```bash
-# Wait until port is LISTEN or a fatal error appears. Don't sleep blindly.
-until lsof -nP -iTCP:8545 -sTCP:LISTEN >/dev/null 2>&1 \
-   || grep -qiE "failed to start|address already in use|fatal" run.log; do
-  sleep 1
-done
-```
-
-Use `run_in_background: true` so you can keep doing other work; the harness will notify you.
-
-## JSON-RPC probe template
+## Probe 1 — reflection
 
 ```bash
-curl -s -X POST http://localhost:<port>/<route> \
-  -H 'Content-Type: application/json' \
-  --data '{"jsonrpc":"2.0","id":1,"method":"<method>","params":[]}'
-```
-
-Probe set for an EVM-style endpoint:
-- `eth_chainId` → confirms chain identity
-- `eth_blockNumber` → confirms upstream is live and synced
-- batch `[{...},{...}]` → confirms batching works
-- `foo_bar` → expect `error.code: -32601`
-
-## gRPC probe (dshackle specifically)
-
-dshackle's gRPC port (default `2449`) is a separate code path from the JSON-RPC proxy — smoke-testing only HTTP can hide gRPC regressions. Use `grpcurl` (`brew install grpcurl`). Server reflection is on by default.
-
-```bash
-# 1. Discover services (sanity check that gRPC is actually serving)
 grpcurl -plaintext localhost:2449 list
 # expected: emerald.Auth, emerald.Blockchain, grpc.reflection.v1.ServerReflection
+```
 
-# 2. Describe — health-check style: returns configured chains, status, labels, supportedMethods
+If this fails or returns nothing, reflection is disabled or gRPC isn't actually serving — everything below will fail too.
+
+## Probe 2 — Describe (unary, health-check)
+
+```bash
 grpcurl -plaintext -d '{}' localhost:2449 emerald.Blockchain/Describe
-# look for: chain=CHAIN_ETHEREUM__MAINNET, status.availability=AVAIL_OK,
-#           non-empty supportedMethods, populated node labels (client_type, archive, …)
+```
 
-# 3. NativeCall — real upstream call. params are JSON-encoded, then base64-encoded as bytes.
-PAYLOAD=$(printf '%s' '[]' | base64)   # "W10="
+Pass criteria:
+- `chains[0].chain == "CHAIN_ETHEREUM__MAINNET"`
+- `chains[0].status.availability == "AVAIL_OK"`
+- `chains[0].currentHeight` is non-zero and within ~10 blocks of mainnet tip
+- `chains[0].supportedMethods` is non-empty (≥30 entries typically)
+- `chains[0].nodes[0].labels` includes `client_type`, `archive`, `gas-limit` (proves label-detector ran)
+
+## Probe 3 — NativeCall (unary, real upstream hop)
+
+`payload` is `bytes`, holding base64-encoded JSON params.
+
+```bash
+PAYLOAD=$(printf '%s' '[]' | base64)        # "W10="
 grpcurl -plaintext -d "{
   \"chain\":\"CHAIN_ETHEREUM__MAINNET\",
   \"items\":[{\"id\":1,\"method\":\"eth_blockNumber\",\"payload\":\"$PAYLOAD\"}]
 }" localhost:2449 emerald.Blockchain/NativeCall
-# response payload is base64(JSON result); decode: echo <payload> | base64 -d
-# e.g. "IjB4MTdmNmQ5MSI=" → "0x17f6d91"
 ```
 
-Richer call with params:
+Pass criteria:
+- `succeed: true`
+- `payload` decodes (`echo <payload> | base64 -d`) to a quoted hex string like `"0x17f6d91"` matching `currentHeight` from Describe
+- `upstream_id == "drpc-eth"` (your configured id). A value like `"!all:ETH"` means the response came from cache or quorum aggregator — fine for cacheable methods like `eth_chainId`, but `eth_blockNumber` should hit a real upstream.
+
+## Probe 4 — SubscribeNodeStatus (server stream, ~5 s)
+
+Pushes a node-status snapshot every `timespan` ms. Useful for checking that streaming itself works without requiring upstream WS traffic.
 
 ```bash
-PAYLOAD=$(printf '%s' '["latest",false]' | base64)
-grpcurl -plaintext -d "{
-  \"chain\":\"CHAIN_ETHEREUM__MAINNET\",
-  \"items\":[{\"id\":1,\"method\":\"eth_getBlockByNumber\",\"payload\":\"$PAYLOAD\"}]
-}" localhost:2449 emerald.Blockchain/NativeCall
+grpcurl -plaintext -max-time 5 \
+  -d '{"timespan":1000}' \
+  localhost:2449 emerald.Blockchain/SubscribeNodeStatus
 ```
 
-What to check in the response: `succeed: true`, non-empty `payload`, `upstream_id` populated. A value like `"!all:ETH"` means the response came from cache / quorum aggregator — fine, but rerun with a non-cacheable method (`eth_blockNumber`) to confirm a real upstream hop (you should then see `upstream_id: "drpc-eth"` or your configured id).
+Pass criteria:
+- At least one `NodeStatusResponse` with `nodeId == "drpc-eth"`, populated `description.nodeLabels` and `description.supportedMethods`
+- Ends with `Code: DeadlineExceeded` (that's *us* timing out — expected, not a failure)
 
-### gRPC gotchas
+## Probe 5 — NativeSubscribe newHeads (server stream, ~15 s)
 
-- `payload` is `bytes`, not `string`. grpcurl wants base64 of the JSON params. Forgetting to base64-encode → `INVALID_ARGUMENT` or upstream parse error.
-- `chain` is the **enum name** (`CHAIN_ETHEREUM__MAINNET`), not a slug like `"ethereum"`. Wrong name → `INVALID_ARGUMENT: invalid value for enum`.
-- `NativeCall` returns a **server stream** (one `NativeCallReplyItem` per request item, possibly chunked when `chunked: true`). grpcurl handles this transparently; a custom client must consume the stream and reassemble chunks.
-- For TLS-enabled deployments, drop `-plaintext` and add `-cacert` / client cert per the proxy/auth config.
+This is the real subscription test: it forces dshackle to use the WS upstream and proxy live blocks through `NativeSubscribe`.
+
+```bash
+PAYLOAD=$(printf '%s' '[]' | base64)
+grpcurl -plaintext -max-time 15 \
+  -d "{\"chain\":\"CHAIN_ETHEREUM__MAINNET\",\"method\":\"newHeads\",\"payload\":\"$PAYLOAD\"}" \
+  localhost:2449 emerald.Blockchain/NativeSubscribe
+```
+
+Pass criteria:
+- ≥1 `NativeSubscribeReplyItem` within 15 s (Ethereum mainnet produces a block every ~12 s)
+- Each `payload` decodes to a JSON block header with `"number": "0x..."` strictly increasing across items
+- Final `Code: DeadlineExceeded` is expected — *we* closed the stream
+
+If no items arrive: check `dshackle.log` for WS errors, and confirm the config has the `ws:` block.
+
+**Note:** `Describe.supportedSubscriptions` may not list `newHeads` even though `NativeSubscribe newHeads` works — the detector only enumerates what the upstream advertises via `eth_subscribe` introspection, not what dshackle can actually proxy. Trust the live probe, not the catalogue.
 
 ## Common Mistakes
 
 | Mistake | Symptom | Fix |
 |---|---|---|
-| Probing `/` instead of `/<route-id>` | 404, empty body | Read the proxy/route config first |
-| Treating "Started" as ready | Connection refused / timeout | Wait for `lsof` on the listen port |
-| Sleeping a fixed N seconds | Flaky, slow, or premature | Condition-based wait on port + error grep |
-| Using `./gradlew run` in background | Hangs daemon, hard to kill | Use `installDist` and run the bin script |
-| Config with secrets like `${API_KEY}` | "401 Unauthorized" in log, silent failures | Pick an upstream with no auth, or export the env var |
-| Forgetting cleanup | Port stays bound, next run fails | Kill PID by LISTEN port |
-| Missing log scan | Service "works" but is degraded | `grep -iE "warn|error"` on the log before declaring success |
-| Probing only HTTP, skipping gRPC | Regression on gRPC path slips through | `grpcurl list` + one `NativeCall` if both ports listen |
-| gRPC `payload` sent as raw JSON string | `INVALID_ARGUMENT` from server | `base64`-encode the JSON params (`payload` is `bytes`) |
-| Wrong chain enum (`ethereum` vs `CHAIN_ETHEREUM__MAINNET`) | `invalid value for enum` | Use the exact enum name from the .proto |
+| Treating "Started" as ready | `Connection refused` on first probe | Wait for `lsof` on the LISTEN port, then grep for "Connecting to WebSocket" |
+| Sleeping a fixed N seconds | Flaky and slow | Condition-based wait on port + error grep (see Workflow §3) |
+| Using `./gradlew run` in background | Daemon hangs, hard to kill | Use `installDist` and run the bin script |
+| RPC-only config + subscription probe | NativeSubscribe stream stays empty until DeadlineExceeded | Add the `ws:` block; check log for `"Setting up connector ... with RPC-only access"` warning |
+| `NativeCall payload` sent as raw JSON | `INVALID_ARGUMENT` from server | base64-encode the JSON params (`payload` is `bytes`) |
+| Wrong chain enum (`"ethereum"`) | `invalid value for enum` | Use the enum constant from `common.proto`: `CHAIN_ETHEREUM__MAINNET` |
+| No `-max-time` on a subscription probe | grpcurl hangs forever | Always set `-max-time` on `*Subscribe*` calls; `DeadlineExceeded` is the *success* terminator |
+| Forgetting cleanup | Port 2449 stays bound, next run fails | `kill $(lsof -nP -iTCP:2449 -sTCP:LISTEN -t)` |
+| Trusting `Describe.supportedSubscriptions` | "newHeads not supported" but it actually is | Probe it live with `NativeSubscribe` |
 
 ## Red Flags
 
-- "Curl returned `{}` so it works" — check the *status code* and the *body shape*, not just non-empty.
-- "Log says Started, ship it" — probe an actual endpoint.
-- "I'll skip the edge case" — at minimum send one invalid request to confirm error handling is wired.
+- "`Describe` returned, ship it" — Describe only proves config loaded; you haven't proved any upstream hop. Run NativeCall.
+- "Subscribe returned `DeadlineExceeded`, it's broken" — that's how *you* end the stream. Check whether any items came *before* the deadline.
+- "`upstream_id` was `!all:ETH`, that's wrong" — only for `eth_blockNumber`-class methods. For `eth_chainId` it's normal (cacheable).
+- "I'll skip subscriptions, unary is enough" — server-streaming uses different code paths (head subscriptions, dedup, multiplexing). Many regressions land only there.
 - "I'll let the process keep running" — always clean up.
 
 ## What to Report Back
 
-Concise: what config, which build/run commands, which ports, which probes ran, sample responses, whether you killed the process. Quote one or two log lines that prove the upstream is connected.
+Concise: which build/run commands, port 2449 confirmed listening, results from all 5 probes (key field for each: list count, `availability`, decoded `payload`, count of stream items, head number), and confirmation the process was killed. Quote one or two log lines that prove WS upstream connected.
