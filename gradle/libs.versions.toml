@@ -1,11 +1,11 @@
 [versions]
 groovy = "5.0.6"
-protoc = "4.34.1"
+protoc = "4.35.0"
 jackson = "2.21.3"
 grpc = "1.81.0"
 spring-boot = "4.0.6"
 reactor = "3.8.5"
-netty = "4.2.13.Final"
+netty = "4.2.14.Final"
 netty-tcnative = "2.0.77.Final"
 kotlin = "2.3.21"
 httpcomponents = "5.6.1"
