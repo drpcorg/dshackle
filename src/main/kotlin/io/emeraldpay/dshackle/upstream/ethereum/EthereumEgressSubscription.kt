@@ -11,6 +11,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.domain.Address
 import io.emeraldpay.dshackle.upstream.ethereum.hex.Hex32
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.ConnectLogs
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.ConnectNewHeads
+import io.emeraldpay.dshackle.upstream.ethereum.subscribe.NoPendingTxes
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.PendingTxesSource
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.LoggerFactory
@@ -72,7 +73,7 @@ open class EthereumEgressSubscription(
         } else {
             listOf()
         }
-        return if (pendingTxesSource != null) {
+        return if (pendingTxesSource != null && pendingTxesSource !is NoPendingTxes && upstream.getCapabilities().contains(Capability.WS_PENDING_TX)) {
             subs.plus(listOf(METHOD_PENDING_TXES, METHOD_DRPC_PENDING_TXES))
         } else {
             subs

@@ -4,4 +4,5 @@ enum class Capability {
     RPC,
     BALANCE,
     WS_HEAD,
+    WS_PENDING_TX,
 }

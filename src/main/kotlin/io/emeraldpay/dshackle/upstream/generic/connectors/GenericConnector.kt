@@ -15,4 +15,6 @@ interface GenericConnector : Lifecycle {
     fun getIngressReader(): ChainReader
 
     fun getIngressSubscription(): IngressSubscription
+
+    fun pendingTxEvents(): Flux<Boolean>
 }
