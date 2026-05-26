@@ -404,7 +404,7 @@ open class WsConnectionImpl(
         return Mono.from(onResponse.asMono()).or(failOnDisconnect)
             .doOnSubscribe { sendRpc(request) }
             .take(Defaults.timeout)
-            .doOnNext { requestMetrics?.timer?.record(System.nanoTime() - startTime, TimeUnit.NANOSECONDS) }
+            .doOnNext { requestMetrics?.timer()?.record(System.nanoTime() - startTime, TimeUnit.NANOSECONDS) }
             .doOnError { requestMetrics?.fails?.increment() }
             .map { it.copyWithId(ChainResponse.Id.from(originalId)) }
             .switchIfEmpty(
@@ -424,7 +424,7 @@ open class WsConnectionImpl(
             it.close()
             Metrics.globalRegistry.remove(it)
         }
-        requestMetrics?.timer?.let {
+        requestMetrics?.registeredTimers()?.forEach {
             it.close()
             Metrics.globalRegistry.remove(it)
         }

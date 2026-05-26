@@ -101,7 +101,7 @@ abstract class HttpReader(
 
     open fun onStop() {
         if (metrics != null) {
-            Metrics.globalRegistry.remove(metrics.timer)
+            metrics.registeredTimers().forEach { Metrics.globalRegistry.remove(it) }
             Metrics.globalRegistry.remove(metrics.fails)
         }
     }

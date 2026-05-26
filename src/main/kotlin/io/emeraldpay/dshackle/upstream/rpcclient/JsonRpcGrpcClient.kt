@@ -114,7 +114,7 @@ class JsonRpcGrpcClient(
                 }
                 .doOnNext {
                     if (timer.isStarted) {
-                        metrics?.timer?.record(timer.getTime(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS)
+                        metrics?.timer()?.record(timer.getTime(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS)
                     }
                 }
         }
