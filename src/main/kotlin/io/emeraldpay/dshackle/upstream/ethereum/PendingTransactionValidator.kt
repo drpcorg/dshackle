@@ -58,7 +58,7 @@ class PendingTransactionValidatorImpl(
                     }
                     .timeout(Duration.ofSeconds(30))
                     .onErrorResume {
-                        log.error("unable to read txs from txpool of upstream {}", upstreamId, it)
+                        log.error("unable to read txs from txpool_content of upstream {}", upstreamId, it)
                         Mono.just(false)
                     }
             }
