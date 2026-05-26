@@ -6,9 +6,13 @@ import io.emeraldpay.dshackle.upstream.BlockValidator
 import io.emeraldpay.dshackle.upstream.DefaultUpstream
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.IngressSubscription
+import io.emeraldpay.dshackle.upstream.ethereum.BASE_TX_LIMIT
 import io.emeraldpay.dshackle.upstream.ethereum.GenericWsHead
 import io.emeraldpay.dshackle.upstream.ethereum.HeadLivenessState
 import io.emeraldpay.dshackle.upstream.ethereum.HeadLivenessValidatorImpl
+import io.emeraldpay.dshackle.upstream.ethereum.NoopPendingTransactionValidator
+import io.emeraldpay.dshackle.upstream.ethereum.PendingTransactionValidator
+import io.emeraldpay.dshackle.upstream.ethereum.PendingTransactionValidatorImpl
 import io.emeraldpay.dshackle.upstream.ethereum.WsConnectionPool
 import io.emeraldpay.dshackle.upstream.ethereum.WsConnectionPoolFactory
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptionsImpl
@@ -36,6 +40,8 @@ class GenericWsConnector(
     private val head: GenericWsHead
     private val subscriptions: IngressSubscription
     private val liveness: HeadLivenessValidatorImpl
+    private val pendingTxValidator: PendingTransactionValidator
+
     init {
         pool = wsFactory.create(upstream)
         reader = JsonRpcWsClient(pool)
@@ -54,6 +60,17 @@ class GenericWsConnector(
         )
         liveness = HeadLivenessValidatorImpl(head, expectedBlockTime, headLivenessScheduler, upstream.getId())
         subscriptions = chainSpecific.makeIngressSubscription(chain, wsSubscriptions)
+
+        pendingTxValidator = if (chain == Chain.BASE__MAINNET) {
+            PendingTransactionValidatorImpl(
+                upstream.getId(),
+                getIngressReader(),
+                Duration.ofMinutes(10),
+                BASE_TX_LIMIT,
+            )
+        } else {
+            NoopPendingTransactionValidator()
+        }
     }
 
     override fun headLivenessEvents(): Flux<HeadLivenessState> {
@@ -79,6 +96,10 @@ class GenericWsConnector(
 
     override fun getIngressSubscription(): IngressSubscription {
         return subscriptions
+    }
+
+    override fun pendingTxEvents(): Flux<Boolean> {
+        return pendingTxValidator.pendingTxExists()
     }
 
     override fun getHead(): Head {

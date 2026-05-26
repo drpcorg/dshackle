@@ -13,11 +13,15 @@ import io.emeraldpay.dshackle.upstream.Lifecycle
 import io.emeraldpay.dshackle.upstream.MergedHead
 import io.emeraldpay.dshackle.upstream.NoIngressSubscription
 import io.emeraldpay.dshackle.upstream.ethereum.AlwaysHeadLivenessValidator
+import io.emeraldpay.dshackle.upstream.ethereum.BASE_TX_LIMIT
 import io.emeraldpay.dshackle.upstream.ethereum.GenericWsHead
 import io.emeraldpay.dshackle.upstream.ethereum.HeadLivenessState
 import io.emeraldpay.dshackle.upstream.ethereum.HeadLivenessValidator
 import io.emeraldpay.dshackle.upstream.ethereum.HeadLivenessValidatorImpl
 import io.emeraldpay.dshackle.upstream.ethereum.NoHeadLivenessValidator
+import io.emeraldpay.dshackle.upstream.ethereum.NoopPendingTransactionValidator
+import io.emeraldpay.dshackle.upstream.ethereum.PendingTransactionValidator
+import io.emeraldpay.dshackle.upstream.ethereum.PendingTransactionValidatorImpl
 import io.emeraldpay.dshackle.upstream.ethereum.WsConnectionPool
 import io.emeraldpay.dshackle.upstream.ethereum.WsConnectionPoolFactory
 import io.emeraldpay.dshackle.upstream.ethereum.WsSubscriptions
@@ -58,6 +62,7 @@ class GenericRpcConnector(
     private val head: Head
     private val liveness: HeadLivenessValidator
     private val jsonRpcWsClient: JsonRpcWsClient?
+    private val pendingTxValidator: PendingTransactionValidator
 
     companion object {
         private val log = LoggerFactory.getLogger(GenericRpcConnector::class.java)
@@ -136,6 +141,16 @@ class GenericRpcConnector(
                 )
             }
         }
+        pendingTxValidator = if (chain == Chain.BASE__MAINNET) {
+            PendingTransactionValidatorImpl(
+                upstream.getId(),
+                getIngressReader(),
+                Duration.ofMinutes(5),
+                BASE_TX_LIMIT,
+            )
+        } else {
+            NoopPendingTransactionValidator()
+        }
 
         liveness = if (connectorType != RPC_ONLY && isSpecialChain(chain)) {
             AlwaysHeadLivenessValidator()
@@ -184,6 +199,10 @@ class GenericRpcConnector(
 
     override fun getIngressSubscription(): IngressSubscription {
         return ingressSubscription ?: NoIngressSubscription()
+    }
+
+    override fun pendingTxEvents(): Flux<Boolean> {
+        return pendingTxValidator.pendingTxExists()
     }
 
     override fun getHead(): Head {

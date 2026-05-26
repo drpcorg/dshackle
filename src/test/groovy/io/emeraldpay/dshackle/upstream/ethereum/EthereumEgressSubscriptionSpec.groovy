@@ -17,6 +17,8 @@ package io.emeraldpay.dshackle.upstream.ethereum
 
 
 import io.emeraldpay.dshackle.test.TestingCommons
+import io.emeraldpay.dshackle.upstream.ethereum.subscribe.AggregatedPendingTxes
+import io.emeraldpay.dshackle.upstream.ethereum.subscribe.NoPendingTxes
 import io.emeraldpay.dshackle.upstream.generic.GenericMultistream
 import io.emeraldpay.dshackle.upstream.ethereum.subscribe.PendingTxesSource
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Address
@@ -216,6 +218,7 @@ class EthereumEgressSubscriptionSpec extends Specification {
         when:
         def up3 = TestingCommons.upstream("test")
         up3.getConnectorMock().setLiveness(Flux.just(HeadLivenessState.OK))
+        up3.getConnectorMock().setPendingTxs(Flux.just(true))
         up3.stop()
         up3.start()
         def ethereumSubscribe3 = new EthereumEgressSubscription(TestingCommons.multistream(up3) as GenericMultistream, Schedulers.boundedElastic(), Stub(PendingTxesSource))
@@ -230,5 +233,23 @@ class EthereumEgressSubscriptionSpec extends Specification {
         then:
         ethereumSubscribe4.getAvailableTopics().toSet() == [EthereumEgressSubscription.METHOD_NEW_HEADS].toSet()
 
+        when:
+        def up5 = TestingCommons.upstream("test")
+        up5.getConnectorMock().setLiveness(Flux.just(HeadLivenessState.OK))
+        up5.stop()
+        up5.start()
+        def ethereumSubscribe5 = new EthereumEgressSubscription(TestingCommons.multistream(up5) as GenericMultistream, Schedulers.boundedElastic(), Stub(PendingTxesSource))
+        then:
+        ethereumSubscribe5.getAvailableTopics().toSet() == [EthereumEgressSubscription.METHOD_LOGS, EthereumEgressSubscription.METHOD_NEW_HEADS].toSet()
+
+        when:
+        def up6 = TestingCommons.upstream("test")
+        up6.getConnectorMock().setLiveness(Flux.just(HeadLivenessState.OK))
+        up6.getConnectorMock().setPendingTxs(Flux.just(true))
+        up6.stop()
+        up6.start()
+        def ethereumSubscribe6 = new EthereumEgressSubscription(TestingCommons.multistream(up6) as GenericMultistream, Schedulers.boundedElastic(), new NoPendingTxes())
+        then:
+        ethereumSubscribe6.getAvailableTopics().toSet() == [EthereumEgressSubscription.METHOD_LOGS, EthereumEgressSubscription.METHOD_NEW_HEADS].toSet()
     }
 }

@@ -14,11 +14,13 @@ class GenericConnectorMock implements GenericConnector {
     Reader<ChainRequest, ChainResponse> api
     Head head
     Flux<HeadLivenessState> liveness
+    Flux<Boolean> pendingTxs
 
     GenericConnectorMock(Reader<ChainRequest, ChainResponse> api, Head head) {
         this.api = api
         this.head = head
         this.liveness = Flux.just(HeadLivenessState.NON_CONSECUTIVE)
+        this.pendingTxs = Flux.just(false)
     }
 
     @Override
@@ -50,5 +52,10 @@ class GenericConnectorMock implements GenericConnector {
     @Override
     IngressSubscription getIngressSubscription() {
         return NoEthereumIngressSubscription.DEFAULT
+    }
+
+    @Override
+    Flux<Boolean> pendingTxEvents() {
+        return pendingTxs
     }
 }

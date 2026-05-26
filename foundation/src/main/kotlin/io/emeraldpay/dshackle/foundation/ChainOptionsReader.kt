@@ -61,6 +61,9 @@ class ChainOptionsReader : YamlConfigReader<ChainOptions.PartialOptions>() {
         getValueAsBool(values, "disable-log-index-validation")?.let {
             options.disableLogIndexValidation = it
         }
+        getValueAsBool(values, "disable-pending-tx-validation")?.let {
+            options.disablePendingTxValidation = it
+        }
         return options
     }
 }

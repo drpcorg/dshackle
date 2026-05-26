@@ -63,11 +63,12 @@ class Describe(
                             }
                         capabilities.addAll(chainUpstreams.getCapabilities())
                         chainDescription.addAllCapabilities(
-                            capabilities.map {
+                            capabilities.filter { it != Capability.WS_PENDING_TX }.map {
                                 when (it) {
                                     Capability.RPC -> BlockchainOuterClass.Capabilities.CAP_CALLS
                                     Capability.BALANCE -> BlockchainOuterClass.Capabilities.CAP_BALANCE
                                     Capability.WS_HEAD -> BlockchainOuterClass.Capabilities.CAP_WS_HEAD
+                                    else -> null
                                 }
                             },
                         )
