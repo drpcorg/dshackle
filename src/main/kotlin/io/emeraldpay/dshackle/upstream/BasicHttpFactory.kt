@@ -34,11 +34,14 @@ class BasicHttpFactory(
             Tag.of("chain", chain.chainCode),
         )
         val metrics = RequestMetrics(
-            Timer.builder("upstream.rpc.conn")
-                .description("Request time through a HTTP JSON RPC connection")
-                .tags(metricsTags)
-                .publishPercentileHistogram()
-                .register(Metrics.globalRegistry),
+            { method ->
+                Timer.builder("upstream.rpc.conn")
+                    .description("Request time through a HTTP JSON RPC connection")
+                    .tags(metricsTags)
+                    .tag("method", method ?: "unknown")
+                    .publishPercentileHistogram()
+                    .register(Metrics.globalRegistry)
+            },
             Counter.builder("upstream.rpc.fail")
                 .description("Number of failures of HTTP JSON RPC requests")
                 .tags(metricsTags)

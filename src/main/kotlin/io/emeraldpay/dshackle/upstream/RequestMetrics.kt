@@ -17,9 +17,20 @@ package io.emeraldpay.dshackle.upstream
 
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Timer
+import java.util.concurrent.ConcurrentHashMap
 
 class RequestMetrics(
-    val timer: Timer,
+    private val timerFactory: (String?) -> Timer,
     val fails: Counter,
     val nettyMetricsEnabled: Boolean,
-)
+) {
+    private val timerCache = ConcurrentHashMap<String, Timer>()
+
+    constructor(timer: Timer, fails: Counter, nettyMetricsEnabled: Boolean) :
+        this({ _ -> timer }, fails, nettyMetricsEnabled)
+
+    fun timer(method: String? = null): Timer =
+        timerCache.computeIfAbsent(method ?: "") { timerFactory(method) }
+
+    fun registeredTimers(): Collection<Timer> = timerCache.values
+}
