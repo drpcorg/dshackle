@@ -192,9 +192,9 @@ class EthereumUpstreamSettingsDetector(
             return Flux.empty() // reduce frequency of detection
         }
         val blocksToCheck = when (chain) {
-            Chain.HYPERLIQUID__TESTNET -> 10000   // ~1/1429 для 0x2222, max gap ~9148
+            Chain.HYPERLIQUID__TESTNET -> 10000 // ~1/1429 для 0x2222, max gap ~9148
             else -> 300 // as of now, native tx occurs about once in 30 blocks on average, have 10x leeway here...
-        } 
+        }
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_blockNumber",
