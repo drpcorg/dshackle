@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const val HL_NATIVE_TX_FROM_MAINNET = "0x2222222222222222222222222222222222222222"
-const val HL_NATIVE_TX_FROM_TESTNET = "0x6ed35e7d6de4b45f4efb8a91eff31afa49362569"
+const val HL_NATIVE_TX_FROM_TESTNET = "0x2222222222222222222222222222222222222222"
 
 class EthereumUpstreamSettingsDetector(
     private val _upstream: Upstream,
@@ -191,7 +191,10 @@ class EthereumUpstreamSettingsDetector(
         if (detectCounter.get() % 5 != 1) {
             return Flux.empty() // reduce frequency of detection
         }
-        val blocksToCheck = 300 // as of now, native tx occurs about once in 30 blocks on average, have 10x leeway here...
+        val blocksToCheck = when (chain) {
+            Chain.HYPERLIQUID__TESTNET -> 10000   // ~1/1429 для 0x2222, max gap ~9148
+            else -> 300 // as of now, native tx occurs about once in 30 blocks on average, have 10x leeway here...
+        } 
         return upstream.getIngressReader().read(
             ChainRequest(
                 "eth_blockNumber",
