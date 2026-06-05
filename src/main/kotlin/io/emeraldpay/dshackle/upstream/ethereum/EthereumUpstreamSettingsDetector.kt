@@ -8,6 +8,7 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.NodeTypeRequest
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.generic.GenericUpstream
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -15,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 const val ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const val HL_NATIVE_TX_FROM_MAINNET = "0x2222222222222222222222222222222222222222"
-const val HL_NATIVE_TX_FROM_TESTNET = "0x6ed35e7d6de4b45f4efb8a91eff31afa49362569"
 
 class EthereumUpstreamSettingsDetector(
     private val _upstream: Upstream,
@@ -179,15 +179,17 @@ class EthereumUpstreamSettingsDetector(
         Some clients on hyperliquid don't include system topup transactions, set either one of labels
      */
     private fun detectHlNativeTx(): Flux<Pair<String, String>> {
-        // Only run HL native tx detection on Hyperliquid chains
         if (chain != Chain.HYPERLIQUID__MAINNET && chain != Chain.HYPERLIQUID__TESTNET) {
             return Flux.empty()
         }
-        val hlNativeTxFrom = when (chain) {
-            Chain.HYPERLIQUID__MAINNET -> HL_NATIVE_TX_FROM_MAINNET
-            Chain.HYPERLIQUID__TESTNET -> HL_NATIVE_TX_FROM_TESTNET
-            else -> return Flux.empty()
+        // prefer the explicit ?hl= flag from the upstream URL
+        hlNativeTxLabelsFromUrl()?.let { return Flux.fromIterable(it) }
+
+        // no ?hl= flag: block-scan fallback (reliable only on mainnet)
+        if (chain != Chain.HYPERLIQUID__MAINNET) {
+            return Flux.empty()
         }
+        val hlNativeTxFrom = HL_NATIVE_TX_FROM_MAINNET
         if (detectCounter.get() % 5 != 1) {
             return Flux.empty() // reduce frequency of detection
         }
@@ -252,6 +254,20 @@ class EthereumUpstreamSettingsDetector(
         }.onErrorResume {
             log.error("${upstream.getId()} Can't determine HL native tx status: ${it.message}")
             Flux.empty()
+        }
+    }
+
+    // maps the upstream URL's ?hl= flag to routing labels, or null if absent
+    private fun hlNativeTxLabelsFromUrl(): List<Pair<String, String>>? {
+        val query = (upstream as? GenericUpstream)?.getRpcConnectionUrl()?.query ?: return null
+        val hl = query.split("&")
+            .map { it.split("=", limit = 2) }
+            .firstOrNull { it.size == 2 && it[0].trim() == "hl" }
+            ?.get(1)?.trim()?.lowercase()
+        return when (hl) {
+            "false" -> listOf("include_hl_native_tx" to "true", "exclude_hl_native_tx" to "false")
+            "true" -> listOf("exclude_hl_native_tx" to "true", "include_hl_native_tx" to "false")
+            else -> null
         }
     }
 
