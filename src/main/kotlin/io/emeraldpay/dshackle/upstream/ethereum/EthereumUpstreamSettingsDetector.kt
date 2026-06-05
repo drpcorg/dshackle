@@ -259,14 +259,13 @@ class EthereumUpstreamSettingsDetector(
 
     // maps the upstream URL's ?hl= flag to routing labels, or null if absent
     private fun hlNativeTxLabelsFromUrl(): List<Pair<String, String>>? {
-        val query = (upstream as? GenericUpstream)?.getRpcConnectionUrl()?.query ?: return null
-        val hl = query.split("&")
-            .map { it.split("=", limit = 2) }
-            .firstOrNull { it.size == 2 && it[0].trim() == "hl" }
-            ?.get(1)?.trim()?.lowercase()
-        return when (hl) {
-            "false" -> listOf("include_hl_native_tx" to "true", "exclude_hl_native_tx" to "false")
-            "true" -> listOf("exclude_hl_native_tx" to "true", "include_hl_native_tx" to "false")
+        val url = (upstream as? GenericUpstream)?.getRpcConnectionUrl()?.toString() ?: return null
+        // ?hl=false => serves native txs (include); ?hl=true => hl-node compliant (exclude)
+        return when {
+            url.contains(Regex("[?&]hl=false\\b")) ->
+                listOf("include_hl_native_tx" to "true", "exclude_hl_native_tx" to "false")
+            url.contains(Regex("[?&]hl=true\\b")) ->
+                listOf("exclude_hl_native_tx" to "true", "include_hl_native_tx" to "false")
             else -> null
         }
     }
