@@ -43,6 +43,7 @@ import reactor.core.Disposable
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
 import reactor.core.scheduler.Schedulers
+import java.net.URI
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -101,6 +102,8 @@ open class GenericUpstream(
     ) {
         rpcMethodsDetector = upstreamRpcMethodsDetectorBuilder(this, config)
         detectRpcMethods(config, buildMethods)
+        rpcConnectionUrl = (config.connection as? UpstreamsConfig.RpcConnection)
+            ?.let { it.rpc?.url ?: it.ws?.url }
     }
 
     private val validator: UpstreamValidator? = validatorBuilder(chain, this, getOptions(), chainConfig, versionRules)
@@ -125,6 +128,9 @@ open class GenericUpstream(
     private val pendingTxSubscription = AtomicReference<Disposable?>()
     private val settingsDetector = upstreamSettingsDetectorBuilder(chain, this)
     private var rpcMethodsDetector: UpstreamRpcMethodsDetector? = null
+
+    // configured RPC/WS URL (carries query flags like ?hl=)
+    private var rpcConnectionUrl: URI? = null
 
     private val lowerBoundService = lowerBoundServiceBuilder(chain, this)
 
@@ -183,6 +189,8 @@ open class GenericUpstream(
             clientVersion.get(),
         )
     }
+
+    fun getRpcConnectionUrl(): URI? = rpcConnectionUrl
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Upstream> cast(selfType: Class<T>): T {
