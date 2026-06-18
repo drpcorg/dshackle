@@ -19,16 +19,21 @@ class DefaultAztecMethods : CallMethods {
         "node_getChainTips",
         "node_getBlock",
         "node_getBlocks",
+        "node_getBlockData",
         "node_getBlockHeader",
         "node_getBlockByArchive",
         "node_getBlockByHash",
         "node_getBlockHeaderByArchive",
 
-        // Checkpoints
+        // Checkpoints / consensus
         "node_getCheckpointNumber",
+        "node_getCheckpoint",
         "node_getCheckpointedBlockNumber",
         "node_getCheckpointedBlocks",
         "node_getCheckpoints",
+        "node_getCheckpointsData",
+        "node_getCheckpointAttestationsForSlot",
+        "node_getProposalsForSlot",
 
         // Transactions
         "node_sendTx",
@@ -45,6 +50,11 @@ class DefaultAztecMethods : CallMethods {
         "node_getPublicStorageAt",
         "node_getWorldStateSyncStatus",
         "node_findLeavesIndexes",
+
+        // Sync status
+        "node_getSyncedL1Timestamp",
+        "node_getSyncedL2EpochNumber",
+        "node_getSyncedL2SlotNumber",
 
         // Sibling paths
         "node_getNullifierSiblingPath",
@@ -66,12 +76,14 @@ class DefaultAztecMethods : CallMethods {
         "node_getL1ToL2MessageCheckpoint",
         "node_isL1ToL2MessageSynced",
         "node_getL2ToL1Messages",
+        "node_getL2ToL1MembershipWitness",
 
         // Logs
         "node_getPrivateLogs",
         "node_getPrivateLogsByTags",
         "node_getPublicLogs",
         "node_getPublicLogsByTagsFromContract",
+        "node_getPublicLogsByTags",
         "node_getContractClassLogs",
         "node_getLogsByTags",
 
@@ -87,12 +99,14 @@ class DefaultAztecMethods : CallMethods {
         "node_getVersion",
         "node_getChainId",
         "node_getL1ContractAddresses",
+        "node_getL1Constants",
         "node_getProtocolContractAddresses",
         "node_getEncodedEnr",
 
         // Fees
         "node_getCurrentBaseFees",
         "node_getCurrentMinFees",
+        "node_getPredictedMinFees",
         "node_getMaxPriorityFees",
 
         // Validators
