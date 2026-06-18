@@ -16,6 +16,7 @@ class DefaultAztecMethods : CallMethods {
         "node_getBlockNumber",
         "node_getProvenBlockNumber",
         "node_getL2Tips",
+        "node_getChainTips",
         "node_getBlock",
         "node_getBlocks",
         "node_getBlockHeader",
