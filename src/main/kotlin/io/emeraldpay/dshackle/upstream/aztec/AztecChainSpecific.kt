@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.aztec
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.github.benmanes.caffeine.cache.Caffeine
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.ChainsConfig.ChainConfig
@@ -22,8 +23,8 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.slf4j.LoggerFactory
 import reactor.core.publisher.Mono
 import java.math.BigInteger
+import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 
 object AztecChainSpecific : AbstractPollChainSpecific() {
     private val log = LoggerFactory.getLogger(AztecChainSpecific::class.java)
@@ -37,7 +38,15 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     // per upstream so we stop probing the dead one on every poll.
     private val LEGACY_TIPS_REQUEST = ChainRequest("node_getL2Tips", ListParams())
     private val CHAIN_TIPS_REQUEST = ChainRequest("node_getChainTips", ListParams())
-    private val workingTipsRequest = ConcurrentHashMap<String, ChainRequest>()
+
+    // Bounded so per-upstream entries can't accumulate without limit (e.g. across config
+    // reloads): a hard size cap plus idle expiry evict stale ids, and an evicted entry just
+    // costs one re-probe. Only upstreams that actually fall back take a slot — legacy-only
+    // ones keep using the default and never populate it.
+    private val workingTipsRequest = Caffeine.newBuilder()
+        .maximumSize(1024)
+        .expireAfterAccess(Duration.ofHours(1))
+        .build<String, ChainRequest>()
 
     // The tips response reshaped between Aztec versions:
     //   v3 (and earlier): {proposed: {number, hash}, proven: {number, hash}, checkpointed: {number, hash}}
@@ -141,7 +150,7 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
     // fall back to the other one and remember whichever succeeds, so subsequent polls go
     // straight to the working method. Any other error propagates as before.
     override fun getLatestBlock(api: ChainReader, upstreamId: String): Mono<BlockContainer> {
-        val preferred = workingTipsRequest[upstreamId] ?: LEGACY_TIPS_REQUEST
+        val preferred = workingTipsRequest.getIfPresent(upstreamId) ?: LEGACY_TIPS_REQUEST
         val fallback = if (preferred === LEGACY_TIPS_REQUEST) CHAIN_TIPS_REQUEST else LEGACY_TIPS_REQUEST
         return fetchTips(api, upstreamId, preferred)
             .onErrorResume { err ->
@@ -153,7 +162,7 @@ object AztecChainSpecific : AbstractPollChainSpecific() {
                         fallback.method,
                     )
                     fetchTips(api, upstreamId, fallback)
-                        .doOnNext { workingTipsRequest[upstreamId] = fallback }
+                        .doOnNext { workingTipsRequest.put(upstreamId, fallback) }
                 } else {
                     Mono.error(err)
                 }
