@@ -1,5 +1,6 @@
 package io.emeraldpay.dshackle.upstream.generic
 
+import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.BlockchainType.AVM
 import io.emeraldpay.dshackle.BlockchainType.AZTEC
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
@@ -130,7 +131,7 @@ object ChainSpecificRegistry {
             RIPPLE -> RippleChainSpecific
             KADENA -> KadenaChainSpecific
             BITCOIN -> throw IllegalArgumentException("bitcoin should use custom streams implementation")
-            UNKNOWN -> throw IllegalArgumentException("unknown chain")
+            UNKNOWN, BlockchainType.APTOS -> throw IllegalArgumentException("unknown chain")
         }
     }
 }

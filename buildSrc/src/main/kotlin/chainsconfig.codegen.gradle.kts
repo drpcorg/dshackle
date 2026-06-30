@@ -142,6 +142,7 @@ open class CodeGen(private val config: ChainsConfig) {
             "kadena" -> "BlockchainType.KADENA"
             "avm" -> "BlockchainType.AVM"
             "app" -> "BlockchainType.ETHEREUM"
+            "aptos" -> "BlockchainType.APTOS"
             else -> throw IllegalArgumentException("unknown blockchain type $type")
         }
     }
