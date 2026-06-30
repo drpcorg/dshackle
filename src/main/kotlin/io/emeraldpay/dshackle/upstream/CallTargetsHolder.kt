@@ -1,6 +1,5 @@
 package io.emeraldpay.dshackle.upstream
 
-import io.emeraldpay.dshackle.BlockchainType
 import io.emeraldpay.dshackle.BlockchainType.AVM
 import io.emeraldpay.dshackle.BlockchainType.AZTEC
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
@@ -64,7 +63,7 @@ class CallTargetsHolder {
             TON -> DefaultTonHttpMethods(connection)
             RIPPLE -> DefaultRippleMethods()
             KADENA -> DefaultKadenaMethods()
-            UNKNOWN, BlockchainType.APTOS -> throw IllegalArgumentException("unknown chain")
+            UNKNOWN -> throw IllegalArgumentException("unknown chain")
         }
         callTargets[chain] = created
         return created
