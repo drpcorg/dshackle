@@ -136,12 +136,14 @@ data class UpstreamsConfig(
         constructor(url: URI) : this(url, DEFAULT_MAX_CONNECTIONS, DEFAULT_QUEUE_SIZE)
 
         var basicAuth: AuthConfig.ClientBasicAuth? = null
+        var bearerAuth: AuthConfig.ClientBearerAuth? = null
         var tls: AuthConfig.ClientTlsAuth? = null
     }
 
     data class WsEndpoint(val url: URI) {
         var origin: URI? = null
         var basicAuth: AuthConfig.ClientBasicAuth? = null
+        var bearerAuth: AuthConfig.ClientBearerAuth? = null
         var frameSize: Int? = null
         var msgSize: Int? = null
         var connections: Int = 1

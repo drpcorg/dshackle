@@ -84,6 +84,7 @@ open class GenericConnectorFactoryCreator(
                 monitoringCfg.nettyMetricsConfig.enabled,
                 httpScheduler,
                 customHeaders,
+                conn.bearerAuth,
             )
         }
     }
@@ -106,6 +107,7 @@ open class GenericConnectorFactoryCreator(
             ).apply {
                 config = endpoint
                 basicAuth = endpoint.basicAuth
+                bearerAuth = endpoint.bearerAuth
                 this.customHeaders = customHeaders
             }
             val wsApi = WsConnectionPoolFactory(

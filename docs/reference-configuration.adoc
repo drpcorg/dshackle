@@ -849,6 +849,18 @@ rpc:
     password: "${ETH_PASSWORD}"
 ----
 
+| `rpc.bearer-auth` + `rpc.bearer-auth.token`
+a| HTTP Bearer token authorization (`Authorization: Bearer <token>` header), if required by the remote server. +
+Cannot be used together with `basic-auth`.
+Value can also reference env variables, for example:
+[source,yaml]
+----
+rpc:
+  url: "https://ethereum.com:8545"
+  bearer-auth:
+    token: "${ETH_TOKEN}"
+----
+
 | `ws.url`
 | WebSocket URL to connect to.
 Optional, but optimizes performance if it's available.
@@ -858,6 +870,9 @@ Optional, but optimizes performance if it's available.
 
 | `ws.basic-auth` + ...
 | WebSocket Basic Auth configuration, if required by the remote server
+
+| `ws.bearer-auth` + `ws.bearer-auth.token`
+| WebSocket Bearer token authorization, if required by the remote server
 
 | `ws.frameSize`
 | WebSocket frame size limit.

@@ -40,6 +40,18 @@ class AuthConfigReader : YamlConfigReader<AuthConfig>() {
         }
     }
 
+    fun readClientBearerAuth(node: MappingNode?): AuthConfig.ClientBearerAuth? {
+        return getMapping(node, "bearer-auth")?.let { authNode ->
+            val token = getValueAsString(authNode, "token")
+            if (token != null) {
+                AuthConfig.ClientBearerAuth(token)
+            } else {
+                log.warn("Bearer auth is not fully configured, token is required")
+                null
+            }
+        }
+    }
+
     fun readClientTls(node: MappingNode?): AuthConfig.ClientTlsAuth? {
         return getMapping(node, "tls")?.let { authNode ->
             val auth = AuthConfig.ClientTlsAuth()

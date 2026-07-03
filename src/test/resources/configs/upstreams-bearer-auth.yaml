@@ -1,0 +1,27 @@
+version: v1
+
+upstreams:
+  - id: local
+    chain: ethereum
+    connection:
+      ethereum:
+        rpc:
+          url: "http://localhost:8545"
+          bearer-auth:
+            token: 9c199ad8f281f20154fc258fe41a6814
+        ws:
+          url: "ws://localhost:8546"
+          origin: "http://localhost"
+          bearer-auth:
+            token: 258fe4149c199ad8f2811a68f20154fc
+  - id: both-auth
+    chain: ethereum
+    connection:
+      ethereum:
+        rpc:
+          url: "http://localhost:8545"
+          basic-auth:
+            username: 4fc258fe41a68149c199ad8f281f2015
+            password: 1a68f20154fc258fe4149c199ad8f281
+          bearer-auth:
+            token: 9c199ad8f281f20154fc258fe41a6814
