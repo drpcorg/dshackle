@@ -28,6 +28,7 @@ abstract class HttpReader(
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
     customHeaders: Map<String, String> = emptyMap(),
+    bearerAuth: AuthConfig.ClientBearerAuth? = null,
 ) : ChainReader {
 
     constructor() : this("", 1500, 1000, null)
@@ -64,6 +65,13 @@ abstract class HttpReader(
             val encodedAuth = "Basic $authBase64"
             val headers = Consumer { h: HttpHeaders -> h.add(HttpHeaderNames.AUTHORIZATION, encodedAuth) }
             build = build.headers(headers)
+        }
+
+        if (basicAuth == null) {
+            bearerAuth?.let { auth ->
+                val headers = Consumer { h: HttpHeaders -> h.add(HttpHeaderNames.AUTHORIZATION, "Bearer ${auth.token}") }
+                build = build.headers(headers)
+            }
         }
 
         if (customHeaders.isNotEmpty()) {

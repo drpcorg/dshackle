@@ -52,7 +52,7 @@ class BitcoinUpstreamCreator(
                     fileResolver.resolve(ca).readBytes()
                 }
             }
-            EsploraClient(endpoint.url, endpoint.basicAuth, tls)
+            EsploraClient(endpoint.url, endpoint.basicAuth, tls, endpoint.bearerAuth)
         }
 
         val extractBlock = ExtractBlock()

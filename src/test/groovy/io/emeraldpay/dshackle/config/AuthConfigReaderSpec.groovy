@@ -35,6 +35,29 @@ class AuthConfigReaderSpec extends Specification {
         act.password == "258fe4149c199ad8f2811a68f20154fc"
     }
 
+    def "Read bearer-auth for client"() {
+        setup:
+        def yaml =
+                "bearer-auth:\n" +
+                        "  token: 9c199ad8f281f20154fc258fe41a6814"
+        when:
+        def act = reader.readClientBearerAuth(reader.readNode(yaml))
+        then:
+        act != null
+        act.token == "9c199ad8f281f20154fc258fe41a6814"
+    }
+
+    def "Read bearer-auth without token as null"() {
+        setup:
+        def yaml =
+                "bearer-auth:\n" +
+                        "  something: else"
+        when:
+        def act = reader.readClientBearerAuth(reader.readNode(yaml))
+        then:
+        act == null
+    }
+
     def "Read tls for client"() {
         setup:
         def yaml =

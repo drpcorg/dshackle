@@ -147,6 +147,7 @@ class UpstreamsConfigReader(
             getValueAsString(node, "url")?.let { url ->
                 val http = UpstreamsConfig.HttpEndpoint(URI(url), DEFAULT_MAX_CONNECTIONS, DEFAULT_QUEUE_SIZE)
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
+                http.bearerAuth = readBearerAuth(node, http.basicAuth, url)
                 http.tls = authConfigReader.readClientTls(node)
                 connection.esplora = http
             }
@@ -173,6 +174,19 @@ class UpstreamsConfigReader(
         return connection
     }
 
+    private fun readBearerAuth(
+        node: MappingNode?,
+        basicAuth: AuthConfig.ClientBasicAuth?,
+        url: String,
+    ): AuthConfig.ClientBearerAuth? {
+        val bearerAuth = authConfigReader.readClientBearerAuth(node)
+        if (bearerAuth != null && basicAuth != null) {
+            log.warn("Both basic-auth and bearer-auth are configured for $url, basic-auth is used")
+            return null
+        }
+        return bearerAuth
+    }
+
     private fun readRpcConfig(connConfigNode: MappingNode): UpstreamsConfig.HttpEndpoint? {
         return getMapping(connConfigNode, "rpc")?.let { node ->
             val maxConnections = getValueAsInt(node, "max-connections") ?: DEFAULT_MAX_CONNECTIONS
@@ -181,6 +195,7 @@ class UpstreamsConfigReader(
             getValueAsString(node, "url")?.let { url ->
                 val http = UpstreamsConfig.HttpEndpoint(URI(url), maxConnections, queueSize)
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
+                http.bearerAuth = readBearerAuth(node, http.basicAuth, url)
                 http.tls = authConfigReader.readClientTls(node)
                 http
             }
@@ -224,6 +239,7 @@ class UpstreamsConfigReader(
                     ws.origin = URI(origin)
                 }
                 ws.basicAuth = authConfigReader.readClientBasicAuth(node)
+                ws.bearerAuth = readBearerAuth(node, ws.basicAuth, url)
 
                 getValueAsBytes(node, "frameSize")?.let {
                     if (it < 65_535) {

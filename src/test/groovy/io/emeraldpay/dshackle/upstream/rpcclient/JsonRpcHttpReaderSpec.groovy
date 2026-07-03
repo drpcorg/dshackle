@@ -16,6 +16,7 @@
 package io.emeraldpay.dshackle.upstream.rpcclient
 
 
+import io.emeraldpay.dshackle.config.AuthConfig
 import io.emeraldpay.dshackle.test.TestingCommons
 import io.emeraldpay.dshackle.upstream.ChainException
 import io.emeraldpay.dshackle.upstream.ChainRequest
@@ -64,6 +65,28 @@ class JsonRpcHttpReaderSpec extends Specification {
         )
         when:
         def act = client.read(new ChainRequest("test", new ListParams())).block()
+        then:
+        act.error == null
+        new String(act.result) == '"0x98de45"'
+    }
+
+    def "Make a request with bearer auth"() {
+        setup:
+        def bearerAuth = new AuthConfig.ClientBearerAuth("test-token-123")
+        JsonRpcHttpReader client = new JsonRpcHttpReader("localhost:${mockServer.port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:], bearerAuth)
+        def resp = '{' +
+                '  "jsonrpc": "2.0",' +
+                '  "result": "0x98de45",' +
+                '  "error": null,' +
+                '  "id": 15' +
+                '}'
+        mockServer.when(
+                HttpRequest.request().withHeader("authorization", "Bearer test-token-123")
+        ).respond(
+                HttpResponse.response(resp)
+        )
+        when:
+        def act = client.read(new ChainRequest("test", new ListParams())).block(Duration.ofSeconds(5))
         then:
         act.error == null
         new String(act.result) == '"0x98de45"'

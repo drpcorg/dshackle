@@ -67,6 +67,7 @@ open class WsConnectionImpl(
     private val scheduler: Scheduler,
     private val eventsScheduler: Scheduler,
     private val customHeaders: Map<String, String> = emptyMap(),
+    private val bearerAuth: AuthConfig.ClientBearerAuth? = null,
 ) : AutoCloseable, WsConnection, Cloneable {
 
     companion object {
@@ -226,6 +227,11 @@ open class WsConnectionImpl(
                     val tmp: String = auth.username + ":" + auth.password
                     val base64password = Base64.getEncoder().encodeToString(tmp.toByteArray())
                     headers.add(HttpHeaderNames.AUTHORIZATION, "Basic $base64password")
+                }
+                if (basicAuth == null) {
+                    bearerAuth?.let { auth ->
+                        headers.add(HttpHeaderNames.AUTHORIZATION, "Bearer ${auth.token}")
+                    }
                 }
                 customHeaders.forEach { (key, value) ->
                     headers.add(key, value)

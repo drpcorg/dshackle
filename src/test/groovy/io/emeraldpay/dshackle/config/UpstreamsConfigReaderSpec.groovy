@@ -75,6 +75,38 @@ class UpstreamsConfigReaderSpec extends Specification {
         }
     }
 
+    def "Parse config with bearer auth"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/upstreams-bearer-auth.yaml")
+        when:
+        def act = reader.readInternal(config)
+        then:
+        act != null
+        act.upstreams.size() == 2
+        with(act.upstreams.get(0)) {
+            id == "local"
+            connection instanceof UpstreamsConfig.RpcConnection
+            with((UpstreamsConfig.RpcConnection) connection) {
+                rpc.basicAuth == null
+                rpc.bearerAuth != null
+                rpc.bearerAuth.token == "9c199ad8f281f20154fc258fe41a6814"
+                ws != null
+                ws.basicAuth == null
+                ws.bearerAuth != null
+                ws.bearerAuth.token == "258fe4149c199ad8f2811a68f20154fc"
+            }
+        }
+        with(act.upstreams.get(1)) {
+            id == "both-auth"
+            connection instanceof UpstreamsConfig.RpcConnection
+            with((UpstreamsConfig.RpcConnection) connection) {
+                // when both are configured basic-auth wins and bearer-auth is dropped
+                rpc.basicAuth != null
+                rpc.bearerAuth == null
+            }
+        }
+    }
+
     def "Parse websocket-only config"() {
         setup:
         def config = this.class.getClassLoader().getResourceAsStream("configs/upstreams-ws-only.yaml")

@@ -21,6 +21,7 @@ class BasicHttpFactory(
     private val nettyMetricsEnabled: Boolean,
     private val httpScheduler: Scheduler,
     private val customHeaders: Map<String, String> = emptyMap(),
+    private val bearerAuth: AuthConfig.ClientBearerAuth? = null,
 ) : HttpFactory {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -50,8 +51,8 @@ class BasicHttpFactory(
         )
 
         if (chain.type.apiType == ApiType.REST) {
-            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls, customHeaders)
+            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls, customHeaders, bearerAuth)
         }
-        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls, customHeaders)
+        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls, customHeaders, bearerAuth)
     }
 }

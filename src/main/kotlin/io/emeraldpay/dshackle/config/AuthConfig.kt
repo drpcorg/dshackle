@@ -33,6 +33,10 @@ class AuthConfig {
         val password: String,
     ) : ClientAuth()
 
+    class ClientBearerAuth(
+        val token: String,
+    ) : ClientAuth()
+
     class ClientTlsAuth(
         var ca: String? = null,
         var certificate: String? = null,

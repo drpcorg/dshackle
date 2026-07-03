@@ -34,10 +34,11 @@ import java.security.cert.X509Certificate
 import java.util.Base64
 import java.util.function.Consumer
 
-class EsploraClient(
+class EsploraClient @JvmOverloads constructor(
     private val url: URI,
     basicAuth: AuthConfig.ClientBasicAuth? = null,
     tlsCAAuth: ByteArray? = null,
+    bearerAuth: AuthConfig.ClientBearerAuth? = null,
 ) {
 
     companion object {
@@ -60,6 +61,13 @@ class EsploraClient(
             val encodedAuth = "Basic $authBase64"
             val headers = Consumer { h: HttpHeaders -> h.add(HttpHeaderNames.AUTHORIZATION, encodedAuth) }
             build = build.headers(headers)
+        }
+
+        if (basicAuth == null) {
+            bearerAuth?.let { auth ->
+                val headers = Consumer { h: HttpHeaders -> h.add(HttpHeaderNames.AUTHORIZATION, "Bearer ${auth.token}") }
+                build = build.headers(headers)
+            }
         }
 
         tlsCAAuth?.let { auth ->
