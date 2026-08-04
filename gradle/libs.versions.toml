@@ -25,7 +25,7 @@ janino = "org.codehaus.janino:janino:3.1.12"
 bouncycastle-prov = "org.bouncycastle:bcprov-jdk15on:1.70"
 bouncycastle-pkix = 'org.bouncycastle:bcpkix-jdk15on:1.70'
 
-caffeine = "com.github.ben-manes.caffeine:caffeine:2.8.5"
+caffeine = "com.github.ben-manes.caffeine:caffeine:3.2.4"
 
 commons-io = "commons-io:commons-io:2.22.0"
 
