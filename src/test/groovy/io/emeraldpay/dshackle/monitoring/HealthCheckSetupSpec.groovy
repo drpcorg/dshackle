@@ -34,7 +34,7 @@ class HealthCheckSetupSpec extends Specification {
         def up1 = Mock(Upstream)
         def ethereumUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
-        def check = new HealthCheckSetup(config, multistream)
+        def check = new HealthCheckSetup(config, multistream, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L))
 
         when:
         def act = check.health
@@ -58,7 +58,7 @@ class HealthCheckSetupSpec extends Specification {
         def up1 = Mock(Upstream)
         def bitcoinUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
-        def check = new HealthCheckSetup(config, multistream)
+        def check = new HealthCheckSetup(config, multistream, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L))
 
         when:
         def act = check.health
@@ -84,7 +84,7 @@ class HealthCheckSetupSpec extends Specification {
         def up3 = Mock(Upstream)
         def ethereumUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
-        def check = new HealthCheckSetup(config, multistream)
+        def check = new HealthCheckSetup(config, multistream, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L))
 
         when:
         def act = check.health
@@ -112,7 +112,7 @@ class HealthCheckSetupSpec extends Specification {
         def up3 = Mock(Upstream)
         def ethereumUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
-        def check = new HealthCheckSetup(config, multistream)
+        def check = new HealthCheckSetup(config, multistream, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L))
 
         when:
         def act = check.health
@@ -140,7 +140,7 @@ class HealthCheckSetupSpec extends Specification {
         def up3 = Mock(Upstream)
         def ethereumUpstreams = Mock(Multistream)
         def multistream = Mock(MultistreamHolder)
-        def check = new HealthCheckSetup(config, multistream)
+        def check = new HealthCheckSetup(config, multistream, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L))
 
         when:
         def act = check.detailedHealth
