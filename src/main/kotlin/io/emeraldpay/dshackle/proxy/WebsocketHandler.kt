@@ -19,6 +19,7 @@ import com.google.protobuf.ByteString
 import io.emeraldpay.api.proto.BlockchainOuterClass
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
+import io.emeraldpay.dshackle.GracefulShutdown
 import io.emeraldpay.dshackle.config.ProxyConfig
 import io.emeraldpay.dshackle.monitoring.accesslog.AccessHandlerHttp
 import io.emeraldpay.dshackle.rpc.NativeCall
@@ -46,6 +47,7 @@ class WebsocketHandler(
     private val nativeSubscribe: NativeSubscribe,
     private val accessHandler: AccessHandlerHttp.HandlerFactory,
     private val requestMetrics: ProxyServer.RequestMetricsFactory,
+    private val gracefulShutdown: GracefulShutdown,
 ) : BaseHandler(writeRpcJson, nativeCall, requestMetrics) {
 
     companion object {
@@ -147,6 +149,8 @@ class WebsocketHandler(
                             WsSubscriptionResponse(params = WsSubscriptionData(data, subscriptionId))
                         }
                         .takeUntilOther(currentControl.asMono())
+                        // graceful-shutdown: cancel the subscription stream when the service starts shutting down
+                        .takeUntilOther(gracefulShutdown.streamsCancelSignal())
                     Flux.concat(Mono.just(start), responses)
                         .map { Global.objectMapper.writeValueAsString(it) }
                         .doOnNext {
@@ -185,13 +189,26 @@ class WebsocketHandler(
                     .map { Global.objectMapper.writeValueAsString(it) }
                     .doOnNext { eventHandler.onResponse(NativeCall.CallResult.ok(0, null, it.toByteArray(), null, emptyList(), null)) }
                     .doFinally { eventHandler.close() }
+            } else if (gracefulShutdown.isShuttingDown()) {
+                // Mirror the HTTP-side behavior: reject new RPC calls during shutdown so the
+                // load balancer routes them to a healthy instance.
+                val response = ResponseJson<Any, Any>().also {
+                    it.id = call.id
+                    it.error = io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError(
+                        io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError.CODE_INTERNAL_ERROR,
+                        "service is shutting down",
+                    )
+                }
+                Mono.just(Global.objectMapper.writeValueAsString(response))
             } else {
                 val eventHandler: AccessHandlerHttp.RequestHandler = eventHandlerFactory.call()
                 val proxyCall = readRpcJson.convertToNativeCall(ProxyCall.RpcType.SINGLE, listOf(call))
-                Mono.from(execute(blockchain, proxyCall, eventHandler))
-                    // thought the event handler is used in execute
-                    // it still needs to be closed at the end, so it can render the logs
-                    .doFinally { eventHandler.close() }
+                gracefulShutdown.trackMono(
+                    Mono.from(execute(blockchain, proxyCall, eventHandler))
+                        // thought the event handler is used in execute
+                        // it still needs to be closed at the end, so it can render the logs
+                        .doFinally { eventHandler.close() },
+                )
             }
         }
     }

@@ -37,7 +37,7 @@ class WebsocketHandlerSpec extends Specification {
     def "Parse standard RPC request"() {
         setup:
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), Stub(WriteRpcJson), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                new ReadRpcJson(), Stub(WriteRpcJson), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
         when:
         def act = handler.parseRequest('{"id": 5, "jsonrpc": "2.0", "method": "eth_getBlockByNumber", "params": ["0x100001", false]}'.bytes, Chain.ETHEREUM__MAINNET)
@@ -60,7 +60,7 @@ class WebsocketHandlerSpec extends Specification {
             }
         }
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), Stub(WriteRpcJson), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, metrics
+                new ReadRpcJson(), Stub(WriteRpcJson), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, metrics, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
         when:
         def act = handler.parseRequest('hello world'.bytes, Chain.ETHEREUM__MAINNET)
@@ -74,7 +74,7 @@ class WebsocketHandlerSpec extends Specification {
         setup:
         def req1 = '{"id": 5, "jsonrpc": "2.0", "method": "eth_getBlockByNumber", "params": ["0x100001", false]}'
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), Stub(WriteRpcJson), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                new ReadRpcJson(), Stub(WriteRpcJson), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
         when:
         def act = handler.parseRequest("[$req1]".bytes, Chain.ETHEREUM__MAINNET)
@@ -92,7 +92,7 @@ class WebsocketHandlerSpec extends Specification {
             1 * it.nativeCallResult(_) >> Flux.fromIterable([response])
         }
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), new WriteRpcJson(), nativeCall, Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                new ReadRpcJson(), new WriteRpcJson(), nativeCall, Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def request = new RequestJson("foo_test", [], 2)
@@ -113,7 +113,7 @@ class WebsocketHandlerSpec extends Specification {
             1 * it.subscribe(Chain.ETHEREUM__MAINNET, "foo_test", null, Selector.empty) >> Flux.fromIterable([response1, response2])
         }
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), new WriteRpcJson(), Stub(NativeCall), nativeSubscribe, requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                new ReadRpcJson(), new WriteRpcJson(), Stub(NativeCall), nativeSubscribe, requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def request = new RequestJson("eth_subscribe", ["foo_test"], 2)
@@ -132,7 +132,7 @@ class WebsocketHandlerSpec extends Specification {
         setup:
 
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), new WriteRpcJson(), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                new ReadRpcJson(), new WriteRpcJson(), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def control = new HashMap<String, Sinks.One<Boolean>>()
@@ -153,7 +153,7 @@ class WebsocketHandlerSpec extends Specification {
         setup:
 
         def handler = new WebsocketHandler(
-                new ReadRpcJson(), new WriteRpcJson(), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                new ReadRpcJson(), new WriteRpcJson(), Stub(NativeCall), Stub(NativeSubscribe), requestHandlerFactory, Stub(ProxyServer.RequestMetricsFactory), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def control = new HashMap<String, Sinks.One<Boolean>>()

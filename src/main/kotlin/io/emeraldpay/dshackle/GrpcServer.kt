@@ -46,6 +46,7 @@ open class GrpcServer(
     private val accessHandler: AccessHandlerGrpc,
     private val grpcServerBraveInterceptor: ServerInterceptor,
     private val authInterceptor: AuthInterceptor,
+    private val gracefulShutdown: GracefulShutdown,
 ) {
     @Value("\${spring.application.max-metadata-size}")
     private var maxMetadataSize: Int = Defaults.maxMetadataSize
@@ -119,13 +120,36 @@ open class GrpcServer(
 
         server.start()
         log.info("GRPC Server started")
+
+        gracefulShutdown.registerStopAccepting("grpc-server") {
+            log.info("gRPC: refusing new calls (server.shutdown)")
+            server.shutdown()
+        }
+        gracefulShutdown.registerForceClose("grpc-server") {
+            val drainSeconds = gracefulShutdown.drainTimeoutSeconds()
+            if (!server.isTerminated) {
+                if (!server.awaitTermination(drainSeconds, TimeUnit.SECONDS)) {
+                    log.warn("gRPC: draining did not complete in {}s, forcing shutdownNow", drainSeconds)
+                    server.shutdownNow()
+                    server.awaitTermination(gracefulShutdown.forceTimeoutSeconds(), TimeUnit.SECONDS)
+                }
+                log.info("gRPC Server stopped")
+            }
+        }
     }
 
     @PreDestroy
     fun stop() {
-        log.info("Shutting down GRPC Server...")
-        server?.shutdown()
-        server?.awaitTermination(10, TimeUnit.SECONDS)
-        log.info("GRPC Server shot down")
+        val srv = server ?: return
+        if (srv.isTerminated) {
+            return
+        }
+        log.info("Shutting down GRPC Server (fallback)...")
+        srv.shutdown()
+        if (!srv.awaitTermination(10, TimeUnit.SECONDS)) {
+            srv.shutdownNow()
+            srv.awaitTermination(5, TimeUnit.SECONDS)
+        }
+        log.info("GRPC Server shut down")
     }
 }
