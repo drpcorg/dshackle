@@ -33,6 +33,7 @@ import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Duration
+import java.time.temporal.ChronoUnit
 
 @Service
 class MonitoringSetup(
@@ -56,7 +57,7 @@ class MonitoringSetup(
          */
         private val LATENCY_BUCKETS = listOf(
             Duration.ofMillis(1),
-            Duration.ofMicros(2500),
+            Duration.of(2500, ChronoUnit.MICROS),
             Duration.ofMillis(5),
             Duration.ofMillis(10),
             Duration.ofMillis(25),
