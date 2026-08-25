@@ -25,12 +25,15 @@ import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.config.MeterFilter
+import io.micrometer.core.instrument.distribution.DistributionStatisticConfig
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.exporter.httpserver.HTTPServer
 import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 
 @Service
 class MonitoringSetup(
@@ -39,6 +42,65 @@ class MonitoringSetup(
 
     companion object {
         private val log = LoggerFactory.getLogger(MonitoringSetup::class.java)
+
+        /**
+         * Explicit latency buckets for every timer that asks for a histogram.
+         *
+         * `Timer.publishPercentileHistogram()` makes Micrometer emit its own exponential ladder, which
+         * expands to 69 `le` buckets per label set (0.001s..30s). On a busy upstream that is 10 KB of
+         * `/metrics` body per (chain, method, upstream) combination, and the two biggest timer families
+         * alone accounted for 91% of a 74 MB response - past the 64 MB scrape limit of our Prometheus
+         * agent, which drops the whole response and loses every dshackle metric with it.
+         *
+         * These 12 boundaries keep p50/p90/p95/p99 usable across the range we actually serve (sub-ms
+         * cache hits up to the 30s timeout) at 13 buckets including `+Inf` - a 5.3x cut.
+         */
+        private val LATENCY_BUCKETS = listOf(
+            Duration.ofMillis(1),
+            Duration.of(2500, ChronoUnit.MICROS),
+            Duration.ofMillis(5),
+            Duration.ofMillis(10),
+            Duration.ofMillis(25),
+            Duration.ofMillis(50),
+            Duration.ofMillis(100),
+            Duration.ofMillis(250),
+            Duration.ofMillis(500),
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(5),
+            Duration.ofSeconds(30),
+        )
+
+        /**
+         * Micrometer stores timer values in nanoseconds, so service level objectives set through
+         * [DistributionStatisticConfig] must be nanoseconds too. This is the same conversion
+         * `Timer.Builder.serviceLevelObjectives(Duration...)` does internally.
+         */
+        private val LATENCY_BUCKETS_NANOS =
+            LATENCY_BUCKETS.map { it.toNanos().toDouble() }.toDoubleArray()
+
+        /**
+         * Replaces Micrometer's 69-bucket percentile histogram with [LATENCY_BUCKETS].
+         *
+         * Only touches timers that already asked for a percentile histogram, so a timer without one
+         * never gains buckets, and non-timer distributions (whose recorded values are not nanoseconds)
+         * are left alone. Values set on the builder win over the incoming config; the rest is inherited.
+         */
+        @JvmStatic
+        fun latencyHistogramFilter(): MeterFilter = object : MeterFilter {
+            override fun configure(
+                id: Meter.Id,
+                config: DistributionStatisticConfig,
+            ): DistributionStatisticConfig {
+                if (id.type != Meter.Type.TIMER || config.isPercentileHistogram != true) {
+                    return config
+                }
+                return DistributionStatisticConfig.builder()
+                    .percentilesHistogram(false)
+                    .serviceLevelObjectives(*LATENCY_BUCKETS_NANOS)
+                    .build()
+                    .merge(config)
+            }
+        }
     }
 
     @PostConstruct
@@ -56,6 +118,7 @@ class MonitoringSetup(
                 }
             },
         )
+        Metrics.globalRegistry.config().meterFilter(latencyHistogramFilter())
 
         if (monitoringConfig.enableJvm) {
             ClassLoaderMetrics().bindTo(Metrics.globalRegistry)
