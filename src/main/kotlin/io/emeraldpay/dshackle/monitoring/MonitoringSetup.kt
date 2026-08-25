@@ -30,9 +30,9 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.prometheus.metrics.exporter.httpserver.HTTPServer
 import jakarta.annotation.PostConstruct
-import java.time.Duration
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Duration
 
 @Service
 class MonitoringSetup(
