@@ -144,7 +144,7 @@ open class CodeGen(private val config: ChainsConfig) {
             "app" -> "BlockchainType.ETHEREUM"
             "aptos" -> "BlockchainType.ETHEREUM" // suppress, it hasn't been supported yet
             "stellar" -> "BlockchainType.ETHEREUM" // suppress, it hasn't been supported yet
-            "celestia" -> "BlockchainType.ETHEREUM" // suppress, served via nodecore
+            "celestia" -> "BlockchainType.CELESTIA"
             else -> throw IllegalArgumentException("unknown blockchain type $type")
         }
     }

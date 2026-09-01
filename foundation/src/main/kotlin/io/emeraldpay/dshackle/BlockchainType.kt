@@ -6,6 +6,7 @@ enum class BlockchainType(
     UNKNOWN(ApiType.JSON_RPC),
     BITCOIN(ApiType.JSON_RPC),
     AZTEC(ApiType.JSON_RPC),
+    CELESTIA(ApiType.JSON_RPC),
     ETHEREUM(ApiType.JSON_RPC),
     STARKNET(ApiType.JSON_RPC),
     POLKADOT(ApiType.JSON_RPC),

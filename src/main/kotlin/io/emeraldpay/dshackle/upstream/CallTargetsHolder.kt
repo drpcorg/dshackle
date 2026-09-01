@@ -2,6 +2,7 @@ package io.emeraldpay.dshackle.upstream
 
 import io.emeraldpay.dshackle.BlockchainType.AVM
 import io.emeraldpay.dshackle.BlockchainType.AZTEC
+import io.emeraldpay.dshackle.BlockchainType.CELESTIA
 import io.emeraldpay.dshackle.BlockchainType.BITCOIN
 import io.emeraldpay.dshackle.BlockchainType.COSMOS
 import io.emeraldpay.dshackle.BlockchainType.ETHEREUM
@@ -20,6 +21,7 @@ import io.emeraldpay.dshackle.foundation.ChainOptions
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultAvmMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultAztecMethods
+import io.emeraldpay.dshackle.upstream.calls.DefaultCelestiaMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultBeaconChainMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultBitcoinMethods
 import io.emeraldpay.dshackle.upstream.calls.DefaultCosmosMethods
@@ -53,6 +55,7 @@ class CallTargetsHolder {
             BITCOIN -> DefaultBitcoinMethods(options.providesBalance == true)
             AVM -> DefaultAvmMethods()
             AZTEC -> DefaultAztecMethods()
+            CELESTIA -> DefaultCelestiaMethods()
             ETHEREUM -> DefaultEthereumMethods(chain)
             STARKNET -> DefaultStarknetMethods(chain)
             POLKADOT -> DefaultPolkadotMethods(chain)
