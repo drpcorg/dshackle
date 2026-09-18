@@ -35,11 +35,12 @@ object AvmChainSpecific : AbstractPollChainSpecific() {
         val status = Global.objectMapper.readValue(data, AvmStatus::class.java)
         val round = status.lastRound
         val blockRequest = ChainRequest(
-            "GET#/v2/blocks/$round",
+            // template method with the round as a path param, so the metrics `method` label stays bounded
+            "GET#/v2/blocks/*",
             RestParams(
                 headers = emptyList(),
                 queryParams = listOf("format" to "json", "header-only" to "true"),
-                pathParams = emptyList(),
+                pathParams = listOf(round.toString()),
                 payload = ByteArray(0),
             ),
         )
