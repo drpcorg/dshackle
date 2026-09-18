@@ -4,6 +4,7 @@ import io.emeraldpay.dshackle.reader.ChainReader
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.UpstreamAvailability
+import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import reactor.core.publisher.Mono
@@ -55,7 +56,8 @@ class AvmChainSpecificTest {
     fun parseBlockChainsThroughBlockEndpoint() {
         val reader = object : ChainReader {
             override fun read(key: ChainRequest): Mono<ChainResponse> {
-                Assertions.assertThat(key.method).isEqualTo("GET#/v2/blocks/30000000")
+                Assertions.assertThat(key.method).isEqualTo("GET#/v2/blocks/*")
+                Assertions.assertThat((key.params as RestParams).pathParams).containsExactly("30000000")
                 return Mono.just(ChainResponse(avmBlockHeader.toByteArray(), null))
             }
         }
