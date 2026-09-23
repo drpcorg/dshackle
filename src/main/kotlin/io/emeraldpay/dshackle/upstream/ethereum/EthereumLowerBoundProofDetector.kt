@@ -32,6 +32,8 @@ class EthereumLowerBoundProofDetector(
             "not supported",
             "evm module does not exist on height",
             "state is not available", // opbnb / bsc — eth_getProof on pruned state
+            "World state unavailable", // besu, linea-besu
+            "Worldstate unavailable",
         )
     }
 

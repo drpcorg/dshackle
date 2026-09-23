@@ -181,7 +181,8 @@ abstract class AbstractHead @JvmOverloads constructor(
     }
 
     protected open fun onNoHeadUpdates() {
-        // NOOP
+        // the head is stuck, e.g. upstream height went below the last accepted block
+        forkChoice.reset()
     }
 
     override fun onSyncingNode(isSyncing: Boolean) {

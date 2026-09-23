@@ -3,10 +3,13 @@ package io.emeraldpay.dshackle.upstream.lowerbound
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.reader.ChainReader
+import io.emeraldpay.dshackle.upstream.ChainCallError
+import io.emeraldpay.dshackle.upstream.ChainCallUpstreamException
 import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Head
 import io.emeraldpay.dshackle.upstream.Upstream
+import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundProofDetector
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundService
 import io.emeraldpay.dshackle.upstream.ethereum.EthereumLowerBoundTxDetector.Companion.MAX_OFFSET
 import io.emeraldpay.dshackle.upstream.ethereum.ZERO_ADDRESS
@@ -18,7 +21,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import reactor.core.publisher.Mono
@@ -241,6 +246,43 @@ class RecursiveLowerBoundServiceTest {
             .hasSameElementsAs(
                 listOf(LowerBoundData(1L, LowerBoundType.STATE)),
             )
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["World state unavailable", "Worldstate unavailable", "some unknown node error"])
+    fun `proof bound settles on pruned state errors`(error: String) {
+        val height = 32_048_166L
+        val available = height - 512
+        val head = mock<Head> {
+            on { getCurrentHeight() } doReturn height
+        }
+        val reader = mock<ChainReader> {
+            on { read(any()) } doAnswer { inv ->
+                val block = ((inv.getArgument<ChainRequest>(0).params as ListParams).list[2] as String)
+                    .removePrefix("0x").toLong(16)
+                // defer: HttpReader re-sends the request on every retry
+                Mono.defer {
+                    if (block >= available) {
+                        Mono.just(ChainResponse("{}".toByteArray(), null))
+                    } else {
+                        Mono.error(ChainCallUpstreamException(ChainResponse.NumberId(1), ChainCallError(-32000, error)))
+                    }
+                }
+            }
+        }
+        val upstream = mock<Upstream> {
+            on { getId() } doReturn "id"
+            on { getHead() } doReturn head
+            on { getIngressReader() } doReturn reader
+            on { getChain() } doReturn Chain.UNSPECIFIED
+        }
+
+        StepVerifier.withVirtualTime { EthereumLowerBoundProofDetector(upstream).detectLowerBound(NoopManualLowerBoundService()) }
+            .expectSubscription()
+            .thenAwait(Duration.ofDays(3))
+            .expectNextMatches { it.lowerBound == available && it.type == LowerBoundType.PROOF }
+            .thenCancel()
+            .verify(Duration.ofSeconds(30))
     }
 
     companion object {
