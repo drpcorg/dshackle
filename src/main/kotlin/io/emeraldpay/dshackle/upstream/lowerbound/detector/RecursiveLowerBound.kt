@@ -183,7 +183,7 @@ open class RecursiveLowerBound(
 
     protected fun retrySpec(block: Long, nonRetryableErrors: Set<String>): RetryBackoffSpec {
         return Retry.backoff(
-            Long.MAX_VALUE,
+            MAX_RETRIES,
             Duration.ofSeconds(1),
         )
             .maxBackoff(Duration.ofMinutes(3))
@@ -192,13 +192,13 @@ open class RecursiveLowerBound(
                     !nonRetryableErrorPatters.any { err -> it.message?.matches(err) ?: false }
             }
             .doAfterRetry {
-                if (it.totalRetries() > 30) {
+                if (it.totalRetries() == MAX_RETRIES - 1) {
                     log.warn(
                         "There are too much retries to calculate {} lower bound of upstream {}, block {} " +
                             "probably this error with message `{}` is not retryable, please report it to dshackle devs",
-                        block,
                         type,
                         upstream.getId(),
+                        block,
                         it.failure().message,
                     )
                 } else {
@@ -228,5 +228,10 @@ open class RecursiveLowerBound(
         constructor(left: Long, right: Long, current: Long) : this(left, right, current, false)
 
         constructor(current: Long, found: Boolean) : this(0, 0, current, found)
+    }
+
+    companion object {
+        // ponytail: ~70 min per block at max backoff, then the block counts as "no data"
+        private const val MAX_RETRIES = 30L
     }
 }

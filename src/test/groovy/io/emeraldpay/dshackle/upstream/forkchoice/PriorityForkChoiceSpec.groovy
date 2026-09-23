@@ -38,4 +38,18 @@ class PriorityForkChoiceSpec extends Specification {
         then:
         choice.getHead() == blocks[2]
     }
+
+    def "accepts a lower block once after reset"() {
+        def choice = new PriorityForkChoice()
+        choice.choose(blocks[3])
+        when:
+        choice.reset()
+        choice.choose(blocks[1])
+        then:
+        choice.getHead() == blocks[1]
+        when:
+        choice.choose(blocks[0])
+        then:
+        choice.getHead() == blocks[1]
+    }
 }

@@ -14,4 +14,9 @@ interface ForkChoice {
     fun filter(block: BlockContainer): Boolean
 
     fun choose(block: BlockContainer): ChoiceResult
+
+    /**
+     * Called when the head is stuck; lets the fork choice accept a block it would otherwise reject
+     */
+    fun reset() {}
 }
