@@ -65,7 +65,7 @@ prom-exporter-server = "io.prometheus:prometheus-metrics-exporter-httpserver:1.6
 micrometer-registry-prometheus = "io.micrometer:micrometer-registry-prometheus:1.16.5"
 micrometer-ctx-prop = "io.micrometer:context-propagation:1.2.1"
 
-mockserver-netty = "org.mock-server:mockserver-netty:5.15.0"
+mockserver-netty = "org.mock-server:mockserver-netty:6.0.0"
 
 mockito-kotlin = "org.mockito.kotlin:mockito-kotlin:6.3.0"
 
