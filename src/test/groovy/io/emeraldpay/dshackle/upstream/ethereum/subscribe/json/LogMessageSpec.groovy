@@ -32,6 +32,7 @@ class LogMessageSpec extends Specification {
                 Address.from("0x011b6e24ffb0b5f5fcc564cf4183c5bbbc96d515"),
                 BlockHash.from("0x48249c81bfced2e6fe2536126471b73d83c4f21de75f88a16feb57cc566b991b"),
                 0xccf6e2,
+                1700000000L,
                 HexData.from("0x0000000000000000000000004dbd4fc535ac27206064b68ffcf827b0a60bab3f0000000000000000000000000000000000000000000000000000000000000009000000000000000000000000290328354c99b119d891a30d326bad92e36e78596782b7e23208a269f0b8262da05a2e22f4befd147ca89a47991d04b541087789"),
                 0xe7,
                 [
@@ -48,6 +49,7 @@ class LogMessageSpec extends Specification {
                 '"address":"0x011b6e24ffb0b5f5fcc564cf4183c5bbbc96d515",' +
                 '"blockHash":"0x48249c81bfced2e6fe2536126471b73d83c4f21de75f88a16feb57cc566b991b",' +
                 '"blockNumber":"0xccf6e2",' +
+                '"blockTimestamp":"0x6553f100",' +
                 '"data":"0x0000000000000000000000004dbd4fc535ac27206064b68ffcf827b0a60bab3f0000000000000000000000000000000000000000000000000000000000000009000000000000000000000000290328354c99b119d891a30d326bad92e36e78596782b7e23208a269f0b8262da05a2e22f4befd147ca89a47991d04b541087789",' +
                 '"logIndex":"0xe7",' +
                 '"topics":[' +
@@ -55,6 +57,40 @@ class LogMessageSpec extends Specification {
                 '"0x000000000000000000000000000000000000000000000000000000000002bcff",' +
                 '"0xd3847bbd7bdf7bf84c0a165d198f956f7ccffebdaf1413b5a4a77980d8b6a890"' +
                 '],' +
+                '"transactionHash":"0xc7529e79f78f58125abafeaea01fe3abdc6f45c173d5dfb36716cbc526e5b2d1",' +
+                '"transactionIndex":"0xa3",' +
+                '"removed":false' +
+                '}'
+        when:
+        def json = objectMapper.writeValueAsString(msg)
+
+        then:
+        json == exp
+    }
+
+    def "Serialize blockTimestamp with empty data and topics"() {
+        setup:
+        def msg = new LogMessage(
+                Address.from("0x011b6e24ffb0b5f5fcc564cf4183c5bbbc96d515"),
+                BlockHash.from("0x48249c81bfced2e6fe2536126471b73d83c4f21de75f88a16feb57cc566b991b"),
+                0xccf6e2,
+                1791223151L,
+                HexData.from("0x00"),
+                0xe7,
+                [],
+                TransactionId.from("0xc7529e79f78f58125abafeaea01fe3abdc6f45c173d5dfb36716cbc526e5b2d1"),
+                0xa3,
+                false,
+                "LogMessageSpec")
+        ObjectMapper objectMapper = Global.getObjectMapper()
+        def exp = '{' +
+                '"address":"0x011b6e24ffb0b5f5fcc564cf4183c5bbbc96d515",' +
+                '"blockHash":"0x48249c81bfced2e6fe2536126471b73d83c4f21de75f88a16feb57cc566b991b",' +
+                '"blockNumber":"0xccf6e2",' +
+                '"blockTimestamp":"0x6ac3e56f",' +
+                '"data":"0x00",' +
+                '"logIndex":"0xe7",' +
+                '"topics":[],' +
                 '"transactionHash":"0xc7529e79f78f58125abafeaea01fe3abdc6f45c173d5dfb36716cbc526e5b2d1",' +
                 '"transactionIndex":"0xa3",' +
                 '"removed":false' +

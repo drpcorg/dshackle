@@ -111,6 +111,7 @@ class SharedLogsProducerTest {
             address = Address.from(address),
             blockHash = BlockHash.from(TEST_BLOCK_HASH),
             blockNumber = 1L,
+            blockTimestamp = 1700000000L,
             data = HexData.empty(),
             logIndex = 1L,
             topics = topics.map { Hex32.from(it) },
@@ -154,7 +155,7 @@ class SharedLogsProducerTest {
             height = 1L,
             hash = BlockId.from(TEST_BLOCK_HASH),
             difficulty = java.math.BigInteger.ZERO,
-            timestamp = java.time.Instant.now(),
+            timestamp = java.time.Instant.ofEpochSecond(1700000000),
             full = false,
             json = byteArrayOf(),
             parsed = null,
@@ -170,7 +171,8 @@ class SharedLogsProducerTest {
             .expectNextMatches { logMessage ->
                 logMessage.address == testLog.address &&
                     logMessage.blockHash == testLog.blockHash &&
-                    logMessage.blockNumber == testLog.blockNumber
+                    logMessage.blockNumber == testLog.blockNumber &&
+                    logMessage.blockTimestamp == 1700000000L
             }
             .expectComplete()
             .verify(Duration.ofSeconds(5))
