@@ -28,6 +28,7 @@ import reactor.core.publisher.Mono
 import spock.lang.Specification
 
 import java.time.Duration
+import java.time.Instant
 
 class ProduceLogsSpec extends Specification {
 
@@ -52,6 +53,7 @@ class ProduceLogsSpec extends Specification {
         def update = new ConnectBlockUpdates.Update(
                 BlockId.from("0x668b92d6b8c7db1350fd527fec4885ce5be2159b2b7daf6b126babdcbaa349da"),
                 1,
+                Instant.ofEpochSecond(1700000000),
                 ConnectBlockUpdates.UpdateType.NEW,
                 "upstream"
         )
@@ -74,6 +76,7 @@ class ProduceLogsSpec extends Specification {
         def update = new ConnectBlockUpdates.Update(
                 BlockId.from("0x668b92d6b8c7db1350fd527fec4885ce5be2159b2b7daf6b126babdcbaa349da"),
                 1,
+                Instant.ofEpochSecond(1700000000),
                 ConnectBlockUpdates.UpdateType.NEW,
                 "upstream"
         )
@@ -85,6 +88,7 @@ class ProduceLogsSpec extends Specification {
         act.size() == 1
         act*.address.every { it.toHex() == "0xe0aadb0a012dbcdc529c4c743d3e0385a0b54d3d" }
         act*.removed.every { !it }
+        act*.blockTimestamp == [1700000000L]
     }
 
     def "Produce removed"() {
@@ -97,12 +101,14 @@ class ProduceLogsSpec extends Specification {
         def update1 = new ConnectBlockUpdates.Update(
                 BlockId.from("0x668b92d6b8c7db1350fd527fec4885ce5be2159b2b7daf6b126babdcbaa349da"),
                 13412871,
+                Instant.ofEpochSecond(1700000000),
                 ConnectBlockUpdates.UpdateType.NEW,
                 "upstream"
         )
         def update2 = new ConnectBlockUpdates.Update(
                 BlockId.from("0x668b92d6b8c7db1350fd527fec4885ce5be2159b2b7daf6b126babdcbaa349da"),
                 13412871,
+                Instant.ofEpochSecond(1700000099), // not the block's timestamp: removal must reuse the cached one
                 ConnectBlockUpdates.UpdateType.DROP,
                 "upstream"
         )
@@ -118,5 +124,6 @@ class ProduceLogsSpec extends Specification {
         act*.transactionHash.every { it.toHex() == "0xb5e554178a94fd993111f2ae64cb708cb0899d7b5182024e70d5c468164a8bec" }
         act*.logIndex == [1]
         act*.removed.every { it }
+        act*.blockTimestamp == [1700000000L]
     }
 }

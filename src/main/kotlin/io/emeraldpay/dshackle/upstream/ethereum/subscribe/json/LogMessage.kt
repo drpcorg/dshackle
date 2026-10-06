@@ -31,6 +31,12 @@ data class LogMessage(
     val blockHash: BlockHash,
     @get:JsonSerialize(using = NumberAsHexSerializer::class)
     val blockNumber: Long,
+    /**
+     * Timestamp of the block the log belongs to, in seconds. Optional in the execution-apis Log schema, but
+     * taken from the block header here, so it is always present regardless of the node client.
+     */
+    @get:JsonSerialize(using = NumberAsHexSerializer::class)
+    val blockTimestamp: Long,
     @get:JsonSerialize(using = HexDataSerializer::class)
     val data: HexData,
     @get:JsonSerialize(using = NumberAsHexSerializer::class)

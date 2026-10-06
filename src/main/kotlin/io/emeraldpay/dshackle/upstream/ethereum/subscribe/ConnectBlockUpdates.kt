@@ -24,6 +24,7 @@ import io.emeraldpay.dshackle.upstream.SubscriptionConnect
 import reactor.core.publisher.Flux
 import reactor.core.scheduler.Scheduler
 import java.time.Duration
+import java.time.Instant
 import java.util.LinkedList
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -107,6 +108,7 @@ class ConnectBlockUpdates(
             Update(
                 prev.hash,
                 prev.height,
+                prev.timestamp,
                 UpdateType.DROP,
                 source,
             ),
@@ -118,6 +120,7 @@ class ConnectBlockUpdates(
             Update(
                 block.hash,
                 block.height,
+                block.timestamp,
                 UpdateType.NEW,
                 block.upstreamId,
             ),
@@ -127,6 +130,7 @@ class ConnectBlockUpdates(
     data class Update(
         val blockHash: BlockId,
         val blockNumber: Long,
+        val timestamp: Instant,
         val type: UpdateType,
         val upstreamId: String,
     )

@@ -102,6 +102,7 @@ class ProduceLogs(
                     log.address,
                     log.blockHash,
                     log.blockNumber,
+                    update.timestamp.epochSecond,
                     log.data ?: HexData.empty(),
                     log.logIndex,
                     log.topics,

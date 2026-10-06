@@ -43,7 +43,7 @@ class ConnectBlockUpdatesSpec extends Specification {
             hash = BlockHash.from("0xe5be2159b2b7daf6b126babdcbaa349da668b92d6b8c7db1350fd527fec4885c")
             number = 13412871
             totalDifficulty = BigInteger.ONE
-            timestamp = Instant.now()
+            timestamp = Instant.ofEpochSecond(1700000000)
             parentHash = parent
             transactions = []
         })
@@ -57,6 +57,7 @@ class ConnectBlockUpdatesSpec extends Specification {
             it.blockNumber == 13412871
             it.blockHash == BlockId.from("0xe5be2159b2b7daf6b126babdcbaa349da668b92d6b8c7db1350fd527fec4885c")
             it.type == ConnectBlockUpdates.UpdateType.NEW
+            it.timestamp == Instant.ofEpochSecond(1700000000)
         }
     }
 
@@ -67,7 +68,7 @@ class ConnectBlockUpdatesSpec extends Specification {
             hash = BlockHash.from("0xe5be2159b2b7daf6b126babdcbaa349da668b92d6b8c7db1350fd527fec4885c")
             number = 13412871
             totalDifficulty = BigInteger.ONE
-            timestamp = Instant.now()
+            timestamp = Instant.ofEpochSecond(1700000000)
             parentHash = parent
             transactions = []
         })
@@ -81,6 +82,7 @@ class ConnectBlockUpdatesSpec extends Specification {
             it.blockNumber == 13412871
             it.blockHash == BlockId.from("0xe5be2159b2b7daf6b126babdcbaa349da668b92d6b8c7db1350fd527fec4885c")
             it.type == ConnectBlockUpdates.UpdateType.DROP
+            it.timestamp == Instant.ofEpochSecond(1700000000)
         }
     }
 
@@ -146,7 +148,7 @@ class ConnectBlockUpdatesSpec extends Specification {
             hash = BlockHash.from("0xe5be2159b2b7daf6b126babdcbaa349da668b92d6b8c7db1350fd527fec4885c")
             number = 13412871
             totalDifficulty = BigInteger.ONE
-            timestamp = Instant.now()
+            timestamp = Instant.ofEpochSecond(1700000000)
             parentHash = parent
             transactions = []
         })
@@ -154,7 +156,7 @@ class ConnectBlockUpdatesSpec extends Specification {
             hash = BlockHash.from("0x668b92d6b8c7db1350fd527fec4885ce5be2159b2b7daf6b126babdcbaa349da")
             number = 13412871
             totalDifficulty = BigInteger.ONE
-            timestamp = Instant.now()
+            timestamp = Instant.ofEpochSecond(1700000012)
             parentHash = parent
             transactions = []
         })
@@ -170,11 +172,13 @@ class ConnectBlockUpdatesSpec extends Specification {
             it.blockNumber == 13412871
             it.blockHash == BlockId.from("0xe5be2159b2b7daf6b126babdcbaa349da668b92d6b8c7db1350fd527fec4885c")
             it.type == ConnectBlockUpdates.UpdateType.DROP
+            it.timestamp == Instant.ofEpochSecond(1700000000)
         }
         with(act[1]) {
             it.blockNumber == 13412871
             it.blockHash == BlockId.from("0x668b92d6b8c7db1350fd527fec4885ce5be2159b2b7daf6b126babdcbaa349da")
             it.type == ConnectBlockUpdates.UpdateType.NEW
+            it.timestamp == Instant.ofEpochSecond(1700000012)
         }
     }
 
