@@ -24,6 +24,7 @@ import io.emeraldpay.dshackle.proxy.WriteRpcJson
 import io.emeraldpay.dshackle.rpc.NativeCall
 import io.emeraldpay.dshackle.rpc.NativeSubscribe
 import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -39,11 +40,14 @@ class ProxyStarter(
     private val nativeSubscribe: NativeSubscribe,
     private val tlsSetup: TlsSetup,
     private val accessHandlerHttp: AccessHandlerHttp,
+    private val gracefulShutdown: GracefulShutdown,
 ) {
 
     companion object {
         private val log = LoggerFactory.getLogger(ProxyStarter::class.java)
     }
+
+    private var server: ProxyServer? = null
 
     @PostConstruct
     fun start() {
@@ -52,7 +56,14 @@ class ProxyStarter(
             log.debug("Proxy server is not configured")
             return
         }
-        val server = ProxyServer(config, readRpcJson, writeRpcJson, nativeCall, nativeSubscribe, tlsSetup, accessHandlerHttp.factory)
-        server.start()
+        val proxy = ProxyServer(config, readRpcJson, writeRpcJson, nativeCall, nativeSubscribe, tlsSetup, accessHandlerHttp.factory, gracefulShutdown)
+        proxy.start()
+        this.server = proxy
+    }
+
+    @PreDestroy
+    fun stop() {
+        // Fallback in case the GracefulShutdown coordinator did not run.
+        server?.stop()
     }
 }

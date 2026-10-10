@@ -18,6 +18,7 @@ package io.emeraldpay.dshackle.proxy
 
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
+import io.emeraldpay.dshackle.GracefulShutdown
 import io.emeraldpay.dshackle.TlsSetup
 import io.emeraldpay.dshackle.config.ProxyConfig
 import io.emeraldpay.dshackle.monitoring.accesslog.AccessHandlerHttp
@@ -31,8 +32,10 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.MultiThreadIoEventLoopGroup
 import io.netty.channel.nio.NioIoHandler
 import org.slf4j.LoggerFactory
+import reactor.netty.DisposableServer
 import reactor.netty.http.server.HttpServer
 import reactor.netty.http.server.HttpServerRoutes
+import java.time.Duration
 import java.util.EnumMap
 import java.util.concurrent.ConcurrentHashMap
 
@@ -47,6 +50,7 @@ class ProxyServer(
     nativeSubscribe: NativeSubscribe,
     private val tlsSetup: TlsSetup,
     accessHandler: AccessHandlerHttp.HandlerFactory,
+    private val gracefulShutdown: GracefulShutdown,
 ) {
 
     companion object {
@@ -80,12 +84,18 @@ class ProxyServer(
         StandardRequestMetrics()
     }
 
-    private val httpHandler = HttpHandler(config, readRpcJson, writeRpcJson, nativeCall, accessHandler, requestMetrics)
+    private val httpHandler = HttpHandler(config, readRpcJson, writeRpcJson, nativeCall, accessHandler, requestMetrics, gracefulShutdown)
     private val wsHandler: WebsocketHandler? = if (config.websocketEnabled) {
-        WebsocketHandler(readRpcJson, writeRpcJson, nativeCall, nativeSubscribe, accessHandler, requestMetrics)
+        WebsocketHandler(readRpcJson, writeRpcJson, nativeCall, nativeSubscribe, accessHandler, requestMetrics, gracefulShutdown)
     } else {
         null
     }
+
+    @Volatile
+    private var disposableServer: DisposableServer? = null
+
+    @Volatile
+    private var eventLoopGroup: MultiThreadIoEventLoopGroup? = null
 
     fun start() {
         if (!config.enabled) {
@@ -107,10 +117,67 @@ class ProxyServer(
             serverBuilder = serverBuilder.secure { secure -> secure.sslContext(sslContext) }
         }
 
-        serverBuilder
+        val loopGroup = MultiThreadIoEventLoopGroup(NioIoHandler.newFactory())
+        this.eventLoopGroup = loopGroup
+        val server = serverBuilder
             .route(this::setupRoutes)
-            .runOn(MultiThreadIoEventLoopGroup(NioIoHandler.newFactory()))
+            .runOn(loopGroup)
             .bindNow()
+        this.disposableServer = server
+
+        // Phase 1: stop accepting new connections by closing the server (listening) channel.
+        // Existing accepted child channels remain in the worker group and continue to serve
+        // their in-flight requests until the drain phase finishes.
+        gracefulShutdown.registerStopAccepting("http-proxy-server") {
+            stopAcceptingConnections()
+        }
+        // Phase 2: dispose remaining channels and shut down the worker event loop group.
+        gracefulShutdown.registerForceClose("http-proxy-server") {
+            stop()
+        }
+    }
+
+    /**
+     * Closes the listening socket so no new connections are accepted, but leaves existing
+     * connections alive so in-flight requests can finish during the drain phase.
+     */
+    fun stopAcceptingConnections() {
+        val server = disposableServer ?: return
+        if (server.isDisposed) return
+        try {
+            log.info("HTTP/WS proxy: closing listening socket")
+            server.channel().close().await(gracefulShutdown.forceTimeoutSeconds(), java.util.concurrent.TimeUnit.SECONDS)
+        } catch (t: Throwable) {
+            log.warn("HTTP/WS proxy: failed to close listening socket: ${t.javaClass.simpleName}: ${t.message}")
+        }
+    }
+
+    /**
+     * Gracefully stops the HTTP proxy server. Closes the listening socket and existing
+     * connections; waits up to [GracefulShutdown.forceTimeoutSeconds] for the server
+     * to fully release resources, then shuts down the worker event loop group.
+     */
+    fun stop() {
+        val timeout = Duration.ofSeconds(gracefulShutdown.forceTimeoutSeconds())
+        val server = disposableServer
+        if (server != null && !server.isDisposed) {
+            log.info("Shutting down HTTP/WS proxy server")
+            try {
+                server.disposeNow(timeout)
+            } catch (t: Throwable) {
+                log.warn("HTTP/WS proxy server did not stop cleanly: ${t.javaClass.simpleName}: ${t.message}")
+            }
+        }
+        eventLoopGroup?.let { group ->
+            try {
+                group.shutdownGracefully(0, gracefulShutdown.forceTimeoutSeconds(), java.util.concurrent.TimeUnit.SECONDS)
+                    .await(gracefulShutdown.forceTimeoutSeconds(), java.util.concurrent.TimeUnit.SECONDS)
+            } catch (t: Throwable) {
+                log.warn("HTTP/WS proxy event loop group did not stop cleanly: ${t.javaClass.simpleName}: ${t.message}")
+            }
+            eventLoopGroup = null
+        }
+        log.info("HTTP/WS proxy server stopped")
     }
 
     fun setupRoutes(routes: HttpServerRoutes) {

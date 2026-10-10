@@ -18,6 +18,7 @@ package io.emeraldpay.dshackle.monitoring.accesslog
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.MainConfig
 import jakarta.annotation.PostConstruct
+import jakarta.annotation.PreDestroy
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Repository
@@ -28,6 +29,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 @Repository
@@ -50,6 +52,7 @@ class AccessLogWriter(
     private val queue = ConcurrentLinkedQueue<Any>()
     private val objectMapper = Global.objectMapper
     private var lastErrorAt: Instant = Instant.ofEpochMilli(0)
+    private val flushLock = Any()
 
     private val runner = Runnable {
         flushRunner()
@@ -76,7 +79,13 @@ class AccessLogWriter(
                 log.error("Failed to write logs. ${t.javaClass}:${t.message}")
             }
         } finally {
-            scheduler.schedule(runner, FLUSH_SLEEP_MS, TimeUnit.MILLISECONDS)
+            if (!scheduler.isShutdown) {
+                try {
+                    scheduler.schedule(runner, FLUSH_SLEEP_MS, TimeUnit.MILLISECONDS)
+                } catch (e: RejectedExecutionException) {
+                    // Scheduler raced with shutdown(); the @PreDestroy flush will drain the rest.
+                }
+            }
         }
     }
 
@@ -96,31 +105,58 @@ class AccessLogWriter(
         }
     }
 
-    protected fun flush() {
-        if (!filename.exists()) {
-            if (!filename.createNewFile()) {
-                logError {
-                    log.error("Cannot create Access Log file at ${filename.absolutePath}")
-                }
-                return
+    @PreDestroy
+    fun shutdown() {
+        if (!config.enabled) {
+            return
+        }
+        log.info("Flushing access log queue ({} entries pending)", queue.size)
+        scheduler.shutdown()
+        try {
+            scheduler.awaitTermination(2, TimeUnit.SECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
+        // Drain any remaining queued events. The runner uses a fixed batch limit,
+        // so loop until the queue is empty.
+        while (queue.isNotEmpty()) {
+            try {
+                flush()
+            } catch (t: Throwable) {
+                log.warn("Failed to flush access log on shutdown: ${t.javaClass.simpleName}: ${t.message}")
+                break
             }
         }
-        BufferedOutputStream(FileOutputStream(filename, true)).use { wrt ->
-            var limit = WRITE_BATCH_LIMIT
-            while (limit > 0) {
-                limit -= 1
-                val next = queue.poll() ?: return
-                val bytes: ByteArray? = try {
-                    objectMapper.writeValueAsBytes(next)
-                } catch (t: Throwable) {
+        log.info("Access log flush complete")
+    }
+
+    protected fun flush() {
+        synchronized(flushLock) {
+            if (!filename.exists()) {
+                if (!filename.createNewFile()) {
                     logError {
-                        log.warn("Failed to write an access log line. ${t.message}")
+                        log.error("Cannot create Access Log file at ${filename.absolutePath}")
                     }
-                    null
+                    return@synchronized
                 }
-                if (bytes != null && bytes.isNotEmpty()) {
-                    wrt.write(bytes)
-                    wrt.write(NL, 0, 1)
+            }
+            BufferedOutputStream(FileOutputStream(filename, true)).use { wrt ->
+                var limit = WRITE_BATCH_LIMIT
+                while (limit > 0) {
+                    limit -= 1
+                    val next = queue.poll() ?: return@synchronized
+                    val bytes: ByteArray? = try {
+                        objectMapper.writeValueAsBytes(next)
+                    } catch (t: Throwable) {
+                        logError {
+                            log.warn("Failed to write an access log line. ${t.message}")
+                        }
+                        null
+                    }
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        wrt.write(bytes)
+                        wrt.write(NL, 0, 1)
+                    }
                 }
             }
         }
