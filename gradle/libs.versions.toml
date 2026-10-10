@@ -139,4 +139,4 @@ jib = { id = "com.google.cloud.tools.jib", version = "3.5.3" }
 spring = { id = "org.springframework.boot", version = "4.0.6" }
 git = { id = "com.palantir.git-version", version = "5.0.0" }
 protobuf = { id = "com.google.protobuf", version = "0.10.0" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.6.0" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "14.2.0" }
