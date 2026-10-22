@@ -58,6 +58,15 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                         ),
                     )
                 on {
+                    read(ChainRequest("eth_callMany", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            "[]".toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
                     read(ChainRequest("debug_storageRangeAt", ListParams(listOf())))
                 } doReturn
                     Mono.just(
@@ -161,6 +170,15 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                         ),
                     )
                 on {
+                    read(ChainRequest("eth_callMany", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            "[]".toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
                     read(ChainRequest("debug_storageRangeAt", ListParams(listOf())))
                 } doReturn
                     Mono.just(
@@ -216,11 +234,12 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
         val detector = BasicEthUpstreamRpcMethodsDetector(upstream, config)
         Assertions.assertThat(detector.detectRpcMethods().block()).apply {
             isNotNull()
-            hasSize(8)
+            hasSize(9)
             containsEntry("eth_getBlockReceipts", true)
             containsEntry("trace_callMany", true)
             containsEntry("trace_rawTransaction", true)
             containsEntry("eth_simulateV1", true)
+            containsEntry("eth_callMany", true)
             containsEntry("eth_getStorageValues", true)
             containsEntry("debug_storageRangeAt", true)
             containsEntry("eth_getTdByNumber", true)
@@ -268,6 +287,16 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                         ChainResponse(
                             null,
                             ChainCallError(32602, "missing value for required argument 0"),
+                        ),
+                    )
+                on {
+                    // what base-reth answers to empty params: the method exists, the params do not
+                    read(ChainRequest("eth_callMany", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            null,
+                            ChainCallError(-32602, "Invalid params"),
                         ),
                     )
                 on {
@@ -337,6 +366,7 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
             containsEntry("eth_getBlockReceipts", true)
             containsEntry("debug_traceBlock", true)
             containsEntry("eth_simulateV1", true)
+            containsEntry("eth_callMany", true)
             containsEntry("debug_storageRangeAt", true)
             containsEntry("eth_getTdByNumber", true)
             containsEntry("eth_callBundle", true)
@@ -387,6 +417,15 @@ class BasicEthUpstreamRpcMethodsDetectorTest {
                     )
                 on {
                     read(ChainRequest("eth_simulateV1", ListParams(listOf())))
+                } doReturn
+                    Mono.just(
+                        ChainResponse(
+                            "[]".toByteArray(),
+                            null,
+                        ),
+                    )
+                on {
+                    read(ChainRequest("eth_callMany", ListParams(listOf())))
                 } doReturn
                     Mono.just(
                         ChainResponse(
