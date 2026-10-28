@@ -120,6 +120,75 @@ open class RecursiveLowerBound(
             )
     }
 
+    /**
+     * The start of the contiguous data range that ends at the head: the lowest block b such
+     * that every probe in [b, head] found data. It gallops down from the head (steps 1024, 2048,
+     * ...) until a probe misses, then bisects between the miss and the last hit.
+     *
+     * Unlike [recursiveDetectLowerBoundWithOffset] it never trusts a single old block: a node that
+     * keeps early history plus a recent window (reth with pruned receipts) has a gap in between,
+     * and the binary search from genesis or the check of the previous bound lands in the early
+     * part and reports 1. Here the gap stops the gallop, so the bound is the window's start.
+     *
+     * A probe that fails with [emptyBlockError] says nothing about the data (the block has no
+     * transactions to check), so it moves up to [maxLimit] blocks left; a run of only empty
+     * blocks counts as a hit.
+     */
+    fun detectContiguousLowerBound(
+        maxLimit: Int,
+        emptyBlockError: String,
+        hasData: (Long) -> Mono<ChainResponse>,
+    ): Flux<LowerBoundData> {
+        val head = upstream.getHead().getCurrentHeight() ?: return Flux.empty()
+
+        // the block at or just left of [block] where data was found; empty when there is none
+        fun probe(block: Long): Mono<Long> {
+            fun at(current: Long, left: Int): Mono<Long> {
+                if (current < 1) {
+                    return Mono.just(block)
+                }
+                return hasData(current)
+                    .retryWhen(retrySpec(current, nonRetryableErrors))
+                    .flatMap(ChainResponse::requireResult)
+                    .map { current }
+                    .onErrorResume { err ->
+                        if (err.message?.contains(emptyBlockError) == true) {
+                            if (left > 0) at(current - 1, left - 1) else Mono.just(block)
+                        } else {
+                            Mono.empty()
+                        }
+                    }
+            }
+            return at(block, maxLimit)
+        }
+
+        // invariant: no data at [missing], data at [good]
+        fun bisect(missing: Long, good: Long): Mono<Long> {
+            if (good - missing <= 1) {
+                return Mono.just(good)
+            }
+            val middle = missing + (good - missing) / 2
+            return probe(middle)
+                .filter { it > missing }
+                .flatMap { bisect(missing, it) }
+                .switchIfEmpty(Mono.defer { bisect(middle, good) })
+        }
+
+        fun gallop(good: Long, step: Long): Mono<Long> {
+            if (good <= 1) {
+                return Mono.just(1)
+            }
+            val next = maxOf(1, good - step)
+            return probe(next)
+                .flatMap { gallop(it, step * 2) }
+                .switchIfEmpty(Mono.defer { bisect(next, good) })
+        }
+
+        return gallop(head, INITIAL_STEP)
+            .map { LowerBoundData(it, type) }
+            .toFlux()
+    }
+
     protected fun shiftLeftAndSearch(
         currentData: LowerBoundBinarySearchData,
         currentMiddle: Long,
@@ -233,5 +302,8 @@ open class RecursiveLowerBound(
     companion object {
         // ponytail: ~70 min per block at max backoff, then the block counts as "no data"
         private const val MAX_RETRIES = 30L
+
+        // first gallop step below the head, doubled after every hit
+        private const val INITIAL_STEP = 1024L
     }
 }
