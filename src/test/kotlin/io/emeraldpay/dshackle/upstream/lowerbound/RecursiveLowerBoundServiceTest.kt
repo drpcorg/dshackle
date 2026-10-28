@@ -151,7 +151,6 @@ class RecursiveLowerBoundServiceTest {
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.STATE }
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.TRACE }
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.BLOCK }
-            .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.LOGS }
             .expectNextMatches { it.lowerBound == 17964844L && it.type == LowerBoundType.TX }
             .thenCancel()
             .verify(Duration.ofSeconds(3))
@@ -163,7 +162,6 @@ class RecursiveLowerBoundServiceTest {
                     LowerBoundData(17964844L, LowerBoundType.STATE),
                     LowerBoundData(17964844L, LowerBoundType.TRACE),
                     LowerBoundData(17964844L, LowerBoundType.BLOCK),
-                    LowerBoundData(17964844L, LowerBoundType.LOGS),
                     LowerBoundData(17964844L, LowerBoundType.TX),
                 ),
             )

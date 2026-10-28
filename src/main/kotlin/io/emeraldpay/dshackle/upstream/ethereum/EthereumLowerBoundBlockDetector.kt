@@ -60,12 +60,10 @@ class EthereumLowerBoundBlockDetector(
                         }
                     }
             }
-        }.flatMap {
-            Flux.just(it, lowerBoundFrom(it, LowerBoundType.LOGS))
         }
     }
 
     override fun types(): Set<LowerBoundType> {
-        return setOf(LowerBoundType.BLOCK, LowerBoundType.LOGS)
+        return setOf(LowerBoundType.BLOCK)
     }
 }

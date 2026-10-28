@@ -15,6 +15,10 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
+/**
+ * Detects the receipts bound and reports it as the logs bound too: eth_getLogs reads receipts,
+ * so a node answers it only where it has them (block headers alone say nothing about logs).
+ */
 class EthereumLowerBoundReceiptsDetector(
     private val upstream: Upstream,
 ) : EthereumLowerBoundDetectorBase(upstream.getChain()) {
@@ -22,9 +26,11 @@ class EthereumLowerBoundReceiptsDetector(
     companion object {
         const val MAX_OFFSET = 20
         private const val NO_RECEIPTS_DATA = "No receipts data"
+        private const val NO_TRANSACTIONS = "No transactions in block"
 
         private val NO_RECEIPTS_ERRORS = setOf(
             NO_RECEIPTS_DATA,
+            NO_TRANSACTIONS,
             "block not found with number",
             "requested epoch was a null round",
             "missing trie node",
@@ -45,9 +51,20 @@ class EthereumLowerBoundReceiptsDetector(
     }
 
     override fun internalDetectLowerBound(): Flux<LowerBoundData> {
+        return detectReceiptsLowerBound()
+            .flatMap {
+                Flux.just(it, lowerBoundFrom(it, LowerBoundType.LOGS))
+            }
+    }
+
+    override fun types(): Set<LowerBoundType> {
+        return setOf(LowerBoundType.RECEIPTS, LowerBoundType.LOGS)
+    }
+
+    private fun detectReceiptsLowerBound(): Flux<LowerBoundData> {
         val receiptsGoldBound = GoldLowerBounds.getBound(upstream.getChain(), LowerBoundType.RECEIPTS)
         if (receiptsGoldBound == null || receiptsGoldBound !is ChainsConfig.GoldLowerBoundWithHash) {
-            return recursiveDetectReceiptsLowerBound()
+            return contiguousDetectReceiptsLowerBound()
         }
         return Mono.just(receiptsGoldBound)
             .flatMapMany { bound ->
@@ -63,17 +80,13 @@ class EthereumLowerBoundReceiptsDetector(
                         }
                     }
                     .onErrorResume {
-                        recursiveDetectReceiptsLowerBound()
+                        contiguousDetectReceiptsLowerBound()
                     }
             }
     }
 
-    override fun types(): Set<LowerBoundType> {
-        return setOf(LowerBoundType.RECEIPTS)
-    }
-
-    private fun recursiveDetectReceiptsLowerBound(): Flux<LowerBoundData> {
-        return recursiveLowerBound.recursiveDetectLowerBoundWithOffset(MAX_OFFSET) { block ->
+    private fun contiguousDetectReceiptsLowerBound(): Flux<LowerBoundData> {
+        return recursiveLowerBound.detectContiguousLowerBound(MAX_OFFSET, NO_TRANSACTIONS) { block ->
             upstream.getIngressReader()
                 .read(
                     ChainRequest("eth_getBlockByNumber", ListParams(block.toHex(), false)),
@@ -87,10 +100,11 @@ class EthereumLowerBoundReceiptsDetector(
                 .handle { it, sink ->
                     val blockJson = BlockContainer.fromEthereumJson(it.getResult(), upstream.getId())
                     if (blockJson.transactions.isEmpty()) {
-                        sink.error(IllegalStateException(NO_RECEIPTS_DATA))
+                        sink.error(IllegalStateException(NO_TRANSACTIONS))
                         return@handle
                     }
-                    sink.next(blockJson.transactions[0].toHexWithPrefix())
+                    // the last transaction: on OP-stack the first one is the L1-info deposit
+                    sink.next(blockJson.transactions.last().toHexWithPrefix())
                 }
                 .flatMap { tx ->
                     upstream.getIngressReader()
