@@ -27,9 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: asciidoctor-ghpages
-        uses: manoelcampos/asciidoctor-ghpages-action@v2
+        uses: manoelcampos/asciidoctor-ghpages-action@b67feb434bb6455d316c4c26372e99b480a653fe # v2.4.0
         env:
           PREFIX: ${{ github.server_url }}/${{ github.repository }}/tree/master/docs/
         with:
