@@ -64,5 +64,26 @@ fun main(args: Array<String>) {
     val app = SpringApplication(Starter::class.java)
     app.setDefaultProperties(ResourcePropertySource("version.properties").source)
     app.setBanner(ResourceBanner(ClassPathResource("banner.txt")))
-    app.run(*args)
+    // We register our own JVM shutdown hook below to drive the graceful sequence
+    // synchronously; disable Spring's default hook to avoid racing bean destruction
+    // with the in-flight drain.
+    app.setRegisterShutdownHook(false)
+
+    val context = app.run(*args)
+
+    val shutdownHook = Thread({
+        try {
+            val graceful = context.getBean(GracefulShutdown::class.java)
+            graceful.triggerShutdown()
+        } catch (t: Throwable) {
+            log.error("Graceful shutdown failed: {}: {}", t.javaClass.simpleName, t.message, t)
+        } finally {
+            try {
+                context.close()
+            } catch (t: Throwable) {
+                log.warn("Application context close failed: {}: {}", t.javaClass.simpleName, t.message)
+            }
+        }
+    }, "graceful-shutdown",)
+    Runtime.getRuntime().addShutdownHook(shutdownHook)
 }

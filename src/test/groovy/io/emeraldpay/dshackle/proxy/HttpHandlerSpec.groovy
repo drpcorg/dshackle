@@ -58,7 +58,8 @@ class HttpHandlerSpec extends Specification {
         def handler = new HttpHandler(
                 new ProxyConfig(),
                 new ReadRpcJson(), new WriteRpcJson(),
-                nativeCall, accessHandlerFactory, Stub(ProxyServer.RequestMetricsFactory)
+                nativeCall, accessHandlerFactory, Stub(ProxyServer.RequestMetricsFactory),
+                new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         when:
@@ -88,7 +89,7 @@ class HttpHandlerSpec extends Specification {
                 new ProxyConfig(),
                 read, new WriteRpcJson(),
                 Stub(NativeCall), Stub(AccessHandlerHttp.HandlerFactory),
-                metrics
+                metrics, new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
         when:
 
@@ -114,7 +115,8 @@ class HttpHandlerSpec extends Specification {
         def handler = new HttpHandler(
                 new ProxyConfig(),
                 new ReadRpcJson(), writeRpcJson,
-                nativeCall, Stub(AccessHandlerHttp.HandlerFactory), Stub(ProxyServer.RequestMetricsFactory)
+                nativeCall, Stub(AccessHandlerHttp.HandlerFactory), Stub(ProxyServer.RequestMetricsFactory),
+                new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def call = new ProxyCall(ProxyCall.RpcType.SINGLE)

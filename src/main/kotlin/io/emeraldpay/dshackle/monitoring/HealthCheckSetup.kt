@@ -16,6 +16,7 @@
 package io.emeraldpay.dshackle.monitoring
 
 import com.sun.net.httpserver.HttpServer
+import io.emeraldpay.dshackle.GracefulShutdown
 import io.emeraldpay.dshackle.config.HealthConfig
 import io.emeraldpay.dshackle.upstream.MultistreamHolder
 import jakarta.annotation.PostConstruct
@@ -30,6 +31,7 @@ import java.net.InetSocketAddress
 class HealthCheckSetup(
     private val healthConfig: HealthConfig,
     private val multistreamHolder: MultistreamHolder,
+    private val gracefulShutdown: GracefulShutdown,
 ) {
 
     companion object {
@@ -55,7 +57,9 @@ class HealthCheckSetup(
                 0,
             )
             server.createContext(healthConfig.path) { httpExchange ->
-                val response = if (httpExchange.requestURI.query == "detailed") {
+                val response = if (gracefulShutdown.isShuttingDown()) {
+                    Detailed(false, listOf("SHUTTING DOWN"))
+                } else if (httpExchange.requestURI.query == "detailed") {
                     getDetailedHealth()
                 } else {
                     getHealth()

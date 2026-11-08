@@ -22,7 +22,7 @@ class ProxyServerSpec extends Specification {
                 config1,
                 new ReadRpcJson(), new WriteRpcJson(),
                 Stub(NativeCall), Stub(NativeSubscribe),
-                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory()
+                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory(), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def routes = Mock(HttpServerRoutes)
@@ -46,7 +46,7 @@ class ProxyServerSpec extends Specification {
                 config1,
                 new ReadRpcJson(), new WriteRpcJson(),
                 Stub(NativeCall), Stub(NativeSubscribe),
-                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory()
+                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory(), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
 
         def routes = Mock(HttpServerRoutes)
@@ -66,7 +66,7 @@ class ProxyServerSpec extends Specification {
                 config1,
                 new ReadRpcJson(), new WriteRpcJson(),
                 Stub(NativeCall), Stub(NativeSubscribe),
-                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory()
+                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory(), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
         when:
         def act = proxyServer.connectAddress("http")
@@ -83,7 +83,7 @@ class ProxyServerSpec extends Specification {
                 config1,
                 new ReadRpcJson(), new WriteRpcJson(),
                 Stub(NativeCall), Stub(NativeSubscribe),
-                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory()
+                Stub(TlsSetup), new AccessHandlerHttp.NoOpFactory(), new io.emeraldpay.dshackle.GracefulShutdown(0L, 0L, 0L)
         )
         when:
         def act = proxyServer.connectAddress("ws")

@@ -21,6 +21,7 @@ import io.emeraldpay.api.proto.Common
 import io.emeraldpay.api.proto.ReactorBlockchainGrpc
 import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.ChainValue
+import io.emeraldpay.dshackle.GracefulShutdown
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Metrics
 import io.micrometer.core.instrument.Timer
@@ -47,6 +48,7 @@ class BlockchainRpc(
     @param:Qualifier("rpcScheduler")
     private val scheduler: Scheduler,
     private val subscribeChainStatus: SubscribeChainStatus,
+    private val gracefulShutdown: GracefulShutdown,
 ) : ReactorBlockchainGrpc.BlockchainImplBase() {
 
     private val log = LoggerFactory.getLogger(BlockchainRpc::class.java)
@@ -68,7 +70,7 @@ class BlockchainRpc(
         var startTime = 0L
         var metrics: RequestMetrics? = null
         val idsMap = mutableMapOf<Int, String>()
-        return nativeCall.nativeCall(
+        val source = nativeCall.nativeCall(
             request
                 .subscribeOn(scheduler)
                 .doOnNext { req ->
@@ -95,6 +97,7 @@ class BlockchainRpc(
         }.doOnError {
             failMetric.increment()
         }
+        return gracefulShutdown.trackFlux(source)
     }
 
     override fun nativeSubscribe(request: Mono<BlockchainOuterClass.NativeSubscribeRequest>): Flux<BlockchainOuterClass.NativeSubscribeReplyItem> {
@@ -119,6 +122,8 @@ class BlockchainRpc(
                     log.info("Error ${t.message} in subscription ${req.subscriptionId}")
                     failMetric.increment()
                 }
+                    // graceful-shutdown: terminate stream when service is shutting down
+                    .takeUntilOther(gracefulShutdown.streamsCancelSignal())
             }
     }
 
@@ -127,6 +132,7 @@ class BlockchainRpc(
             request
                 .doOnNext { chainMetrics.get(it.type).subscribeHeadMetric.increment() },
         ).doOnError { failMetric.increment() }
+            .takeUntilOther(gracefulShutdown.streamsCancelSignal())
     }
 
     override fun describe(request: Mono<BlockchainOuterClass.DescribeRequest>): Mono<BlockchainOuterClass.DescribeResponse> {
@@ -139,6 +145,7 @@ class BlockchainRpc(
         subscribeStatusMetric.increment()
         return subscribeStatus.subscribeStatus(request)
             .doOnError { failMetric.increment() }
+            .takeUntilOther(gracefulShutdown.streamsCancelSignal())
     }
 
     override fun subscribeNodeStatus(request: Mono<BlockchainOuterClass.SubscribeNodeStatusRequest>): Flux<BlockchainOuterClass.NodeStatusResponse> {
@@ -152,13 +159,14 @@ class BlockchainRpc(
                 .doFinally { sig ->
                     log.info("Closing node status subscription named [$subId] with $sig")
                 }
-        }
+        }.takeUntilOther(gracefulShutdown.streamsCancelSignal())
     }
 
     override fun subscribeChainStatus(
         request: Mono<BlockchainOuterClass.SubscribeChainStatusRequest>,
     ): Flux<BlockchainOuterClass.SubscribeChainStatusResponse> {
         return subscribeChainStatus.chainStatuses()
+            .takeUntilOther(gracefulShutdown.streamsCancelSignal())
     }
 
     class RequestMetrics(val chain: Chain) {
