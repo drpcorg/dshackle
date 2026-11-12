@@ -175,16 +175,22 @@ open class Caches(
 
     fun evict(blockId: BlockId) {
         var evicted = false
-        redisBlocksByHash?.evict(blockId)
+        // Redis commands are lazy, nothing is deleted without a subscription
+        redisBlocksByHash?.evict(blockId)?.subscribe(null, ::logEvictError)
         memBlocksByHash.get(blockId)?.let { block ->
             memTxsByHash.evict(block)
-            redisTxsByHash?.evict(block)
+            redisTxsByHash?.evict(block)?.subscribe(null, ::logEvictError)
             memReceipts.evict(block)
+            redisReceipts?.evict(block)?.subscribe(null, ::logEvictError)
             evicted = true
         }
         if (!evicted) {
             memTxsByHash.evict(blockId)
         }
+    }
+
+    private fun logEvictError(t: Throwable) {
+        log.warn("Failed to evict from Redis: ${t.message}")
     }
 
     fun getBlocksByHash(): Reader<BlockId, BlockContainer> {

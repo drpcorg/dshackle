@@ -83,4 +83,28 @@ class HeightCacheSpec extends Specification {
         act3.toHex() == hash3.substring(2)
         act4.toHex() == hash4.substring(2)
     }
+
+    def "Returns replaced block, but not when the same block is added again"() {
+        setup:
+        def cache = new HeightCache()
+        def blocks = [hash1, hash1, hash2].collect { String hash ->
+            def block = new BlockJson<TransactionRefJson>()
+            block.number = 100
+            block.hash = BlockHash.from(hash)
+            block.totalDifficulty = BigInteger.ONE
+            block.timestamp = Instant.now()
+            block.parentHash = BlockHash.from(hash3)
+            BlockContainer.from(block)
+        }
+
+        when:
+        def first = cache.add(blocks[0])
+        def same = cache.add(blocks[1])
+        def other = cache.add(blocks[2])
+        then:
+        first == null
+        same == null
+        other == blocks[0].hash
+        cache.read(100).block() == blocks[2].hash
+    }
 }

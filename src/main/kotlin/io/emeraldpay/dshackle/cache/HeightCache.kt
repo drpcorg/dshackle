@@ -36,10 +36,12 @@ open class HeightCache(
         return Mono.justOrEmpty(heights.getIfPresent(key))
     }
 
+    /**
+     * @return id of another block that was at that height before, if any
+     */
     open fun add(block: BlockContainer): BlockId? {
-        val previousId = heights.getIfPresent(block.height)
-        heights.put(block.height, block.hash)
-        return previousId
+        val previousId = heights.asMap().put(block.height, block.hash)
+        return previousId?.takeIf { it != block.hash }
     }
 
     fun purge() {
