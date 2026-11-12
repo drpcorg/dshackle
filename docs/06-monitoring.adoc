@@ -97,6 +97,11 @@ monitoring:
 Where `jvm` options enabled monitoring of the JVM internals, such as memory, GC, threads, etc.
 And `extended` enables additional metrics for query selectors, etc.
 
+Metrics of the requests coalescing (see `requests.coalescing` in the link:reference-configuration.adoc[reference configuration]):
+
+- `dshackle_request_coalesce_checked_total{chain,result}` - requests of the methods that can be coalesced: `eligible`, or a reason why the request can't share another one
+- `dshackle_request_coalesced_total{chain,method}` - requests answered with the result of an identical request that was already in flight
+
 == Grafana Dashboard
 
 Simple Grafana dashboard available link:../dashboard/dshackle.json[here]

@@ -38,6 +38,39 @@ class DefaultEthereumMethods(
     private val version = "\"EmeraldDshackle/${Global.version}\""
 
     companion object {
+        /**
+         * Idempotent reads that can share an identical in-flight request: with the same params at the same moment they
+         * have the same response. It doesn't include anything that depends on the caller, like filters or eth_getTransactionCount
+         */
+        val coalescibleMethods = setOf(
+            "eth_blockNumber",
+            "eth_gasPrice",
+            "eth_maxPriorityFeePerGas",
+            "eth_feeHistory",
+            "eth_blobBaseFee",
+            "eth_call",
+            "eth_getBalance",
+            "eth_getCode",
+            "eth_getStorageAt",
+            "eth_getProof",
+            "eth_getBlockByNumber",
+            "eth_getBlockByHash",
+            "eth_getBlockReceipts",
+            "eth_getBlockTransactionCountByNumber",
+            "eth_getBlockTransactionCountByHash",
+            "eth_getUncleCountByBlockNumber",
+            "eth_getTransactionByHash",
+            "eth_getTransactionByBlockNumberAndIndex",
+            "eth_getTransactionByBlockHashAndIndex",
+            "eth_getTransactionReceipt",
+            "eth_getLogs",
+            "debug_traceBlockByNumber",
+            "debug_traceBlockByHash",
+            "debug_traceTransaction",
+            "trace_block",
+            "trace_transaction",
+        )
+
         // methods that answer with a single value, block or transaction
         private val boundedResponseMethods = setOf(
             "eth_blockNumber",

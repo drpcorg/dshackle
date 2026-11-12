@@ -170,6 +170,96 @@ class NativeCallSpec extends Specification {
         false   | [true, true]
     }
 
+    NativeCall nativeCallWith(ResponseSigner signer, Closure configure) {
+        def config = new MainConfig()
+        config.cache = new CacheConfig()
+        configure(config.requests)
+        new NativeCall(Stub(MultistreamHolder), signer, config)
+    }
+
+    def streamCtx(String method, ListParams params, boolean stream, Long nonce = null) {
+        new NativeCall.ValidCallContext<NativeCall.ParsedCallDetails>(1, nonce, TestingCommons.multistream(TestingCommons.api()),
+                new Selector.UpstreamFilter(Selector.empty), new AlwaysQuorum(),
+                new NativeCall.ParsedCallDetails(method, params),
+                new NativeCall.NoneRequestDecorator(), new NativeCall.NoneResultDecorator(), null, stream, "reqId", 1)
+    }
+
+    def "Identical requests in flight share one upstream call, each signed for its own nonce"() {
+        setup:
+        def signer = Mock(ResponseSigner) {
+            _ * getEnabled() >> true
+            _ * sign(_, _, _) >> { Long nonce, byte[] msg, String source -> new ResponseSigner.Signature("sig$nonce".bytes, source, 1L) }
+        }
+        def calls = 0
+        def sink = reactor.core.publisher.Sinks.<RequestReader.Result> one()
+        def nativeCall = nativeCallWith(signer) { it.coalescing = true }
+        nativeCall.requestReaderFactory = Mock(RequestReaderFactory) {
+            _ * create(_) >> Mock(RequestReader) {
+                _ * read(_) >> { calls++; sink.asMono() }
+            }
+        }
+        def params = new ListParams([[to: "0x1"], "0x10"])
+
+        when:
+        def leader = nativeCall.executeOnRemote(streamCtx("eth_call", params, false, 10L)).toFuture()
+        def follower = nativeCall.executeOnRemote(streamCtx("eth_call", params, false, 20L)).toFuture()
+        def noNonce = nativeCall.executeOnRemote(streamCtx("eth_call", params, false, null)).toFuture()
+        sink.tryEmitValue(new RequestReader.Result("\"0x1\"".bytes, new ResponseSigner.Signature("sig10".bytes, "up1", 1L), 1,
+                List.of(new Upstream.UpstreamSettingsData((byte)1, "up1", "v")), null))
+
+        then:
+        calls == 1
+        new String(leader.get().signature.value) == "sig10"
+        new String(follower.get().signature.value) == "sig20"
+        follower.get().signature.upstreamId == "up1"
+        noNonce.get().signature == null
+        new String(follower.get().result) == "\"0x1\""
+    }
+
+    def "A follower with a nonce runs its own request when the answer can't be signed for it"() {
+        setup:
+        def calls = 0
+        def sink = reactor.core.publisher.Sinks.<RequestReader.Result> one()
+        // signing disabled (enabled == false)
+        def nativeCall = nativeCallWith(Stub(ResponseSigner)) { it.coalescing = true }
+        nativeCall.requestReaderFactory = Mock(RequestReaderFactory) {
+            _ * create(_) >> Mock(RequestReader) {
+                _ * read(_) >> { calls++; sink.asMono() }
+            }
+        }
+        def params = new ListParams([[to: "0x1"], "0x10"])
+
+        when:
+        def leader = nativeCall.executeOnRemote(streamCtx("eth_call", params, false, 10L)).toFuture()
+        def follower = nativeCall.executeOnRemote(streamCtx("eth_call", params, false, 20L)).toFuture()
+        sink.tryEmitValue(new RequestReader.Result("\"0x1\"".bytes, null, 1, List.of(new Upstream.UpstreamSettingsData((byte)1, "up1", "v")), null))
+        leader.get()
+        follower.get()
+
+        then:
+        calls == 2
+    }
+
+    def "Requests aren't coalesced by default"() {
+        setup:
+        def calls = 0
+        def nativeCall = nativeCall()
+        nativeCall.requestReaderFactory = Mock(RequestReaderFactory) {
+            _ * create(_) >> Mock(RequestReader) {
+                _ * read(_) >> { calls++; Mono.just(new RequestReader.Result("\"0x1\"".bytes, null, 1, List.of(new Upstream.UpstreamSettingsData((byte)1, "up1", "v")), null)).delayElement(Duration.ofMillis(50)) }
+            }
+        }
+        def params = new ListParams([[to: "0x1"], "0x10"])
+
+        when:
+        def a = nativeCall.executeOnRemote(streamCtx("eth_call", params, false)).toFuture()
+        def b = nativeCall.executeOnRemote(streamCtx("eth_call", params, false)).toFuture()
+        a.get(); b.get()
+
+        then:
+        calls == 2
+    }
+
     def "Returns error if no quorum"() {
         setup:
         def quorum = new AlwaysQuorum()
