@@ -1,0 +1,4 @@
+cache:
+  recent-blocks:
+    enabled: true
+    warm-up: false

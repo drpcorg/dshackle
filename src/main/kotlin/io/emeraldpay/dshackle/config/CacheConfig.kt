@@ -18,6 +18,22 @@ package io.emeraldpay.dshackle.config
 class CacheConfig {
 
     var redis: Redis? = null
+    var recentBlocks: RecentBlocks = RecentBlocks()
+
+    /**
+     * Serve `eth_getBlockByNumber(<recent number or latest>, false)` from memory.
+     * ```
+     * cache:
+     *   recent-blocks:
+     *     enabled: true
+     *     warm-up: true
+     * ```
+     */
+    class RecentBlocks(
+        var enabled: Boolean = false,
+        // fetch the body of new head blocks ahead of requests, while the chain gets block-by-number requests
+        var warmUp: Boolean = true,
+    )
 
     class Redis(
         var host: String = "127.0.0.1",
