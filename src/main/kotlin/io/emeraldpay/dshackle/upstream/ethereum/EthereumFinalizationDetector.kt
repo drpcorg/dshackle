@@ -37,6 +37,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
         "|.*Invalid params.*" +
         "|.*invalid syntax.*" +
         "|.*invalid block number.*" +
+        "|.*TAG \\w+ not supported.*" + // tron
         ")"
     override fun detectFinalization(
         upstream: Upstream,
