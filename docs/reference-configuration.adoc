@@ -837,6 +837,10 @@ a| HTTP URL to connect to.This is required for a connection. +
 URL can be configured with Environment Variable placeholders `${ENV_VAR_NAME}`. +
 Example: `https://kovan.infura.io/v3/${INFURA_USER}`
 
+| `rpc.compress`
+a| `true` (default) or `false`. Ask the node for gzip-compressed responses (`Accept-Encoding: gzip`). +
+Can be turned off when Dshackle runs next to the node: on a local network the compression costs the node more than it saves.
+
 | `rpc.basic-auth` + `rpc.basic-auth.username`, `rpc.basic-auth.password`
 a| HTTP Basic Auth configuration, if required by the remote server. +
 Values can also reference env variables, for example:

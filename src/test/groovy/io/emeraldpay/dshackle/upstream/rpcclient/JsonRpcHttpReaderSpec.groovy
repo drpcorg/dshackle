@@ -70,6 +70,26 @@ class JsonRpcHttpReaderSpec extends Specification {
         new String(act.result) == '"0x98de45"'
     }
 
+    def "Asks for a compressed response unless it's turned off"() {
+        setup:
+        def resp = '{"jsonrpc": "2.0", "result": "0x98de45", "id": 15}'
+        mockServer.when(
+                HttpRequest.request()
+        ).respond(
+                HttpResponse.response(resp)
+        )
+        def byDefault = new JsonRpcHttpReader("localhost:${mockServer.port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:])
+        def turnedOff = new JsonRpcHttpReader("localhost:${mockServer.port}", 50, 50, metrics, Schedulers.boundedElastic(), null, null, [:], null, false)
+        when:
+        byDefault.read(new ChainRequest("test", new ListParams())).block()
+        turnedOff.read(new ChainRequest("test", new ListParams())).block()
+        def requests = mockServer.retrieveRecordedRequests(HttpRequest.request())
+        then:
+        requests.size() == 2
+        requests[0].getFirstHeader("accept-encoding").contains("gzip")
+        !requests[1].getFirstHeader("accept-encoding").contains("gzip")
+    }
+
     def "Make a request with bearer auth"() {
         setup:
         def bearerAuth = new AuthConfig.ClientBearerAuth("test-token-123")
