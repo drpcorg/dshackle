@@ -24,6 +24,8 @@ import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.quorum.MaximumValueQuorum
 import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
+import io.emeraldpay.dshackle.upstream.rpcclient.CallParams
+import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 
 /**
  * Default configuration for Ethereum based RPC. Defines optimal Quorum strategies for different methods, and provides
@@ -36,6 +38,48 @@ class DefaultEthereumMethods(
     private val version = "\"EmeraldDshackle/${Global.version}\""
 
     companion object {
+        // methods that answer with a single value, block or transaction
+        private val boundedResponseMethods = setOf(
+            "eth_blockNumber",
+            "eth_gasPrice",
+            "eth_maxPriorityFeePerGas",
+            "eth_blobBaseFee",
+            "eth_call",
+            "eth_getBalance",
+            "eth_getCode",
+            "eth_getStorageAt",
+            "eth_getTransactionCount",
+            "eth_getBlockByNumber",
+            "eth_getBlockByHash",
+            "eth_getBlockTransactionCountByNumber",
+            "eth_getBlockTransactionCountByHash",
+            "eth_getTransactionByHash",
+            "eth_getTransactionByBlockNumberAndIndex",
+            "eth_getTransactionByBlockHashAndIndex",
+            "eth_getTransactionReceipt",
+            "eth_getBlockReceipts",
+        )
+
+        /**
+         * true if a response to the request is known to be limited in size, i.e. it's a value, a block or data of one block,
+         * as opposite to requests like eth_getLogs for a range of blocks or traces
+         */
+        @JvmStatic
+        fun hasBoundedResponse(method: String, params: CallParams): Boolean {
+            if (method in boundedResponseMethods) {
+                return true
+            }
+            if (method == "eth_getLogs") {
+                val filter = (params as? ListParams)?.list?.singleOrNull() as? Map<*, *> ?: return false
+                if (filter["blockHash"] != null) {
+                    return true
+                }
+                val from = filter["fromBlock"] as? String ?: return false
+                return from.startsWith("0x") && from == filter["toBlock"]
+            }
+            return false
+        }
+
         val withFilterIdMethods = listOf(
             "eth_getFilterChanges",
             "eth_getFilterLogs",
