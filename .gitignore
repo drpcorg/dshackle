@@ -27,7 +27,9 @@ http-client.env.json
 
 .DS_Store
 mise.toml
-.claude/
+# .claude/ stays local (settings, transcripts, history) — except project-scoped skills meant for the team.
+.claude/*
+!.claude/skills/
 
 # demo sandbox (local-only, regenerate with demo/response-signing/generate-keys.sh + protoc)
 /demo/response-signing/
