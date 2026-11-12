@@ -15,6 +15,8 @@
  */
 package io.emeraldpay.dshackle.upstream.ethereum
 
+import io.emeraldpay.dshackle.Defaults
+import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.cache.Caches
 import io.emeraldpay.dshackle.cache.CurrentBlockCache
 import io.emeraldpay.dshackle.data.BlockContainer
@@ -36,8 +38,13 @@ import io.emeraldpay.dshackle.upstream.ethereum.domain.TransactionId
 import io.emeraldpay.dshackle.upstream.ethereum.domain.Wei
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionLogJson
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
+import io.emeraldpay.dshackle.upstream.rpcclient.CallParams
+import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.apache.commons.collections4.Factory
 import reactor.core.publisher.Mono
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Function
 
 /**
@@ -51,6 +58,16 @@ open class EthereumCachingReader(
 
     private val balanceCache = CurrentBlockCache<Address, Wei>()
     private val directReader = EthereumDirectReader(up, caches, balanceCache, callMethodsFactory)
+
+    // at most one warm-up per chain at a time: heads that arrive meanwhile are covered as parents by the next one
+    private val warming = AtomicBoolean(false)
+
+    // when a client last asked this chain for a block by number: warm-up runs only while that is recent
+    @Volatile
+    private var lastBlockRequestAt = 0L
+
+    /** for tests */
+    var clock: () -> Long = System::currentTimeMillis
 
     open fun blockByFinalization(): Reader<FinalizationType, Result<BlockContainer>> {
         return directReader.blockByFinalizationReader
@@ -101,6 +118,161 @@ open class EthereumCachingReader(
             CacheWithUpstreamIdReader(caches.getReceipts()),
             requested,
         )
+    }
+
+    open fun chainCode(): String = up.getChain().chainCode
+
+    private val responsePolicy = ResponseCachePolicy(
+        { height -> caches.canonicalHash(height, RECENT_WINDOW) },
+        { hash -> caches.recentHeight(hash) },
+        { caches.headHeight() },
+        { up.getFinalizations().firstOrNull { it.type == FinalizationType.FINALIZED_BLOCK }?.height },
+    )
+
+    /** a key for the cache if the response to the request can't change, or null (see [ResponseCachePolicy]) */
+    open fun responseKey(method: String, params: List<Any?>): ResponseCachePolicy.Key? {
+        if (caches.responses == null || method !in ResponseCachePolicy.METHODS) {
+            return null
+        }
+        return responsePolicy.keyFor(method, params)
+    }
+
+    open fun cachedResponse(key: ResponseCachePolicy.Key): Mono<ByteArray> {
+        return caches.responses?.get(key.key, key.durable) ?: Mono.empty()
+    }
+
+    override fun onUpstreamResponse(method: String, params: CallParams, result: ByteArray) {
+        val list = (params as? ListParams)?.list ?: return
+        // a block the recent blocks missed: keep it for the next requests
+        fillFromResponse(method, list, result)
+        storeResponse(method, list, result)
+    }
+
+    /**
+     * Stores a response from an upstream if it can be cached. The key is resolved again, because the head may have moved,
+     * and the response must be for the expected block.
+     */
+    open fun storeResponse(method: String, params: List<Any?>, result: ByteArray): Boolean {
+        val cache = caches.responses ?: return false
+        val key = responseKey(method, params) ?: return false
+        if (!responsePolicy.accepts(key, result)) {
+            return false
+        }
+        cache.put(key.key, result, key.durable)
+        return true
+    }
+
+    open fun recentBlocksEnabled(): Boolean = caches.recentBlocksEnabled()
+
+    /** true while a client asked this chain for a block by number within [WARMUP_DEMAND_WINDOW] */
+    open fun hasBlockDemand(): Boolean = lastBlockRequestAt > 0 && clock() - lastBlockRequestAt <= WARMUP_DEMAND_WINDOW.toMillis()
+
+    /** called for every client eth_getBlockByNumber: keeps the warm-up running for this chain */
+    open fun noteBlockRequest() {
+        lastBlockRequestAt = clock()
+    }
+
+    /** see [Caches.firstRequest] */
+    open fun firstRequest(height: Long?): Boolean? = caches.firstRequest(height, Defaults.cacheBlocksByNumberDepth)
+
+    /**
+     * An upstream's answer to eth_getBlockByNumber(<n|latest>, false) that the recent blocks didn't have: keep its body,
+     * so the next requests for that block are served from memory. It's served only once the parent walk from a fresh
+     * head reaches it, like any other recent block.
+     */
+    open fun fillFromResponse(method: String, params: List<Any?>, result: ByteArray) {
+        if (!caches.recentBlocksEnabled() || method != "eth_getBlockByNumber" || params.size != 2 || params[1] != false) {
+            return
+        }
+        if (result.isEmpty() || Global.nullValue.contentEquals(result)) {
+            return
+        }
+        val block = try {
+            BlockContainer.fromEthereumJson(result, "response")
+        } catch (e: Exception) {
+            return
+        }
+        if (block.full) {
+            return
+        }
+        caches.cache(Caches.Tag.REQUESTED, block)
+    }
+
+    /** why a recent block by number isn't in memory, for the miss metric */
+    open fun blockMissReason(height: Long?): String = caches.blockMissReason(height, Defaults.cacheBlocksByNumberDepth)
+
+    /**
+     * The canonical block at [height] (null = current head) from memory, without tx details; null on a miss.
+     * See [Caches.canonicalBlockFromMemory].
+     */
+    open fun canonicalBlockFromMemory(height: Long?): BlockContainer? {
+        return caches.canonicalBlockFromMemory(height, Defaults.cacheBlocksByNumberDepth)
+    }
+
+    /**
+     * Puts the body of a new head block, and of its parents that the cache doesn't know yet, into the cache, so
+     * eth_getBlockByNumber for recent blocks can be answered locally. A head received over WebSocket is only a header;
+     * a polled head can skip heights on fast chains. Errors are ignored: a block that isn't fetched now is retried as a
+     * parent of the next head, and a miss simply goes to an upstream.
+     */
+    open fun warmUp(head: BlockContainer) {
+        if (!caches.warmUpEnabled()) {
+            // also when the cache is off for the chain: nothing would be kept, so every head would fetch the whole depth again
+            return
+        }
+        if (!hasBlockDemand()) {
+            // nobody asked this chain for blocks by number lately: fetching every new block would be wasted.
+            // The first requests after a quiet period go to an upstream (and fill the cache), then warm-up resumes.
+            return
+        }
+        if (!isRecent(head, Instant.now())) {
+            // a node catching up emits a head for every block it imports (hundreds per second): old blocks nobody
+            // asks for by number, so don't fetch them
+            return
+        }
+        if (!warming.compareAndSet(false, true)) {
+            return
+        }
+        val start: Mono<BlockId> = if (caches.isBlockChecked(head.hash)) {
+            Mono.justOrEmpty(head.parentHash)
+        } else {
+            fetchBlock(head.hash).mapNotNull { it.parentHash }
+        }
+        start.flatMap { warmParents(it, Defaults.cacheWarmUpDepth) }
+            .onErrorResume { Mono.empty() }
+            .doFinally { warming.set(false) }
+            .subscribe()
+    }
+
+    private fun warmParents(hash: BlockId, depth: Int): Mono<Void> {
+        if (depth <= 0 || caches.isBlockChecked(hash)) {
+            return Mono.empty()
+        }
+        return fetchBlock(hash)
+            .flatMap { block -> block.parentHash?.let { warmParents(it, depth - 1) } ?: Mono.empty() }
+    }
+
+    private fun fetchBlock(hash: BlockId): Mono<BlockContainer> {
+        // the direct reader puts the result into the caches (Tag.REQUESTED)
+        return directReader.blockReader.read(Request(BlockHash.from(hash.value), Selector.UpstreamFilter.default))
+            .map { it.data }
+            .onErrorResume { Mono.empty() }
+    }
+
+    companion object {
+        // recent blocks cover 64 heights, with a margin for the walk
+        const val RECENT_WINDOW = 60
+
+        /** warm-up runs while the chain got a block-by-number request within this window */
+        val WARMUP_DEMAND_WINDOW: Duration = Duration.ofSeconds(60)
+
+        /** heads older than this aren't warmed up: the node that sent them is still syncing */
+        val WARMUP_MAX_AGE: Duration = Duration.ofSeconds(60)
+
+        @JvmStatic
+        fun isRecent(head: BlockContainer, now: Instant): Boolean {
+            return Duration.between(head.timestamp, now) <= WARMUP_MAX_AGE
+        }
     }
 
     override fun isRunning(): Boolean {

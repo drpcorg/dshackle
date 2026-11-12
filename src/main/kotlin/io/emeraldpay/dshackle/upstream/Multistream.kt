@@ -27,6 +27,7 @@ import io.emeraldpay.dshackle.startup.QuorumForLabels
 import io.emeraldpay.dshackle.startup.UpstreamChangeEvent
 import io.emeraldpay.dshackle.upstream.calls.CallMethods
 import io.emeraldpay.dshackle.upstream.calls.CallSelector
+import io.emeraldpay.dshackle.upstream.ethereum.EthereumCachingReader
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundData
 import io.emeraldpay.dshackle.upstream.lowerbound.LowerBoundType
@@ -370,6 +371,14 @@ abstract class Multistream(
         cacheSubscription?.dispose()
         cacheSubscription = head.getFlux().subscribe {
             caches.cache(Caches.Tag.LATEST, it)
+            if (caches.warmUpEnabled()) {
+                // never let the warm-up break the head subscription
+                try {
+                    (getCachingReader() as? EthereumCachingReader)?.warmUp(it)
+                } catch (e: Exception) {
+                    log.debug("Cache warm-up failed for ${it.hash}", e)
+                }
+            }
         }
         caches.setHead(head)
     }
