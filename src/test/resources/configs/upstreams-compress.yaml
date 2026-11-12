@@ -1,0 +1,16 @@
+version: v1
+
+upstreams:
+  - id: local
+    chain: ethereum
+    connection:
+      generic:
+        rpc:
+          url: "http://localhost:8545"
+          compress: false
+  - id: remote
+    chain: ethereum
+    connection:
+      generic:
+        rpc:
+          url: "http://remote:8545"

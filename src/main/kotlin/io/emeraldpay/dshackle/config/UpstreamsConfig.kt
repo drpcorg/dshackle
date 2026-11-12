@@ -138,6 +138,9 @@ data class UpstreamsConfig(
         var basicAuth: AuthConfig.ClientBasicAuth? = null
         var bearerAuth: AuthConfig.ClientBearerAuth? = null
         var tls: AuthConfig.ClientTlsAuth? = null
+
+        // ask the node for compressed (gzip) responses
+        var compress: Boolean = true
     }
 
     data class WsEndpoint(val url: URI) {
