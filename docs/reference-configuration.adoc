@@ -557,6 +557,36 @@ cache:
 
 |===
 
+== Requests config
+
+[source,yaml]
+----
+requests:
+  unstream-bounded: true
+  not-null-max-upstreams: 2
+----
+
+.Requests Config
+[cols="2a,2,5"]
+|===
+| Option | Default Value | Description
+
+| `unstream-bounded`
+| `false`
+| A native call with a chunk size is answered as a stream of chunks, which are not signed and not checked by the quorum. +
+With this option a request that is known to have a small response (a value, a block, logs of a single block, etc.)
+is executed as a regular request, and answered with a single signed message.
+Requests with unbounded responses, like `eth_getLogs` for a range of blocks or traces, are still streamed.
+
+| `not-null-max-upstreams`
+| `0`
+| Methods like `eth_getTransactionByHash` or `eth_getTransactionReceipt` retry a `null` response on another upstream,
+until all upstreams of the blockchain have answered. +
+This option limits it: a `null` is accepted once that many different upstreams answered with it. `0` means no limit.
+Errors are not counted, a failed request is still retried on all upstreams.
+
+|===
+
 [#auth]
 == Authorization
 

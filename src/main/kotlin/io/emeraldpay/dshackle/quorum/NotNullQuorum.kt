@@ -7,7 +7,17 @@ import io.emeraldpay.dshackle.upstream.ChainResponse
 import io.emeraldpay.dshackle.upstream.Upstream
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 
-class NotNullQuorum : CallQuorum {
+/**
+ * Accepts the first non-null result. A null (i.e. tx, receipt or block is not found) is retried on another upstream until
+ * all upstreams have answered, or until [maxNullUpstreams] different upstreams answered null, if it's set
+ * (see `requests.not-null-max-upstreams`). Errors are always retried on all upstreams.
+ */
+class NotNullQuorum(
+    private val maxNullUpstreams: Int = 0,
+) : CallQuorum {
+
+    fun withMaxNullUpstreams(limit: Int): NotNullQuorum = NotNullQuorum(limit)
+
     private var sig: ResponseSigner.Signature? = null
     private var result: ChainResponse? = null
     private var rpcError: ChainCallError? = null
@@ -27,7 +37,8 @@ class NotNullQuorum : CallQuorum {
         allFailed = false
         val receivedNull = response.getResult().isEmpty() || Global.nullValue.contentEquals(response.getResult())
         val upId = upstream.getId()
-        if (seenUpstreams.contains(upId) || !receivedNull || response.hasStream()) {
+        val enoughNulls = maxNullUpstreams > 0 && !seenUpstreams.contains(upId) && seenUpstreams.size + 1 >= maxNullUpstreams
+        if (seenUpstreams.contains(upId) || !receivedNull || response.hasStream() || enoughNulls) {
             sig = signature
             result = response
             resolvers.add(upstream)
