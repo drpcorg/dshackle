@@ -18,10 +18,56 @@ import reactor.core.publisher.Mono
 import reactor.core.publisher.Sinks
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 class EthereumFinalizationDetector : FinalizationDetector {
     companion object {
         private val log = LoggerFactory.getLogger(EthereumFinalizationDetector::class.java)
+
+        val POLL_INTERVAL: Duration = Duration.ofSeconds(15)
+
+        // a tag which didn't move is polled every 2nd tick, then every 4th (30s, 60s), and on every tick again once it moves
+        const val MAX_BACKOFF_TICKS = 4L
+    }
+
+    /**
+     * Polling state per tag. On many chains the finalized (and safe) block moves once in a few minutes,
+     * so most of the polls return the same block. A tag that didn't move is polled less often.
+     */
+    private class PollState {
+        @Volatile
+        var backoff = 1L
+
+        @Volatile
+        var nextTick = 0L
+
+        // when the value was moved by a response to a client request, in that case there is no need to poll
+        @Volatile
+        var externalAt = 0L
+    }
+
+    private val polls = ConcurrentHashMap<FinalizationType, PollState>()
+    private val ticks = AtomicLong()
+
+    /** for tests */
+    var clock: () -> Long = System::currentTimeMillis
+
+    /** true if [type] should be polled on this tick */
+    fun shouldPoll(type: FinalizationType, tick: Long): Boolean {
+        val state = polls.computeIfAbsent(type) { PollState() }
+        if (clock() - state.externalAt < POLL_INTERVAL.toMillis()) {
+            state.nextTick = tick + 1
+            return false
+        }
+        return tick >= state.nextTick
+    }
+
+    /** remember the result of a poll, and back off if the value didn't move */
+    fun polled(type: FinalizationType, tick: Long, height: Long?) {
+        val state = polls.computeIfAbsent(type) { PollState() }
+        val moved = height != null && height > (data[type]?.height ?: 0)
+        state.backoff = if (moved) 1 else minOf(state.backoff * 2, MAX_BACKOFF_TICKS)
+        state.nextTick = tick + state.backoff
     }
 
     val data: ConcurrentHashMap<FinalizationType, FinalizationData> = ConcurrentHashMap()
@@ -47,8 +93,9 @@ class EthereumFinalizationDetector : FinalizationDetector {
             finalizationSink.asFlux(),
             Flux.interval(
                 Duration.ofSeconds(0),
-                Duration.ofSeconds(15),
+                POLL_INTERVAL,
             ).flatMap {
+                val tick = ticks.getAndIncrement()
                 Flux.fromIterable(
                     listOf(
                         Pair(
@@ -69,7 +116,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
                         ),
                     ),
                 ).flatMap { (type, req) ->
-                    if (!disableDetector.getOrDefault(type, false)) {
+                    if (!disableDetector.getOrDefault(type, false) && shouldPoll(type, tick)) {
                         upstream
                             .getIngressReader()
                             .read(req)
@@ -78,6 +125,7 @@ class EthereumFinalizationDetector : FinalizationDetector {
                                 it.requireResult().flatMap { result ->
                                     val block = Global.objectMapper.readValue<BlockJson<TransactionRefJson>>(result)
                                     if (block != null) {
+                                        polled(type, tick, block.number)
                                         Mono.just(FinalizationData(block.number, type))
                                     } else {
                                         Mono.empty()
@@ -106,6 +154,9 @@ class EthereumFinalizationDetector : FinalizationDetector {
     }
 
     override fun addFinalization(finalization: FinalizationData) {
+        if (finalization.height > (data[finalization.type]?.height ?: 0)) {
+            polls.computeIfAbsent(finalization.type) { PollState() }.externalAt = clock()
+        }
         finalizationSink.emitNext(finalization) { _, res -> res == Sinks.EmitResult.FAIL_NON_SERIALIZED }
     }
 

@@ -12,6 +12,8 @@ import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionRefJson
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationType
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -77,6 +79,7 @@ class EthereumFinalizationDetectorTest {
             .expectSubscription()
             .thenAwait(Duration.ofSeconds(0))
             .expectNoEvent(Duration.ofMillis(50))
+            // a null result is dropped before the backoff: polled again on the next tick
             .thenAwait(Duration.ofSeconds(15))
             .expectNoEvent(Duration.ofMillis(50))
             .thenCancel()
@@ -141,7 +144,8 @@ class EthereumFinalizationDetectorTest {
             .thenCancel()
             .verify(Duration.ofSeconds(1))
 
-        verify(reader, times(2)).read(ChainRequest("eth_getBlockByNumber", ListParams("safe", false), 1))
+        // an unparseable answer counts as "didn't move": the next safe poll is 2 ticks later
+        verify(reader, times(1)).read(ChainRequest("eth_getBlockByNumber", ListParams("safe", false), 1))
         verify(reader, times(2)).read(ChainRequest("eth_getBlockByNumber", ListParams("finalized", false), 2))
     }
 
@@ -157,4 +161,39 @@ class EthereumFinalizationDetectorTest {
                 null,
             ),
         )
+
+    @Test
+    fun `polls back off while the value doesn't move and return to every tick when it does`() {
+        val detector = EthereumFinalizationDetector()
+        val type = FinalizationType.FINALIZED_BLOCK
+
+        assertTrue(detector.shouldPoll(type, 0))
+        detector.polled(type, 0, 100) // moved (first value)
+        detector.data[type] = FinalizationData(100, type)
+        assertTrue(detector.shouldPoll(type, 1))
+        detector.polled(type, 1, 100) // same: next in 2 ticks
+        assertFalse(detector.shouldPoll(type, 2))
+        assertTrue(detector.shouldPoll(type, 3))
+        detector.polled(type, 3, 100) // same: next in 4 ticks
+        assertFalse(detector.shouldPoll(type, 6))
+        assertTrue(detector.shouldPoll(type, 7))
+        detector.polled(type, 7, 100) // capped at 4 ticks (60 s)
+        assertFalse(detector.shouldPoll(type, 10))
+        assertTrue(detector.shouldPoll(type, 11))
+        detector.polled(type, 11, 120) // moved: every tick again
+        assertTrue(detector.shouldPoll(type, 12))
+    }
+
+    @Test
+    fun `a poll is skipped right after a client response moved the value`() {
+        val detector = EthereumFinalizationDetector()
+        var now = 1_000_000L
+        detector.clock = { now }
+        val type = FinalizationType.FINALIZED_BLOCK
+
+        detector.addFinalization(FinalizationData(200, type))
+        assertFalse(detector.shouldPoll(type, 0))
+        now += 16_000
+        assertTrue(detector.shouldPoll(type, 1))
+    }
 }
