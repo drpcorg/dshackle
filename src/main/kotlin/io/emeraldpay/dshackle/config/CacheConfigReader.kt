@@ -46,7 +46,11 @@ class CacheConfigReader : YamlConfigReader<CacheConfig>() {
                 getValueAsBool(recent, "enabled")?.let { config.recentBlocks.enabled = it }
                 getValueAsBool(recent, "warm-up")?.let { config.recentBlocks.warmUp = it }
             }
-            if (config.redis == null && !config.recentBlocks.enabled) {
+            getMapping(node, "responses")?.let { responses ->
+                getValueAsBool(responses, "enabled")?.let { config.responses.enabled = it }
+                getValueAsInt(responses, "max-memory-mb")?.takeIf { it > 0 }?.let { config.responses.maxMemoryMb = it }
+            }
+            if (config.redis == null && !config.recentBlocks.enabled && !config.responses.enabled) {
                 return null
             }
             config

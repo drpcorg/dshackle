@@ -557,7 +557,7 @@ cache:
 
 |===
 
-Recent blocks are kept in memory, per blockchain, and it doesn't need Redis:
+Recent blocks and responses are kept in memory, per blockchain, and it doesn't need Redis:
 
 [source,yaml]
 ----
@@ -565,9 +565,12 @@ cache:
   recent-blocks:
     enabled: true
     warm-up: true
+  responses:
+    enabled: true
+    max-memory-mb: 32
 ----
 
-.Recent Blocks Cache
+.Recent Blocks and Responses Cache
 [cols="2a,2,5"]
 |===
 | Option | Default Value | Description
@@ -583,6 +586,18 @@ and only while new heads keep coming. Otherwise the request goes to an upstream 
 | Fetch the body of a new head block before it's requested (one `eth_getBlockByHash` per block), because a head
 received over WebSocket has no transactions. It's done only while the blockchain is getting `eth_getBlockByNumber` requests.
 If disabled, a block gets to the cache with the first response from an upstream.
+
+| `responses.enabled`
+| `false`
+| Cache responses that can't change: +
+- `eth_getBlockByNumber`, `eth_getBlockByHash` (with transactions), `eth_getBlockReceipts` and `eth_getLogs` for a single block,
+with the block hash as a part of the key, or for a block by number if it's finalized +
+- `eth_call`, `eth_getBalance`, `eth_getCode`, `eth_getStorageAt` and `eth_getTransactionCount` at a block hash or at a finalized block +
+An entry is kept in memory for 10 minutes. Entries for finalized blocks are also stored in Redis for 1 hour, if it's configured.
+
+| `responses.max-memory-mb`
+| `32`
+| Memory limit for the responses cache, per blockchain
 
 |===
 

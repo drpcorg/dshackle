@@ -61,6 +61,14 @@ class EthereumLocalReader(
             }
             // a miss: goes the usual way
         }
+        val responseKey = (key.params as? ListParams)?.let { reader.responseKey(key.method, it.list) }
+        if (responseKey != null) {
+            // a miss is an empty Mono, then the request goes to an upstream and its response fills the cache
+            return reader.cachedResponse(responseKey)
+                .doOnNext { responseCounter(key.method, "hit").increment() }
+                .switchIfEmpty(Mono.fromRunnable { responseCounter(key.method, "miss").increment() })
+                .map { ChainResponse(it, null, emptyList()) }
+        }
         return commonRequests(key)?.switchIfEmpty {
             // we need to explicitly return null to prevent executeOnRemote
             // for example
@@ -90,6 +98,16 @@ class EthereumLocalReader(
             Counter.builder("local.cache.block_first_request")
                 .description("the first eth_getBlockByNumber(false) request for each recent block: in memory already (hit) or not (miss)")
                 .tag("chain", reader.chainCode())
+                .tag("result", result)
+                .register(Metrics.globalRegistry)
+        }
+
+    private fun responseCounter(method: String, result: String): Counter =
+        counters.computeIfAbsent("r|$method|$result") {
+            Counter.builder("local.cache.response")
+                .description("cacheable requests answered from (hit) or not found in (miss) the responses cache")
+                .tag("chain", reader.chainCode())
+                .tag("method", method)
                 .tag("result", result)
                 .register(Metrics.globalRegistry)
         }

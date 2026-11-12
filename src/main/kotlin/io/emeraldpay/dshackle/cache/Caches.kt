@@ -15,6 +15,7 @@
  */
 package io.emeraldpay.dshackle.cache
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.config.CacheConfig
 import io.emeraldpay.dshackle.data.BlockContainer
@@ -45,6 +46,7 @@ open class Caches(
     private val redisHeightByHashCache: HeightByHashRedisCache?,
     private val cacheEnabled: Boolean,
     private val config: CacheConfig = CacheConfig(),
+    private val chain: Chain = Chain.UNSPECIFIED,
 ) {
 
     companion object {
@@ -102,6 +104,13 @@ open class Caches(
 
     /** for tests */
     var clock: () -> Long = System::currentTimeMillis
+
+    /** responses that can't change, see [ResponseCache]; null if it's not enabled */
+    val responses: ResponseCache? = if (cacheEnabled && config.responses.enabled) {
+        ResponseCache(config.responses.maxMemoryMb * 1024L * 1024L, chain)
+    } else {
+        null
+    }
 
     private val blocksByHash: Reader<BlockId, BlockContainer>
     private val txsByHash: Reader<TxId, TxContainer>
@@ -365,6 +374,12 @@ open class Caches(
         return known.requested.compareAndSet(false, true)
     }
 
+    /** the height of a recent block, if it was seen */
+    open fun recentHeight(hash: BlockId): Long? = recent[hash]?.height
+
+    /** the current height, while new heads keep coming */
+    open fun headHeight(): Long? = if (isHeadFresh()) head?.getCurrentHeight() else null
+
     fun evict(blockId: BlockId) {
         var evicted = false
         // Redis commands are lazy, nothing is deleted without a subscription
@@ -437,9 +452,15 @@ open class Caches(
         private var redisHeightByHashCache: HeightByHashRedisCache? = null
         private var cacheEnabled: Boolean = true
         private var config: CacheConfig = CacheConfig()
+        private var chain: Chain = Chain.UNSPECIFIED
 
         fun setConfig(config: CacheConfig): Builder {
             this.config = config
+            return this
+        }
+
+        fun setChain(chain: Chain): Builder {
+            this.chain = chain
             return this
         }
 
@@ -503,7 +524,7 @@ open class Caches(
             }
             return Caches(
                 blocksByHash!!, blocksByHeight!!, txsByHash!!, receipts!!,
-                redisBlocksByHash, redisTxsByHash, redisReceiptCache, redisHeightByHashCache, cacheEnabled, config,
+                redisBlocksByHash, redisTxsByHash, redisReceiptCache, redisHeightByHashCache, cacheEnabled, config, chain,
             )
         }
     }

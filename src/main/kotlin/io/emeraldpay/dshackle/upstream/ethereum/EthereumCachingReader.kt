@@ -122,10 +122,44 @@ open class EthereumCachingReader(
 
     open fun chainCode(): String = up.getChain().chainCode
 
+    private val responsePolicy = ResponseCachePolicy(
+        { height -> caches.canonicalHash(height, RECENT_WINDOW) },
+        { hash -> caches.recentHeight(hash) },
+        { caches.headHeight() },
+        { up.getFinalizations().firstOrNull { it.type == FinalizationType.FINALIZED_BLOCK }?.height },
+    )
+
+    /** a key for the cache if the response to the request can't change, or null (see [ResponseCachePolicy]) */
+    open fun responseKey(method: String, params: List<Any?>): ResponseCachePolicy.Key? {
+        if (caches.responses == null || method !in ResponseCachePolicy.METHODS) {
+            return null
+        }
+        return responsePolicy.keyFor(method, params)
+    }
+
+    open fun cachedResponse(key: ResponseCachePolicy.Key): Mono<ByteArray> {
+        return caches.responses?.get(key.key, key.durable) ?: Mono.empty()
+    }
+
     override fun onUpstreamResponse(method: String, params: CallParams, result: ByteArray) {
         val list = (params as? ListParams)?.list ?: return
         // a block the recent blocks missed: keep it for the next requests
         fillFromResponse(method, list, result)
+        storeResponse(method, list, result)
+    }
+
+    /**
+     * Stores a response from an upstream if it can be cached. The key is resolved again, because the head may have moved,
+     * and the response must be for the expected block.
+     */
+    open fun storeResponse(method: String, params: List<Any?>, result: ByteArray): Boolean {
+        val cache = caches.responses ?: return false
+        val key = responseKey(method, params) ?: return false
+        if (!responsePolicy.accepts(key, result)) {
+            return false
+        }
+        cache.put(key.key, result, key.durable)
+        return true
     }
 
     open fun recentBlocksEnabled(): Boolean = caches.recentBlocksEnabled()
@@ -226,6 +260,9 @@ open class EthereumCachingReader(
     }
 
     companion object {
+        // recent blocks cover 64 heights, with a margin for the walk
+        const val RECENT_WINDOW = 60
+
         /** warm-up runs while the chain got a block-by-number request within this window */
         val WARMUP_DEMAND_WINDOW: Duration = Duration.ofSeconds(60)
 

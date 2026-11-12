@@ -89,7 +89,7 @@ open class CachesFactory(
     }
 
     private fun initCache(chain: Chain): Caches {
-        val caches = Caches.newBuilder().setConfig(cacheConfig)
+        val caches = Caches.newBuilder().setConfig(cacheConfig).setChain(chain)
         val disableCacheNetworks = setOf(
             Chain.ZIRCUIT__MAINNET,
             Chain.ZIRCUIT__TESTNET,
@@ -105,7 +105,9 @@ open class CachesFactory(
             caches.setReceipts(ReceiptRedisCache(redis.reactive(), chain))
             caches.setHeightByHash(HeightByHashRedisCache(redis.reactive(), chain))
         }
-        return caches.build()
+        return caches.build().also { built ->
+            redis?.let { built.responses?.redis = it.reactive() }
+        }
     }
 
     fun getCaches(chain: Chain): Caches {

@@ -70,4 +70,28 @@ class CacheConfigReaderSpec extends Specification {
         !act.recentBlocks.enabled
         act.recentBlocks.warmUp
     }
+
+    def "Read responses cache"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/cache-responses.yaml")
+        when:
+        def act = reader.read(config)
+
+        then:
+        act.redis == null
+        act.responses.enabled
+        act.responses.maxMemoryMb == 64
+        !act.recentBlocks.enabled
+    }
+
+    def "Responses cache is off by default"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/cache-redis-full.yaml")
+        when:
+        def act = reader.read(config)
+
+        then:
+        !act.responses.enabled
+        act.responses.maxMemoryMb == 32
+    }
 }

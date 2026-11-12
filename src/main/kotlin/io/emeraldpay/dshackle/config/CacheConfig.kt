@@ -19,6 +19,7 @@ class CacheConfig {
 
     var redis: Redis? = null
     var recentBlocks: RecentBlocks = RecentBlocks()
+    var responses: Responses = Responses()
 
     /**
      * Serve `eth_getBlockByNumber(<recent number or latest>, false)` from memory.
@@ -33,6 +34,21 @@ class CacheConfig {
         var enabled: Boolean = false,
         // fetch the body of new head blocks ahead of requests, while the chain gets block-by-number requests
         var warmUp: Boolean = true,
+    )
+
+    /**
+     * Cache responses that can't change (blocks, receipts and logs of one block, state at a fixed block).
+     * ```
+     * cache:
+     *   responses:
+     *     enabled: true
+     *     max-memory-mb: 32
+     * ```
+     */
+    class Responses(
+        var enabled: Boolean = false,
+        // per blockchain
+        var maxMemoryMb: Int = 32,
     )
 
     class Redis(

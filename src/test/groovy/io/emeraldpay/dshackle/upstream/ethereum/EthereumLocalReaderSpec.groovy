@@ -8,6 +8,7 @@ import io.emeraldpay.dshackle.upstream.ChainRequest
 import io.emeraldpay.dshackle.upstream.calls.DefaultEthereumMethods
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import org.apache.commons.collections4.functors.ConstantFactory
+import reactor.core.publisher.Mono
 import spock.lang.Specification
 
 import java.time.Duration
@@ -71,6 +72,30 @@ class EthereumLocalReaderSpec extends Specification {
         def act = router.read(new ChainRequest("eth_getBlockByNumber", new ListParams(["0x64", false]))).block(Duration.ofSeconds(1))
         then:
         0 * reader.canonicalBlockFromMemory(_)
+        act == null
+    }
+
+    def "A response is served from the responses cache"() {
+        setup:
+        def key = new ResponseCachePolicy.Key("key", null, 100L, true, true, ResponseCachePolicy.Check.VALUE)
+        EthereumCachingReader reader = Mock() {
+            _ * chainCode() >> "ETHEREUM"
+        }
+        def router = new EthereumLocalReader(reader, new DefaultEthereumMethods(Chain.ETHEREUM__MAINNET))
+        def request = new ChainRequest("eth_getBalance", new ListParams(["0xe0aadb0a012dbcdc529c4c743d3e0385a0b54d3d", "0x64"]))
+
+        when:
+        def act = router.read(request).block(Duration.ofSeconds(1))
+        then:
+        1 * reader.responseKey("eth_getBalance", _) >> key
+        1 * reader.cachedResponse(key) >> Mono.just('"0x1"'.bytes)
+        new String(act.getResult()) == '"0x1"'
+
+        when: "it's not in the cache, the request goes to an upstream"
+        act = router.read(request).block(Duration.ofSeconds(1))
+        then:
+        1 * reader.responseKey("eth_getBalance", _) >> key
+        1 * reader.cachedResponse(key) >> Mono.empty()
         act == null
     }
 
