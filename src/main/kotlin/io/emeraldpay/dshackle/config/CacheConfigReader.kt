@@ -42,7 +42,11 @@ class CacheConfigReader : YamlConfigReader<CacheConfig>() {
                     config.redis = redis
                 }
             }
-            if (config.redis == null) {
+            getMapping(node, "recent-blocks")?.let { recent ->
+                getValueAsBool(recent, "enabled")?.let { config.recentBlocks.enabled = it }
+                getValueAsBool(recent, "warm-up")?.let { config.recentBlocks.warmUp = it }
+            }
+            if (config.redis == null && !config.recentBlocks.enabled) {
                 return null
             }
             config

@@ -33,5 +33,11 @@ class Defaults {
         val grpcServerMaxConnectionIdle: Long = 3600
         val multistreamUnavailableMethodDisableDuration: Long = 20 // minutes
         val nativeSubscribeHeartbeatInterval: Duration = Duration.ofSeconds(30)
+
+        /** how deep below the current head the cache may answer by number (bounded by the 64-block memory cache) */
+        const val cacheBlocksByNumberDepth: Int = 32
+
+        /** how many missing parent blocks a single head update may fetch to fill the cache */
+        const val cacheWarmUpDepth: Int = 8
     }
 }

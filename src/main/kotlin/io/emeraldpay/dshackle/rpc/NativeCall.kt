@@ -497,6 +497,11 @@ open class NativeCall(
     ): CallResult {
         val bytes = ctx.resultDecorator.processResult(it)
         validateResult(bytes, "remote", ctx)
+        try {
+            ctx.upstream.getCachingReader()?.onUpstreamResponse(ctx.payload.method, ctx.payload.params, bytes)
+        } catch (e: Exception) {
+            log.debug("Response of {} is not cached: {}", ctx.payload.method, e.message)
+        }
         return CallResult.ok(ctx.id, ctx.nonce, bytes, it.signature, resolvedUpstreamData, ctx, it.responseHeaders)
     }
 
