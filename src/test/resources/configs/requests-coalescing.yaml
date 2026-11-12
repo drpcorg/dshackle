@@ -1,0 +1,3 @@
+requests:
+  coalescing:
+    enabled: true

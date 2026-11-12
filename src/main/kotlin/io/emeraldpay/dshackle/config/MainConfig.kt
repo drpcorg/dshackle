@@ -42,6 +42,7 @@ class MainConfig {
     var accessLogConfig: AccessLogConfig = AccessLogConfig.default()
     var health: HealthConfig = HealthConfig.default()
     var compression: CompressionConfig = CompressionConfig.default()
+    var requests: RequestsConfig = RequestsConfig.default()
     var chains: ChainsConfig = ChainsConfig.default()
     var authorization: AuthorizationConfig = AuthorizationConfig.default()
 
