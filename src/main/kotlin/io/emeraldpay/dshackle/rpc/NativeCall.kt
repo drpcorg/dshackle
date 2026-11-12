@@ -28,6 +28,7 @@ import io.emeraldpay.dshackle.SilentException
 import io.emeraldpay.dshackle.config.MainConfig
 import io.emeraldpay.dshackle.quorum.CallQuorum
 import io.emeraldpay.dshackle.quorum.NotLaggingQuorum
+import io.emeraldpay.dshackle.quorum.NotNullQuorum
 import io.emeraldpay.dshackle.reader.RequestReader
 import io.emeraldpay.dshackle.reader.RequestReaderFactory
 import io.emeraldpay.dshackle.reader.RequestReaderFactory.ReaderData
@@ -72,6 +73,7 @@ open class NativeCall(
 
     private val passthrough = config.passthrough
     private val unstreamBounded = config.requests.unstreamBounded
+    private val notNullMaxUpstreams = config.requests.notNullMaxUpstreams
     private val unstreamedMetric = Counter.builder("request.grpc.unstreamed")
         .description("Number of stream requests with a bounded response that were executed as a regular request")
         .register(Metrics.globalRegistry)
@@ -344,6 +346,7 @@ open class NativeCall(
                 .forLabels(Selector.convertToMatcher(request.selector))
 
             val callQuorum = availableMethods.createQuorumFor(method) // can be null in tests
+                .let { if (it is NotNullQuorum && notNullMaxUpstreams > 0) it.withMaxNullUpstreams(notNullMaxUpstreams) else it }
             // for NotLaggingQuorum it makes sense to select compatible upstreams before the call
             if (callQuorum is NotLaggingQuorum) {
                 val lag = callQuorum.maxLag

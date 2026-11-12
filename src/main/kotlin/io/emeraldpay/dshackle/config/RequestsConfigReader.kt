@@ -11,6 +11,9 @@ class RequestsConfigReader : YamlConfigReader<RequestsConfig>() {
             getValueAsBool(node, "unstream-bounded")?.let {
                 config.unstreamBounded = it
             }
+            getValueAsInt(node, "not-null-max-upstreams")?.takeIf { it >= 0 }?.let {
+                config.notNullMaxUpstreams = it
+            }
         }
         return config
     }

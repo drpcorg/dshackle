@@ -14,6 +14,7 @@ class RequestsConfigReaderSpec extends Specification {
 
         then:
         !act.unstreamBounded
+        act.notNullMaxUpstreams == 0
     }
 
     def "Read unstream-bounded"() {
@@ -24,5 +25,16 @@ class RequestsConfigReaderSpec extends Specification {
 
         then:
         act.unstreamBounded
+    }
+
+    def "Read not-null-max-upstreams"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/requests-not-null.yaml")
+        when:
+        def act = reader.read(config)
+
+        then:
+        act.notNullMaxUpstreams == 2
+        !act.unstreamBounded
     }
 }

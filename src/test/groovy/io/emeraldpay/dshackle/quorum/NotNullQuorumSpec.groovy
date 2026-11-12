@@ -91,4 +91,52 @@ class NotNullQuorumSpec extends Specification {
         quorum.response.result == value
         quorum.signature == new ResponseSigner.Signature("sig1".bytes, "test", 100)
     }
+
+    def "A null is accepted after the configured number of different upstreams"() {
+        setup:
+        def up = Mock(Upstream) { _ * getId() >> "id" }
+        def up1 = Mock(Upstream) { _ * getId() >> "id1" }
+        def value = "null".getBytes()
+        def quorum = new NotNullQuorum(2)
+
+        when:
+        def res = quorum.record(new ChainResponse(value, null), null, up)
+        def res1 = quorum.record(new ChainResponse(value, null), null, up1)
+        then:
+        !res
+        res1
+        quorum.isResolved()
+        quorum.response.result == value
+    }
+
+    def "A value after the first null still wins"() {
+        setup:
+        def up = Mock(Upstream) { _ * getId() >> "id" }
+        def up1 = Mock(Upstream) { _ * getId() >> "id1" }
+        def quorum = new NotNullQuorum(2)
+
+        when:
+        def res = quorum.record(new ChainResponse("null".bytes, null), null, up)
+        def res1 = quorum.record(new ChainResponse("{\"a\":1}".bytes, null), null, up1)
+        then:
+        !res
+        res1
+        new String(quorum.response.result) == '{"a":1}'
+    }
+
+    def "A value after errors still wins"() {
+        setup:
+        def up = Mock(Upstream) { _ * getId() >> "id" }
+        def up1 = Mock(Upstream) { _ * getId() >> "id1" }
+        def up2 = Mock(Upstream) { _ * getId() >> "id2" }
+        def quorum = new NotNullQuorum(2)
+
+        when:
+        quorum.record(new ChainException(10, "error"), null, up)
+        quorum.record(new ChainException(10, "error"), null, up1)
+        def res = quorum.record(new ChainResponse("{\"a\":1}".bytes, null), null, up2)
+        then:
+        res
+        quorum.isResolved()
+    }
 }
