@@ -183,7 +183,9 @@ jib {
     }
     container {
         creationTime = 'USE_CURRENT_TIMESTAMP'
-        jvmFlags = ['-XX:+UseG1GC', '-XX:+ExitOnOutOfMemoryError', '-Xms1024M', '-XX:NativeMemoryTracking=summary', '-XX:+UnlockDiagnosticVMOptions', '--enable-preview']
+        // -XX:-UseBASE64Intrinsics mitigates CVE-2026-114938 (HotSpot AVX-512 Base64 decode intrinsic);
+        // drop it once the base image ships a patched JDK (Temurin 25.0.5.1+)
+        jvmFlags = ['-XX:+UseG1GC', '-XX:+ExitOnOutOfMemoryError', '-Xms1024M', '-XX:NativeMemoryTracking=summary', '-XX:+UnlockDiagnosticVMOptions', '-XX:-UseBASE64Intrinsics', '--enable-preview']
         mainClass = 'io.emeraldpay.dshackle.StarterKt'
         args = []
         ports = ['2448', '2449', '8545']
