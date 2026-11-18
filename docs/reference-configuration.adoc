@@ -557,6 +557,35 @@ cache:
 
 |===
 
+Recent blocks are kept in memory, per blockchain, and it doesn't need Redis:
+
+[source,yaml]
+----
+cache:
+  recent-blocks:
+    enabled: true
+    warm-up: true
+----
+
+.Recent Blocks Cache
+[cols="2a,2,5"]
+|===
+| Option | Default Value | Description
+
+| `recent-blocks.enabled`
+| `false`
+| Answer `eth_getBlockByNumber(<number or latest>, false)` for the blocks near the head (up to 32 blocks) from memory. +
+A block is returned only if it can be reached from the current head by parent hashes, so a block replaced by a reorg is not returned,
+and only while new heads keep coming. Otherwise the request goes to an upstream as usual.
+
+| `recent-blocks.warm-up`
+| `true`
+| Fetch the body of a new head block before it's requested (one `eth_getBlockByHash` per block), because a head
+received over WebSocket has no transactions. It's done only while the blockchain is getting `eth_getBlockByNumber` requests.
+If disabled, a block gets to the cache with the first response from an upstream.
+
+|===
+
 [#auth]
 == Authorization
 

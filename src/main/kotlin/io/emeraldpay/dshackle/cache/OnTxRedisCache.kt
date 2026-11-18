@@ -60,6 +60,10 @@ abstract class OnTxRedisCache<T : Any>(
     }
 
     fun evict(container: BlockContainer): Mono<Void> {
+        if (container.transactions.isEmpty()) {
+            // DEL needs at least one key
+            return Mono.empty()
+        }
         return Mono.just(container)
             .map { block ->
                 block.transactions.map {

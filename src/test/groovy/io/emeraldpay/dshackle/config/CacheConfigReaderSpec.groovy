@@ -47,4 +47,27 @@ class CacheConfigReaderSpec extends Specification {
         //later may be not null if we support something else besides Redis
         act == null
     }
+
+    def "Read recent blocks without redis"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/cache-recent-blocks.yaml")
+        when:
+        def act = reader.read(config)
+
+        then:
+        act.redis == null
+        act.recentBlocks.enabled
+        !act.recentBlocks.warmUp
+    }
+
+    def "Recent blocks are off by default"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/cache-redis-full.yaml")
+        when:
+        def act = reader.read(config)
+
+        then:
+        !act.recentBlocks.enabled
+        act.recentBlocks.warmUp
+    }
 }
