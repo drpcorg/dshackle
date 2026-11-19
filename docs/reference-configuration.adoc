@@ -557,6 +557,38 @@ cache:
 
 |===
 
+== Requests config
+
+[source,yaml]
+----
+requests:
+  coalescing:
+    enabled: true
+  unstream-bounded: true
+----
+
+.Requests Config
+[cols="2a,2,5"]
+|===
+| Option | Default Value | Description
+
+| `coalescing.enabled`
+| `false`
+| Identical read requests which are in flight at the same moment are executed as one request to an upstream. +
+Each of the callers gets the response signed for its own nonce. If that's not possible (the signature is disabled, or the response
+is signed by a remote Dshackle) the request is executed on its own. +
+Note that a caller may get a response to a request that was sent to the upstream right before its own request. Requests for streamed
+responses are never coalesced.
+
+| `unstream-bounded`
+| `false`
+| A native call with a chunk size is answered as a stream of chunks, which are not signed and not checked by the quorum. +
+With this option a request that is known to have a small response (a value, a block, logs of a single block, etc.)
+is executed as a regular request, and answered with a single signed message.
+Requests with unbounded responses, like `eth_getLogs` for a range of blocks or traces, are still streamed.
+
+|===
+
 [#auth]
 == Authorization
 

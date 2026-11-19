@@ -45,11 +45,14 @@ import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcException
 import io.emeraldpay.dshackle.upstream.ethereum.rpc.RpcResponseError
 import io.emeraldpay.dshackle.upstream.finalization.FinalizationData
 import io.emeraldpay.dshackle.upstream.rpcclient.CallParams
+import io.emeraldpay.dshackle.upstream.rpcclient.JsonRpcParams
 import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import io.emeraldpay.dshackle.upstream.rpcclient.ObjectParams
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
+import io.emeraldpay.dshackle.upstream.signature.RsaSigner
 import io.emeraldpay.dshackle.upstream.stream.Chunk
+import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Metrics
 import org.apache.commons.lang3.StringUtils
 import org.reactivestreams.Publisher
@@ -70,8 +73,15 @@ open class NativeCall(
     private val objectMapper: ObjectMapper = Global.objectMapper
 
     private val passthrough = config.passthrough
+    private val coalescing = config.requests.coalescing
+    private val unstreamBounded = config.requests.unstreamBounded
+    private val unstreamedMetric = Counter.builder("request.grpc.unstreamed")
+        .description("Number of stream requests with a bounded response that were executed as a regular request")
+        .register(Metrics.globalRegistry)
 
     var requestReaderFactory: RequestReaderFactory = RequestReaderFactory.default()
+
+    private val singleFlight = SingleFlight<RequestReader.Result>()
 
     open fun nativeCall(requestMono: Mono<BlockchainOuterClass.NativeCallRequest>): Flux<BlockchainOuterClass.NativeCallReplyItem> {
         return nativeCallResult(requestMono)
@@ -454,9 +464,34 @@ open class NativeCall(
         if (isRipple) {
             streamRequest = false
         }
+        if (streamRequest && unstreamBounded && DefaultEthereumMethods.hasBoundedResponse(ctx.payload.method, ctx.payload.params)) {
+            // a small response doesn't need to be streamed, and as a regular response it's signed and checked by the quorum
+            streamRequest = false
+            unstreamedMetric.increment()
+        }
 
-        return reader
-            .read(ctx.payload.toChainRequest(ctx.nonce, ctx.forwardedSelector, streamRequest))
+        val request = ctx.payload.toChainRequest(ctx.nonce, ctx.forwardedSelector, streamRequest)
+        val key = if (isRipple) null else coalescingKey(ctx, streamRequest)
+        val read: Mono<RequestReader.Result> = if (key == null) {
+            reader.read(request)
+        } else {
+            val (shared, leader) = singleFlight.run(key) { reader.read(request) }
+            if (leader) {
+                shared
+            } else {
+                shared.flatMap { result ->
+                    val own = shareWith(ctx, result)
+                    if (own != null) {
+                        SingleFlight.countCoalesced(ctx.upstream.getChain().chainCode, ctx.payload.method)
+                        Mono.just(own)
+                    } else {
+                        reader.read(request)
+                    }
+                }
+            }
+        }
+
+        return read
             .map {
                 val resolvedUpstreamData = it.resolvedUpstreamData.ifEmpty {
                     ctx.upstream.getUpstreamSettingsData()?.run { listOf(this) } ?: emptyList()
@@ -488,6 +523,62 @@ open class NativeCall(
                     }
                 },
             )
+    }
+
+    /**
+     * A key of the request if it can share an identical in-flight request, or null. It's only for idempotent reads that
+     * don't depend on the caller, with nothing "pending", and only with the same selector, matcher and the default sort.
+     */
+    private fun coalescingKey(ctx: ValidCallContext<ParsedCallDetails>, streamRequest: Boolean): String? {
+        if (!coalescing) {
+            return null
+        }
+        val chain = ctx.upstream.getChain().chainCode
+        val method = ctx.payload.method
+        if (method !in DefaultEthereumMethods.coalescibleMethods) {
+            return null
+        }
+        val skip = when {
+            streamRequest -> "stream"
+            ctx.upstreamFilter.sort !== Selector.Sort.default -> "sort"
+            ctx.payload.params !is JsonRpcParams -> "params"
+            else -> null
+        }
+        if (skip != null) {
+            SingleFlight.countChecked(chain, skip)
+            return null
+        }
+        val json = String((ctx.payload.params as JsonRpcParams).toJson(0, method))
+        if (json.contains("\"pending\"")) {
+            SingleFlight.countChecked(chain, "pending")
+            return null
+        }
+        SingleFlight.countChecked(chain, "eligible")
+        return "$chain|$json|${ctx.upstreamFilter.matcher.describeInternal()}|${ctx.forwardedSelector}"
+    }
+
+    /**
+     * The result of the leader for a follower of a coalesced request, or null if it can't be given to this caller.
+     * A signature is made for the nonce of the caller, so a follower with a nonce needs its own signature, which is
+     * possible only when this instance signs the responses (i.e. not for a signature provided by a remote Dshackle,
+     * and not with signing disabled). With null the follower executes its own request.
+     */
+    private fun shareWith(ctx: ValidCallContext<ParsedCallDetails>, result: RequestReader.Result): RequestReader.Result? {
+        val nonce = ctx.nonce
+        val signature = when {
+            nonce == null -> null
+            !signer.enabled -> return null
+            else -> {
+                val leader = result.signature
+                val localKey = (signer as? RsaSigner)?.keyId
+                if (leader != null && localKey != null && leader.keyId != localKey) {
+                    return null
+                }
+                val source = leader?.upstreamId ?: result.resolvedUpstreamData.firstOrNull()?.id ?: return null
+                signer.sign(nonce, result.value, source)
+            }
+        }
+        return RequestReader.Result(result.value, signature, result.quorum, result.resolvedUpstreamData, result.stream, result.responseHeaders)
     }
 
     private fun callResult(
