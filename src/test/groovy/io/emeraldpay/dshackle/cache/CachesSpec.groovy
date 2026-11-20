@@ -16,6 +16,7 @@
 package io.emeraldpay.dshackle.cache
 
 
+import io.emeraldpay.dshackle.Chain
 import io.emeraldpay.dshackle.Global
 import io.emeraldpay.dshackle.data.BlockContainer
 import io.emeraldpay.dshackle.data.BlockId
@@ -30,6 +31,7 @@ import io.emeraldpay.dshackle.upstream.ethereum.json.BlockJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionReceiptJson
 import io.emeraldpay.dshackle.upstream.ethereum.json.TransactionRefJson
+import io.lettuce.core.api.reactive.RedisReactiveCommands
 import reactor.core.publisher.Mono
 import spock.lang.Specification
 
@@ -124,6 +126,71 @@ class CachesSpec extends Specification {
         1 * heightCache.add(block2) >> block1.hash
         1 * blocksCache.get(block1.hash) >> null
         1 * txCache.evict(block1.hash)
+    }
+
+    def "Evict from redis if block updated"() {
+        setup:
+        RedisReactiveCommands<String, byte[]> redis = Mock()
+        def caches = Caches.newBuilder()
+                .setBlockByHash(new BlocksRedisCache(redis, Chain.ETHEREUM__MAINNET))
+                .setTxByHash(new TxRedisCache(redis, Chain.ETHEREUM__MAINNET))
+                .setReceipts(new ReceiptRedisCache(redis, Chain.ETHEREUM__MAINNET))
+                .build()
+        def deleted = []
+
+        def block1 = new BlockJson()
+        block1.number = 100
+        block1.hash = BlockHash.from(hash1)
+        block1.totalDifficulty = BigInteger.ONE
+        block1.timestamp = Instant.now()
+        block1.transactions = [new TransactionRefJson(TransactionId.from(hash1)), new TransactionRefJson(TransactionId.from(hash2))]
+        block1.parentHash = BlockHash.from(hash1)
+        block1 = BlockContainer.from(block1)
+
+        def block2 = new BlockJson()
+        block2.number = 100
+        block2.hash = BlockHash.from(hash2)
+        block2.totalDifficulty = BigInteger.ONE
+        block2.timestamp = Instant.now()
+        block2.transactions = [new TransactionRefJson(TransactionId.from(hash2))]
+        block2.parentHash = BlockHash.from(hash1)
+        block2 = BlockContainer.from(block2)
+
+        when:
+        caches.cache(Caches.Tag.LATEST, block1)
+        caches.cache(Caches.Tag.LATEST, block1)
+        then:
+        0 * redis.del(*_)
+
+        when:
+        caches.cache(Caches.Tag.LATEST, block2)
+        then:
+        3 * redis.del(*_) >> { args ->
+            deleted.addAll(args[0] as List)
+            Mono.fromSupplier { 1L }
+        }
+        deleted.collect { it.split(":")[0] }.sort() == ["block", "tx", "tx", "tx-receipt", "tx-receipt"]
+        deleted.findAll { it.endsWith(hash1.substring(2)) }.size() == 3
+        deleted.findAll { it.endsWith(hash2.substring(2)) }.size() == 2
+    }
+
+    def "Evict of a block without txes doesn't call redis with no keys"() {
+        setup:
+        RedisReactiveCommands<String, byte[]> redis = Mock()
+        def cache = new TxRedisCache(redis, Chain.ETHEREUM__MAINNET)
+
+        def block = new BlockJson()
+        block.number = 100
+        block.hash = BlockHash.from(hash1)
+        block.totalDifficulty = BigInteger.ONE
+        block.timestamp = Instant.now()
+        block.transactions = []
+        block.parentHash = BlockHash.from(hash2)
+
+        when:
+        cache.evict(BlockContainer.from(block)).block()
+        then:
+        0 * redis.del(*_)
     }
 
     def "Do not cache txes of a requested block if it's just id"() {
