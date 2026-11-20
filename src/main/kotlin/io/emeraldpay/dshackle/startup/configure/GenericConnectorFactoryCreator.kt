@@ -85,6 +85,7 @@ open class GenericConnectorFactoryCreator(
                 httpScheduler,
                 customHeaders,
                 conn.bearerAuth,
+                endpoint.compress,
             )
         }
     }

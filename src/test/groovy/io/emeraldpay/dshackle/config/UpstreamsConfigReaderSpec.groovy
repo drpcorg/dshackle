@@ -75,6 +75,16 @@ class UpstreamsConfigReaderSpec extends Specification {
         }
     }
 
+    def "Parse rpc compress option"() {
+        setup:
+        def config = this.class.getClassLoader().getResourceAsStream("configs/upstreams-compress.yaml")
+        when:
+        def act = reader.readInternal(config)
+        then:
+        !((UpstreamsConfig.RpcConnection) act.upstreams.get(0).connection).rpc.compress
+        ((UpstreamsConfig.RpcConnection) act.upstreams.get(1).connection).rpc.compress
+    }
+
     def "Parse config with bearer auth"() {
         setup:
         def config = this.class.getClassLoader().getResourceAsStream("configs/upstreams-bearer-auth.yaml")

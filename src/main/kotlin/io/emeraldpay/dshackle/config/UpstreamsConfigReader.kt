@@ -149,6 +149,7 @@ class UpstreamsConfigReader(
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
                 http.bearerAuth = readBearerAuth(node, http.basicAuth, url)
                 http.tls = authConfigReader.readClientTls(node)
+                getValueAsBool(node, "compress")?.let { http.compress = it }
                 connection.esplora = http
             }
         }
@@ -197,6 +198,7 @@ class UpstreamsConfigReader(
                 http.basicAuth = authConfigReader.readClientBasicAuth(node)
                 http.bearerAuth = readBearerAuth(node, http.basicAuth, url)
                 http.tls = authConfigReader.readClientTls(node)
+                getValueAsBool(node, "compress")?.let { http.compress = it }
                 http
             }
         }

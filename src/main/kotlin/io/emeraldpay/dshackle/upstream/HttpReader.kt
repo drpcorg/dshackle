@@ -29,6 +29,7 @@ abstract class HttpReader(
     tlsCAAuth: ByteArray? = null,
     customHeaders: Map<String, String> = emptyMap(),
     bearerAuth: AuthConfig.ClientBearerAuth? = null,
+    compress: Boolean = true,
 ) : ChainReader {
 
     constructor() : this("", 1500, 1000, null)
@@ -48,7 +49,7 @@ abstract class HttpReader(
             .build()
 
         var build = HttpClient.create(connectionProvider)
-            .compress(true)
+            .compress(compress)
             .resolver(DefaultAddressResolverGroup.INSTANCE)
 
         if (metrics?.nettyMetricsEnabled ?: false) {

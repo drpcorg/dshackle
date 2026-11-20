@@ -22,6 +22,7 @@ class BasicHttpFactory(
     private val httpScheduler: Scheduler,
     private val customHeaders: Map<String, String> = emptyMap(),
     private val bearerAuth: AuthConfig.ClientBearerAuth? = null,
+    private val compress: Boolean = true,
 ) : HttpFactory {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -51,8 +52,8 @@ class BasicHttpFactory(
         )
 
         if (chain.type.apiType == ApiType.REST) {
-            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls, customHeaders, bearerAuth)
+            return RestHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, chain, basicAuth, tls, customHeaders, bearerAuth, compress)
         }
-        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls, customHeaders, bearerAuth)
+        return JsonRpcHttpReader(url, maxConnections, queueSize, metrics, httpScheduler, basicAuth, tls, customHeaders, bearerAuth, compress)
     }
 }

@@ -37,7 +37,8 @@ class RestHttpReader(
     tlsCAAuth: ByteArray? = null,
     customHeaders: Map<String, String> = emptyMap(),
     bearerAuth: AuthConfig.ClientBearerAuth? = null,
-) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth, customHeaders, bearerAuth) {
+    compress: Boolean = true,
+) : HttpReader(target, maxConnections, queueSize, metrics, basicAuth, tlsCAAuth, customHeaders, bearerAuth, compress) {
 
     private val parser = ResponseRpcParser()
     private val requestParser = RestRequestParser
