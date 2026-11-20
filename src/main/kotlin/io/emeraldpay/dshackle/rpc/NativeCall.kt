@@ -50,6 +50,7 @@ import io.emeraldpay.dshackle.upstream.rpcclient.ObjectParams
 import io.emeraldpay.dshackle.upstream.rpcclient.RestParams
 import io.emeraldpay.dshackle.upstream.signature.ResponseSigner
 import io.emeraldpay.dshackle.upstream.stream.Chunk
+import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.Metrics
 import org.apache.commons.lang3.StringUtils
 import org.reactivestreams.Publisher
@@ -70,6 +71,10 @@ open class NativeCall(
     private val objectMapper: ObjectMapper = Global.objectMapper
 
     private val passthrough = config.passthrough
+    private val unstreamBounded = config.requests.unstreamBounded
+    private val unstreamedMetric = Counter.builder("request.grpc.unstreamed")
+        .description("Number of stream requests with a bounded response that were executed as a regular request")
+        .register(Metrics.globalRegistry)
 
     var requestReaderFactory: RequestReaderFactory = RequestReaderFactory.default()
 
@@ -453,6 +458,11 @@ open class NativeCall(
         var streamRequest = ctx.streamRequest
         if (isRipple) {
             streamRequest = false
+        }
+        if (streamRequest && unstreamBounded && DefaultEthereumMethods.hasBoundedResponse(ctx.payload.method, ctx.payload.params)) {
+            // a small response doesn't need to be streamed, and as a regular response it's signed and checked by the quorum
+            streamRequest = false
+            unstreamedMetric.increment()
         }
 
         return reader
