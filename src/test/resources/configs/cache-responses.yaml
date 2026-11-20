@@ -1,0 +1,4 @@
+cache:
+  responses:
+    enabled: true
+    max-memory-mb: 64

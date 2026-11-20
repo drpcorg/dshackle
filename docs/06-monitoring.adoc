@@ -97,6 +97,12 @@ monitoring:
 Where `jvm` options enabled monitoring of the JVM internals, such as memory, GC, threads, etc.
 And `extended` enables additional metrics for query selectors, etc.
 
+Metrics of the recent blocks and responses caches (see `cache.recent-blocks` and `cache.responses` in the link:reference-configuration.adoc[reference configuration]):
+
+- `dshackle_local_cache_block_by_number_total{chain,result,reason}` - `eth_getBlockByNumber` requests answered from the cache (`hit`), or not (`miss`, with a reason)
+- `dshackle_local_cache_block_first_request_total{chain,result}` - if the first request for a recent block has found it in the cache
+- `dshackle_local_cache_response_total{chain,method,result}` - requests answered from the responses cache (`hit`), or not (`miss`)
+
 == Grafana Dashboard
 
 Simple Grafana dashboard available link:../dashboard/dshackle.json[here]
