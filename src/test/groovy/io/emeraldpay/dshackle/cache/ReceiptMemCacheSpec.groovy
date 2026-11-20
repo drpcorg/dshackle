@@ -100,4 +100,21 @@ class ReceiptMemCacheSpec extends Specification {
         act == null
     }
 
+
+    def "Accepts only receipts of recent blocks"() {
+        setup:
+        def cache = new ReceiptMemCache(6)
+
+        expect:
+        cache.acceptsRecentBlocks(delta) == accepted
+
+        where:
+        delta | accepted
+        0     | true
+        1     | true
+        6     | true
+        7     | false
+        100   | false
+        -1    | false
+    }
 }

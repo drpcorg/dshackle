@@ -58,6 +58,6 @@ open class ReceiptMemCache(
     }
 
     open fun acceptsRecentBlocks(heightDelta: Long): Boolean {
-        return blocks <= heightDelta && heightDelta >= 0
+        return heightDelta in 0..blocks
     }
 }
