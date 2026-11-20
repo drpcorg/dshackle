@@ -136,6 +136,40 @@ class NativeCallSpec extends Specification {
         resp.nonce == 10
     }
 
+    def "Bounded stream request is executed as a regular one when unstream-bounded is enabled"() {
+        setup:
+        def config = new MainConfig()
+        config.cache = new CacheConfig()
+        config.requests.unstreamBounded = enabled
+        def nativeCall = new NativeCall(Stub(MultistreamHolder), Stub(ResponseSigner), config)
+        def streamed = []
+        nativeCall.requestReaderFactory = Mock(RequestReaderFactory) {
+            _ * create(_) >> Mock(RequestReader) {
+                _ * read(_) >> { args ->
+                    streamed << args[0].isStreamed
+                    Mono.just(new RequestReader.Result("\"0x1\"".bytes, null, 1, List.of(new Upstream.UpstreamSettingsData((byte)1, "test", "v")), null))
+                }
+            }
+        }
+        def call = { String method, ListParams params ->
+            new NativeCall.ValidCallContext<NativeCall.ParsedCallDetails>(1, null, TestingCommons.multistream(TestingCommons.api()),
+                    new Selector.UpstreamFilter(Selector.empty), new AlwaysQuorum(),
+                    new NativeCall.ParsedCallDetails(method, params),
+                    new NativeCall.NoneRequestDecorator(), new NativeCall.NoneResultDecorator(), null, true, "reqId", 1)
+        }
+
+        when:
+        nativeCall.executeOnRemote(call("eth_call", new ListParams([[to: "0x1"], "latest"]))).block(Duration.ofSeconds(1))
+        nativeCall.executeOnRemote(call("eth_getLogs", new ListParams([[fromBlock: "0x1", toBlock: "0x100"]]))).block(Duration.ofSeconds(1))
+        then:
+        streamed == expected
+
+        where:
+        enabled | expected
+        true    | [false, true]
+        false   | [true, true]
+    }
+
     def "Returns error if no quorum"() {
         setup:
         def quorum = new AlwaysQuorum()

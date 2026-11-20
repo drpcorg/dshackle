@@ -1,6 +1,7 @@
 package io.emeraldpay.dshackle.upstream.calls
 
 import io.emeraldpay.dshackle.Chain
+import io.emeraldpay.dshackle.upstream.rpcclient.ListParams
 import spock.lang.Specification
 
 class DefaultEthereumMethodsSpec extends Specification {
@@ -128,5 +129,26 @@ class DefaultEthereumMethodsSpec extends Specification {
         "eth_getUncleCountByBlockNumber"            | _
         "eth_getUncleByBlockNumberAndIndex"         | _
         "eth_feeHistory"                            | _
+    }
+
+    def "Knows requests with a bounded response"() {
+        expect:
+        DefaultEthereumMethods.hasBoundedResponse(method, new ListParams(params)) == bounded
+
+        where:
+        method                      | params                                    | bounded
+        "eth_call"                  | [[to: "0x1"], "latest"]                   | true
+        "eth_getBalance"            | ["0x1", "latest"]                         | true
+        "eth_getBlockByNumber"      | ["0x10", true]                            | true
+        "eth_getTransactionReceipt" | ["0x1"]                                   | true
+        "eth_getBlockReceipts"      | ["0x10"]                                  | true
+        "eth_getLogs"               | [[blockHash: "0xabc"]]                    | true
+        "eth_getLogs"               | [[fromBlock: "0x10", toBlock: "0x10"]]    | true
+        "eth_getLogs"               | [[fromBlock: "0x10", toBlock: "0x20"]]    | false
+        "eth_getLogs"               | [[fromBlock: "latest", toBlock: "latest"]] | false
+        "eth_getLogs"               | [[address: "0x1"]]                        | false
+        "debug_traceBlockByNumber"  | ["0x10"]                                  | false
+        "trace_block"               | ["0x10"]                                  | false
+        "eth_sendRawTransaction"    | ["0x00"]                                  | false
     }
 }

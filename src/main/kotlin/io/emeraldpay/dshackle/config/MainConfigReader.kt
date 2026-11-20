@@ -34,6 +34,7 @@ class MainConfigReader(
     private val accessLogReader = AccessLogReader()
     private val healthConfigReader = HealthConfigReader()
     private val compressionConfigReader = CompressionConfigReader()
+    private val requestsConfigReader = RequestsConfigReader()
     private val chainsConfigReader = ChainsConfigReader(optionsReader)
     private val authorizationConfigReader = AuthorizationConfigReader()
 
@@ -73,6 +74,9 @@ class MainConfigReader(
         }
         healthConfigReader.read(input).let {
             config.health = it
+        }
+        requestsConfigReader.read(input).let {
+            config.requests = it
         }
         compressionConfigReader.read(input).let {
             config.compression = it
