@@ -117,6 +117,36 @@ class EthereumFinalizationDetectorTest {
     }
 
     @Test
+    fun `disable detector if the tag is not supported by tron`() {
+        val reader = mock<ChainReader> {
+            on {
+                read(ChainRequest("eth_getBlockByNumber", ListParams("safe", false), 1))
+            } doReturn Mono.just(ChainResponse(null, ChainCallError(-32602, "TAG safe not supported")))
+            on {
+                read(ChainRequest("eth_getBlockByNumber", ListParams("finalized", false), 2))
+            } doReturn response(2) doReturn response(10)
+        }
+
+        val upstream = mock<Upstream> {
+            on { getIngressReader() } doReturn reader
+        }
+
+        val detector = EthereumFinalizationDetector()
+
+        StepVerifier.withVirtualTime { detector.detectFinalization(upstream, Duration.ofSeconds(3), Chain.TRON__MAINNET) }
+            .expectSubscription()
+            .thenAwait(Duration.ofSeconds(0))
+            .expectNext(FinalizationData(2L, FinalizationType.FINALIZED_BLOCK))
+            .thenAwait(Duration.ofSeconds(15))
+            .expectNext(FinalizationData(10L, FinalizationType.FINALIZED_BLOCK))
+            .thenCancel()
+            .verify(Duration.ofSeconds(1))
+
+        verify(reader).read(ChainRequest("eth_getBlockByNumber", ListParams("safe", false), 1))
+        verify(reader, times(2)).read(ChainRequest("eth_getBlockByNumber", ListParams("finalized", false), 2))
+    }
+
+    @Test
     fun `ignore response if it cannot be parsed`() {
         val reader = mock<ChainReader> {
             on {
